@@ -202,3 +202,44 @@ class Order(Base):
     
     def __repr__(self) -> str:
         return f"<Order(id={self.id}, driver_id={self.driver_id}, status={self.status.value})>"
+
+
+class DriverLocationHistory(Base):
+    """
+    История перемещений водителя.
+    
+    Используется фоновым воркером для пакетной записи координат из Redis.
+    Служит для построения треков в интерфейсе диспетчера.
+    """
+    __tablename__ = "driver_location_history"
+    
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    driver_id: Mapped[int] = mapped_column(
+        ForeignKey("drivers.id", ondelete="CASCADE"),
+        index=True,
+        comment="ID водителя"
+    )
+    location: Mapped[str] = mapped_column(
+        Geometry(geometry_type="POINT", srid=4326),
+        comment="Координаты (WGS84)"
+    )
+    recorded_at: Mapped[datetime] = mapped_column(
+        index=True,
+        comment="Время фиксации координат водителем"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        default=datetime.utcnow,
+        server_default=text("CURRENT_TIMESTAMP"),
+        comment="Время записи в БД"
+    )
+    
+    # Relationships
+    driver: Mapped["Driver"] = relationship("Driver", backref="location_history")
+    
+    __table_args__ = (
+        # Индекс для ускорения запросов по водителю и времени
+        Index("ix_driver_location_time", "driver_id", "recorded_at"),
+    )
+    
+    def __repr__(self) -> str:
+        return f"<DriverLocationHistory(driver_id={self.driver_id}, recorded_at={self.recorded_at})>"

@@ -11,20 +11,37 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.config import settings
 from src.database.connection import close_db, init_db
+from src.core.logging import configure_logging, get_logger
+from src.core.middleware import CorrelationIdMiddleware
+from src.api.routes import router as api_router
+from src.api.dependencies import get_redis
+from src.workers.sync_worker import SyncLocationWorker
+from src.services.location_manager import LocationManager
+
+import asyncio
+
+logger = get_logger(__name__)
+configure_logging(settings.LOG_LEVEL)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager."""
     # Startup
-    if settings.DEBUG:
-        # В debug режиме можно инициализировать БД напрямую
-        # В продакшене используйте Alembic
-        pass
+    logger.info("app_starting", env=settings.APP_ENV)
+    
+    # Инициализация Redis для воркера
+    async for redis in get_redis():
+        location_mgr = LocationManager(redis)
+        worker = SyncLocationWorker(location_mgr)
+        # Запускаем фоновый воркер
+        asyncio.create_task(worker.run())
+        break # Нам нужен только один клиент для старта задачи
     
     yield
     
     # Shutdown
+    logger.info("app_stopping")
     await close_db()
 
 
@@ -43,6 +60,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Correlation ID and Logging context
+app.add_middleware(CorrelationIdMiddleware)
+
+# API Routes
+app.include_router(api_router, prefix="/api")
 
 
 @app.get("/health")
