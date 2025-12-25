@@ -3,7 +3,6 @@ from sqlalchemy.exc import IntegrityError
 from typing import List
 
 from src.schemas.order import OrderCreate, OrderResponse, OrderMoveRequest, LocationUpdate
-from src.schemas.location import DriverLocation # Можно импортировать из location_manager для краткости
 from src.services.order_service import OrderService
 from src.services.location_manager import LocationManager, DriverLocation
 from src.api.dependencies import get_order_service, get_location_manager

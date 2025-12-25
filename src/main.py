@@ -43,6 +43,7 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("app_stopping")
     await close_db()
+    # await init_db()  # Используем alembic вместо автоматического создания
 
 
 app = FastAPI(
