@@ -10,7 +10,18 @@ from typing import AsyncGenerator
 
 import pytest
 import pytest_asyncio
+import sys
+from unittest.mock import MagicMock
+
+try:
+    import geoalchemy2
+except ImportError:
+    mock_geo = MagicMock()
+    sys.modules["geoalchemy2"] = mock_geo
+    sys.modules["geoalchemy2.functions"] = mock_geo
+
 from sqlalchemy import text
+
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
