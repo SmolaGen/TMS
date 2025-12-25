@@ -40,24 +40,20 @@ def upgrade() -> None:
     # postgis - нужен для работы с географическими данными
     op.execute("CREATE EXTENSION IF NOT EXISTS postgis;")
     
-    # 2. Создаём ENUM типы
-    driver_status = sa.Enum(
-        "available", "busy", "offline",
-        name="driver_status"
-    )
-    driver_status.create(op.get_bind(), checkfirst=True)
-    
-    order_status = sa.Enum(
-        "pending", "assigned", "in_progress", "completed", "cancelled",
-        name="order_status"
-    )
-    order_status.create(op.get_bind(), checkfirst=True)
-    
-    order_priority = sa.Enum(
-        "low", "normal", "high", "urgent",
-        name="order_priority"
-    )
-    order_priority.create(op.get_bind(), checkfirst=True)
+    # 2. Создаём ENUM типы (идемпотентно)
+    op.execute("""
+        DO $$ BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'driver_status') THEN
+                CREATE TYPE driver_status AS ENUM ('available', 'busy', 'offline');
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'order_status') THEN
+                CREATE TYPE order_status AS ENUM ('pending', 'assigned', 'in_progress', 'completed', 'cancelled');
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'order_priority') THEN
+                CREATE TYPE order_priority AS ENUM ('low', 'normal', 'high', 'urgent');
+            END IF;
+        END $$;
+    """)
     
     # 3. Создаём таблицу drivers
     op.create_table(
@@ -84,7 +80,7 @@ def upgrade() -> None:
         ),
         sa.Column(
             "status",
-            sa.Enum("available", "busy", "offline", name="driver_status"),
+            sa.Enum("available", "busy", "offline", name="driver_status", create_type=False),
             server_default="offline",
             nullable=False,
             comment="Текущий статус"
@@ -120,14 +116,14 @@ def upgrade() -> None:
         ),
         sa.Column(
             "status",
-            sa.Enum("pending", "assigned", "in_progress", "completed", "cancelled", name="order_status"),
+            sa.Enum("pending", "assigned", "in_progress", "completed", "cancelled", name="order_status", create_type=False),
             server_default="pending",
             nullable=False,
             comment="Статус заказа"
         ),
         sa.Column(
             "priority",
-            sa.Enum("low", "normal", "high", "urgent", name="order_priority"),
+            sa.Enum("low", "normal", "high", "urgent", name="order_priority", create_type=False),
             server_default="normal",
             nullable=False,
             comment="Приоритет заказа"
