@@ -37,5 +37,13 @@ class Settings(BaseSettings):
     # Logging
     LOG_LEVEL: str = "INFO"
 
+    # Telegram Bot
+    TELEGRAM_BOT_TOKEN: str = "your-bot-token"
+    TELEGRAM_WEBHOOK_URL: str = "https://myappnf.ru/bot/webhook"
+    WEBAPP_URL: str = "https://myappnf.ru/webapp"
+
+    # Idempotency
+    IDEMPOTENCY_TTL_SECONDS: int = 86400  # 24 часа
+
 
 settings = Settings()

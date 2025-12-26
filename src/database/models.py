@@ -65,6 +65,7 @@ class Driver(Base):
         status: Текущий статус водителя
         created_at: Дата создания записи
         updated_at: Дата последнего обновления
+        is_active: Флаг активности (разрешен ли вход в бот)
     """
     __tablename__ = "drivers"
     
@@ -99,6 +100,11 @@ class Driver(Base):
         server_default=text("CURRENT_TIMESTAMP"),
         onupdate=datetime.utcnow
     )
+    is_active: Mapped[bool] = mapped_column(
+        default=True,
+        server_default=text("true"),
+        comment="Флаг активности (разрешен ли вход в бот)"
+    )
     
     # Relationships
     orders: Mapped[list["Order"]] = relationship(
@@ -108,7 +114,7 @@ class Driver(Base):
     )
     
     def __repr__(self) -> str:
-        return f"<Driver(id={self.id}, name='{self.name}', status={self.status.value})>"
+        return f"<Driver(id={self.id}, name='{self.name}', status={self.status.value}, is_active={self.is_active})>"
 
 
 class Order(Base):
