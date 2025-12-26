@@ -11,12 +11,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.config import settings
 from src.database.connection import close_db, init_db
-from src.core.logging import configure_logging, get_logger
-from src.core.middleware import CorrelationIdMiddleware
-from src.api.routes import router as api_router
-from src.api.dependencies import get_redis
-from src.workers.sync_worker import SyncLocationWorker
 from src.services.location_manager import LocationManager
+from src.bot.main import create_bot, setup_webhook
+from aiogram.types import Update
 
 import asyncio
 
@@ -37,6 +34,16 @@ async def lifespan(app: FastAPI):
         # Запускаем фоновый воркер
         asyncio.create_task(worker.run())
         break # Нам нужен только один клиент для старта задачи
+
+    # Инициализация Бота
+    bot, dp = await create_bot()
+    app.state.bot = bot
+    app.state.dp = dp
+
+    # Установка webhook (только в prod/staging, при наличии URL)
+    if settings.TELEGRAM_WEBHOOK_URL and "your-bot-token" not in settings.TELEGRAM_BOT_TOKEN:
+        await setup_webhook(bot)
+        logger.info("bot_webhook_set", url=settings.TELEGRAM_WEBHOOK_URL)
     
     yield
     
@@ -73,6 +80,17 @@ app.include_router(api_router, prefix="/api")
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "service": "tms-backend"}
+
+
+@app.post("/bot/webhook")
+async def bot_webhook(update: dict):
+    """Эндпоинт для получения обновлений от Telegram."""
+    bot = app.state.bot
+    dp = app.state.dp
+    
+    telegram_update = Update.model_validate(update, context={"bot": bot})
+    await dp.feed_update(bot, telegram_update)
+    return {"ok": True}
 
 
 @app.get("/")
