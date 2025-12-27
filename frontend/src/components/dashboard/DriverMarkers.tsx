@@ -45,6 +45,12 @@ export const DriverMarkers: React.FC<DriverMarkersProps> = ({ drivers, onDriverC
     // Хранилище маркеров: driver_id -> L.Marker
     const markersRef = useRef<Map<number, L.Marker>>(new Map());
 
+    // Помощник для безопасного получения иконки
+    const getIcon = useCallback((status?: DriverStatus) => {
+        if (status && icons[status]) return icons[status];
+        return icons.available;
+    }, []);
+
     // Для плавной анимации
     const animationFrameRef = useRef<number | null>(null);
     const targetPositionsRef = useRef<Map<number, L.LatLng>>(new Map());
@@ -104,7 +110,7 @@ export const DriverMarkers: React.FC<DriverMarkersProps> = ({ drivers, onDriverC
 
             if (!marker) {
                 // Создаём новый маркер
-                marker = L.marker(newLatLng, { icon: icons[driver.status] })
+                marker = L.marker(newLatLng, { icon: getIcon(driver.status) })
                     .addTo(map)
                     .bindTooltip(`Водитель #${driver.driver_id}`, { permanent: false });
 
@@ -116,7 +122,7 @@ export const DriverMarkers: React.FC<DriverMarkersProps> = ({ drivers, onDriverC
             } else {
                 // Обновляем существующий - устанавливаем целевую позицию для анимации
                 targetPositionsRef.current.set(driver.driver_id, newLatLng);
-                marker.setIcon(icons[driver.status]);
+                marker.setIcon(getIcon(driver.status));
             }
         }
 
@@ -124,7 +130,7 @@ export const DriverMarkers: React.FC<DriverMarkersProps> = ({ drivers, onDriverC
         if (!animationFrameRef.current && targetPositionsRef.current.size > 0) {
             animationFrameRef.current = requestAnimationFrame(animateMarkers);
         }
-    }, [drivers, map, onDriverClick, animateMarkers]);
+    }, [drivers, map, onDriverClick, animateMarkers, getIcon]);
 
     // Cleanup при размонтировании - предотвращаем утечки памяти
     useEffect(() => {

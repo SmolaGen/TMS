@@ -13,6 +13,7 @@ class DriverLocation(BaseModel):
     driver_id: int
     latitude: float
     longitude: float
+    status: str = "available"
     timestamp: datetime
 
 class LocationEntry(BaseModel):
@@ -45,6 +46,7 @@ class LocationManager:
         driver_id: int,
         latitude: float,
         longitude: float,
+        status: str = "available",
         timestamp: Optional[datetime] = None
     ) -> None:
         """
@@ -60,6 +62,7 @@ class LocationManager:
         hash_data = {
             "lat": latitude,
             "lon": longitude,
+            "status": status,
             "ts": ts_iso
         }
 
@@ -117,6 +120,7 @@ class LocationManager:
                 driver_id=d_id,
                 latitude=float(data[b"lat"]),
                 longitude=float(data[b"lon"]),
+                status=data.get(b"status", b"available").decode(),
                 timestamp=datetime.fromisoformat(data[b"ts"].decode())
             ))
         
@@ -134,6 +138,7 @@ class LocationManager:
             driver_id=driver_id,
             latitude=float(data[b"lat"]),
             longitude=float(data[b"lon"]),
+            status=data.get(b"status", b"available").decode(),
             timestamp=datetime.fromisoformat(data[b"ts"].decode())
         )
 

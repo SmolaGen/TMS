@@ -6,16 +6,16 @@ FastAPI приложение для управления транспортом.
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.config import settings
-from src.database.connection import close_db, init_db
-from src.services.location_manager import LocationManager
+from src.database.connection import close_db
 from src.bot.main import create_bot, setup_webhook
+from src.core.logging import get_logger, configure_logging
+from src.core.middleware import CorrelationIdMiddleware
+from src.api.routes import router as api_router
 from aiogram.types import Update
-
-import asyncio
 
 logger = get_logger(__name__)
 configure_logging(settings.LOG_LEVEL)
@@ -27,23 +27,25 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("app_starting", env=settings.APP_ENV)
     
-    # Инициализация Redis для воркера
-    async for redis in get_redis():
-        location_mgr = LocationManager(redis)
-        worker = SyncLocationWorker(location_mgr)
-        # Запускаем фоновый воркер
-        asyncio.create_task(worker.run())
-        break # Нам нужен только один клиент для старта задачи
+    # Инициализация Redis (для LocationManager в API)
+    # NOTE: ingest_worker запускается как отдельный процесс (не в lifespan)
+    # Это обеспечивает масштабируемость и отказоустойчивость
+    logger.info("lifespan_redis_ready")
 
-    # Инициализация Бота
-    bot, dp = await create_bot()
-    app.state.bot = bot
-    app.state.dp = dp
+    # Инициализация Бота (graceful fallback если токен невалидный)
+    try:
+        bot, dp = await create_bot()
+        app.state.bot = bot
+        app.state.dp = dp
 
-    # Установка webhook (только в prod/staging, при наличии URL)
-    if settings.TELEGRAM_WEBHOOK_URL and "your-bot-token" not in settings.TELEGRAM_BOT_TOKEN:
-        await setup_webhook(bot)
-        logger.info("bot_webhook_set", url=settings.TELEGRAM_WEBHOOK_URL)
+        # Установка webhook (только в prod/staging, при наличии URL)
+        if settings.TELEGRAM_WEBHOOK_URL and "your-bot-token" not in settings.TELEGRAM_BOT_TOKEN:
+            await setup_webhook(bot)
+            logger.info("bot_webhook_set", url=settings.TELEGRAM_WEBHOOK_URL)
+    except Exception as e:
+        logger.warning("bot_init_failed", error=str(e))
+        app.state.bot = None
+        app.state.dp = None
     
     yield
     
@@ -91,6 +93,19 @@ async def bot_webhook(update: dict):
     telegram_update = Update.model_validate(update, context={"bot": bot})
     await dp.feed_update(bot, telegram_update)
     return {"ok": True}
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    """WebSocket эндпоинт для real-time обновлений."""
+    await websocket.accept()
+    logger.info("websocket_connected")
+    try:
+        while True:
+            # Пока просто держим соединение живым
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        logger.info("websocket_disconnected")
 
 
 @app.get("/")

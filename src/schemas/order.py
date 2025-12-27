@@ -38,4 +38,5 @@ class LocationUpdate(BaseModel):
     """Схема обновления координат водителем."""
     latitude: float = Field(..., ge=-90, le=90)
     longitude: float = Field(..., ge=-180, le=180)
+    status: Optional[str] = "available"
     timestamp: Optional[datetime] = None
