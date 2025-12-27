@@ -119,6 +119,31 @@ services:
     networks:
       - tms-network
 
+  # High-Throughput Location Ingest Worker
+  ingest-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tms-ingest-worker
+    restart: unless-stopped
+    command: python -m src.workers.ingest_worker
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-tms}:${POSTGRES_PASSWORD:-tms_secret}@postgis:5432/${POSTGRES_DB:-tms_db}
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./src:/app/src
+    depends_on:
+      postgis:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      replicas: 1  # Увеличить для параллельной обработки
+    networks:
+      - tms-network
+
 networks:
   tms-network:
     driver: bridge
