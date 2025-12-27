@@ -25,12 +25,16 @@ class LocationEntry(BaseModel):
 class LocationManager:
     """
     Класс для управления геолокацией водителей через Redis.
-    Использует Redis Hash для текущих координат и Redis Stream для истории (синхронизация с БД).
+    
+    Использует:
+    - Redis Hash для текущих координат (real-time карта)
+    - Единый Redis Stream для истории (High-Throughput Ingestion в PostgreSQL)
     """
 
-    KEY_PREFIX = "driver:loc"      # Hash: {driver_id} -> {lat, lon, ts}
-    SET_ACTIVE = "drivers:active"  # Set: [driver_id, ...]
-    STREAM_PREFIX = "driver:stream" # Stream: {driver_id} -> [points...]
+    KEY_PREFIX = "driver:loc"           # Hash: {driver_id} -> {lat, lon, ts}
+    SET_ACTIVE = "drivers:active"       # Set: [driver_id, ...]
+    STREAM_NAME = "driver:locations"    # Единый Stream для всех водителей
+    STREAM_MAXLEN = 100000              # Защита от переполнения RAM (~100K записей)
     TTL = 300  # 5 минут
 
     def __init__(self, redis: Redis):
@@ -45,32 +49,44 @@ class LocationManager:
     ) -> None:
         """
         Сохраняет координаты в Redis.
-        1. Записывает текущую позицию (TTL 5 мин)
-        2. Добавляет ID в список активных
-        3. Пишет в Stream для последующей синхронизации с PostgreSQL
+        
+        1. Записывает текущую позицию (Hash с TTL 5 мин) - для real-time карты
+        2. Добавляет ID в список активных водителей (Set)
+        3. Пишет в единый Redis Stream с MAXLEN для High-Throughput Ingestion
         """
         ts = timestamp or datetime.now(timezone.utc)
         ts_iso = ts.isoformat()
 
-        loc_data = {
+        hash_data = {
             "lat": latitude,
             "lon": longitude,
             "ts": ts_iso
         }
 
-        # 1. Текущая позиция (Hash)
+        # 1. Текущая позиция (Hash) - для диспетчерской карты
         key = f"{self.KEY_PREFIX}:{driver_id}"
-        await self.redis.hset(key, mapping=loc_data)
+        await self.redis.hset(key, mapping=hash_data)
         await self.redis.expire(key, self.TTL)
 
         # 2. Список активных водителей (Set)
         await self.redis.sadd(self.SET_ACTIVE, driver_id)
 
-        # 3. Добавляем в стрим для воркера
-        stream_key = f"{self.STREAM_PREFIX}:{driver_id}"
-        await self.redis.xadd(stream_key, loc_data)
+        # 3. Единый Stream для воркера с MAXLEN защитой от переполнения RAM
+        # MAXLEN ~ (approximate) позволяет O(1) обрезку вместо O(N)
+        stream_data = {
+            "driver_id": str(driver_id),
+            "lat": str(latitude),
+            "lon": str(longitude),
+            "ts": ts_iso
+        }
+        await self.redis.xadd(
+            self.STREAM_NAME,
+            stream_data,
+            maxlen=self.STREAM_MAXLEN,
+            approximate=True  # ~ в MAXLEN для производительности
+        )
 
-        logger.info(
+        logger.debug(
             "location_updated",
             driver_id=driver_id,
             lat=latitude,
