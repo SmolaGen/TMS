@@ -73,6 +73,7 @@ async def update_location(
         driver_id=driver_id,
         latitude=data.latitude,
         longitude=data.longitude,
+        status=data.status or "available",
         timestamp=data.timestamp
     )
     return None

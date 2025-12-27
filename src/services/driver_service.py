@@ -19,7 +19,8 @@ class DriverService:
                 telegram_id=data.telegram_id,
                 name=data.name,
                 phone=data.phone,
-                status=DriverStatus.OFFLINE
+                status=DriverStatus.OFFLINE,
+                is_active=data.is_active
             )
             self.uow.drivers.add(driver)
             await self.uow.commit()

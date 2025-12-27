@@ -2,8 +2,7 @@ from typing import Any, Awaitable, Callable, Dict
 from aiogram import BaseMiddleware
 from aiogram.types import Message, TelegramObject
 
-from src.database.uow import SqlAlchemyUnitOfWork
-from src.database.connection import async_session
+from src.database.uow import SQLAlchemyUnitOfWork
 
 class AuthMiddleware(BaseMiddleware):
     """
@@ -24,12 +23,10 @@ class AuthMiddleware(BaseMiddleware):
         telegram_id = event.from_user.id
         
         # Проверка в БД
-        async with async_session() as session:
-            uow = SqlAlchemyUnitOfWork(session)
-            async with uow:
-                driver = await uow.drivers.get_by_attribute(
-                    "telegram_id", telegram_id
-                )
+        async with SQLAlchemyUnitOfWork() as uow:
+            driver = await uow.drivers.get_by_attribute(
+                "telegram_id", telegram_id
+            )
         
         if driver is None:
             # Водитель не зарегистрирован

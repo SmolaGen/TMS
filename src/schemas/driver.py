@@ -7,6 +7,7 @@ class DriverBase(BaseModel):
     telegram_id: int = Field(..., description="Telegram user ID")
     name: str = Field(..., min_length=1, max_length=255)
     phone: Optional[str] = Field(None, max_length=20)
+    is_active: bool = Field(True, description="Флаг активности водителя")
 
 class DriverCreate(DriverBase):
     pass
@@ -15,6 +16,7 @@ class DriverUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     phone: Optional[str] = Field(None, max_length=20)
     status: Optional[DriverStatus] = None
+    is_active: Optional[bool] = None
 
 class DriverResponse(DriverBase):
     model_config = ConfigDict(from_attributes=True)
