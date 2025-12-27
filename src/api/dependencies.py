@@ -26,6 +26,8 @@ def get_location_manager(redis: Redis = Depends(get_redis)) -> LocationManager:
     """Провайдер сервиса геолокации."""
     return LocationManager(redis)
 
-def get_order_service(uow: SQLAlchemyUnitOfWork = Depends(get_uow)) -> OrderService:
-    """Провайдер сервиса заказов."""
-    return OrderService(uow)
+from src.services.driver_service import DriverService
+
+def get_driver_service(uow: SQLAlchemyUnitOfWork = Depends(get_uow)) -> DriverService:
+    """Провайдер сервиса водителей."""
+    return DriverService(uow)

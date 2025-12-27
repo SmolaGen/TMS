@@ -3,9 +3,11 @@ from sqlalchemy.exc import IntegrityError
 from typing import List
 
 from src.schemas.order import OrderCreate, OrderResponse, OrderMoveRequest, LocationUpdate
+from src.schemas.driver import DriverCreate, DriverResponse, DriverUpdate
 from src.services.order_service import OrderService
+from src.services.driver_service import DriverService
 from src.services.location_manager import LocationManager, DriverLocation
-from src.api.dependencies import get_order_service, get_location_manager
+from src.api.dependencies import get_order_service, get_location_manager, get_driver_service
 from src.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -77,3 +79,47 @@ async def update_location(
         timestamp=data.timestamp
     )
     return None
+
+
+# --- Driver Management ---
+
+@router.post("/drivers", response_model=DriverResponse, status_code=status.HTTP_201_CREATED)
+async def register_driver(
+    data: DriverCreate,
+    service: DriverService = Depends(get_driver_service)
+):
+    """Регистрация нового водителя."""
+    try:
+        return await service.register_driver(data)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/drivers", response_model=List[DriverResponse])
+async def list_drivers(
+    service: DriverService = Depends(get_driver_service)
+):
+    """Получить список всех водителей."""
+    return await service.get_all_drivers()
+
+@router.get("/drivers/{driver_id}", response_model=DriverResponse)
+async def get_driver(
+    driver_id: int,
+    service: DriverService = Depends(get_driver_service)
+):
+    """Информация о конкретном водителе."""
+    driver = await service.get_driver(driver_id)
+    if not driver:
+        raise HTTPException(status_code=404, detail="Driver not found")
+    return driver
+
+@router.patch("/drivers/{driver_id}", response_model=DriverResponse)
+async def update_driver(
+    driver_id: int,
+    data: DriverUpdate,
+    service: DriverService = Depends(get_driver_service)
+):
+    """Обновить данные водителя (включая статус и активность)."""
+    driver = await service.update_driver(driver_id, data)
+    if not driver:
+        raise HTTPException(status_code=404, detail="Driver not found")
+    return driver
