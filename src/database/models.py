@@ -86,7 +86,7 @@ class Driver(Base):
         comment="Номер телефона"
     )
     status: Mapped[DriverStatus] = mapped_column(
-        Enum(DriverStatus, name="driver_status", create_constraint=True),
+        Enum(DriverStatus, name="driver_status", values_callable=lambda x: [e.value for e in x]),
         default=DriverStatus.OFFLINE,
         server_default=text("'offline'"),
         comment="Текущий статус"
@@ -149,13 +149,13 @@ class Order(Base):
         comment="FK на водителя"
     )
     status: Mapped[OrderStatus] = mapped_column(
-        Enum(OrderStatus, name="order_status", create_constraint=True),
+        Enum(OrderStatus, name="order_status", values_callable=lambda x: [e.value for e in x]),
         default=OrderStatus.PENDING,
         server_default=text("'pending'"),
         comment="Статус заказа"
     )
     priority: Mapped[OrderPriority] = mapped_column(
-        Enum(OrderPriority, name="order_priority", create_constraint=True),
+        Enum(OrderPriority, name="order_priority", values_callable=lambda x: [e.value for e in x]),
         default=OrderPriority.NORMAL,
         server_default=text("'normal'"),
         comment="Приоритет заказа"
