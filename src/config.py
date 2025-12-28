@@ -45,5 +45,13 @@ class Settings(BaseSettings):
     # Idempotency
     IDEMPOTENCY_TTL_SECONDS: int = 86400  # 24 часа
 
+    # Security
+    APP_DOMAIN: str = "myappnf.ru"
+    CORS_ORIGINS: str = "https://myappnf.ru,https://www.myappnf.ru"
+    
+    # Rate Limiting (SlowAPI)
+    RATE_LIMIT_DEFAULT: str = "100/minute"
+    RATE_LIMIT_LOCATION: str = "30/minute"  # Защита high-throughput GPS endpoint
+
 
 settings = Settings()

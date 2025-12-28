@@ -10,8 +10,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-tms}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tms_secret}
       POSTGRES_DB: ${POSTGRES_DB:-tms_db}
-    ports:
-      - "5433:5432"
+    # ports:
+    #   - "5433:5432"  # Закрыт для внешнего доступа (production)
     volumes:
       - postgis_data:/var/lib/postgresql/data
     healthcheck:
@@ -27,8 +27,8 @@ services:
     image: redis:7-alpine
     container_name: tms-redis
     restart: unless-stopped
-    ports:
-      - "6379:6379"
+    # ports:
+    #   - "6379:6379"  # Закрыт для внешнего доступа (production)
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes
@@ -143,6 +143,30 @@ services:
       replicas: 1  # Увеличить для параллельной обработки
     networks:
       - tms-network
+
+  # Nginx Reverse Proxy (SSL, Gzip, Static)
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: tms-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Frontend build
+      - ./frontend/dist:/usr/share/nginx/html:ro
+      # SSL certificates (Let's Encrypt)
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      # Certbot challenges
+      - ./certbot/www:/var/www/certbot:ro
+    depends_on:
+      - backend
+    networks:
+      - tms-network
+    profiles:
+      - production  # Включается только с --profile production
 
 networks:
   tms-network:
