@@ -40,6 +40,7 @@ class OrderStatus(str, PyEnum):
     """Статусы заказа."""
     PENDING = "pending"          # Ожидает назначения водителя
     ASSIGNED = "assigned"        # Назначен водитель
+    DRIVER_ARRIVED = "driver_arrived"  # Водитель прибыл на точку
     IN_PROGRESS = "in_progress"  # Выполняется
     COMPLETED = "completed"      # Завершён
     CANCELLED = "cancelled"      # Отменён
@@ -190,6 +191,29 @@ class Order(Base):
         default=datetime.utcnow,
         server_default=text("CURRENT_TIMESTAMP"),
         onupdate=datetime.utcnow
+    )
+
+    # Lifecycle timestamps
+    arrived_at: Mapped[Optional[datetime]] = mapped_column(
+        nullable=True,
+        comment="Время прибытия водителя"
+    )
+    started_at: Mapped[Optional[datetime]] = mapped_column(
+        nullable=True,
+        comment="Время начала выполнения"
+    )
+    end_time: Mapped[Optional[datetime]] = mapped_column(
+        nullable=True,
+        comment="Время завершения заказа"
+    )
+    cancelled_at: Mapped[Optional[datetime]] = mapped_column(
+        nullable=True,
+        comment="Время отмены"
+    )
+    cancellation_reason: Mapped[Optional[str]] = mapped_column(
+        String(500),
+        nullable=True,
+        comment="Причина отмены"
     )
     
     # Relationships
