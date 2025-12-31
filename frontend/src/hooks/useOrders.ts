@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notification } from 'antd';
 import { useRef, useCallback } from 'react';
-import { fetchOrders, moveOrder } from '../api/orders';
+import { fetchOrders, moveOrder, createOrder } from '../api/orders';
 import type { OrderResponse, TimelineOrder, OrderMoveRequest } from '../types/api';
 
 // Локальный тип для vis-timeline item
@@ -130,4 +130,25 @@ export const useMoveOrder = () => {
     );
 
     return { ...mutation, handleMove };
+};
+
+export const useCreateOrder = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: createOrder,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['orders'] });
+            notification.success({
+                message: 'Заказ создан',
+                description: 'Новый заказ успешно добавлен в систему',
+            });
+        },
+        onError: (error: any) => {
+            notification.error({
+                message: 'Ошибка создания',
+                description: error.response?.data?.detail || 'Не удалось создать заказ',
+            });
+        },
+    });
 };

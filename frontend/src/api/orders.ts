@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { OrderResponse, OrderMoveRequest } from '../types/api';
+import type { OrderResponse, OrderMoveRequest, OrderCreate } from '../types/api';
 
 export const fetchOrders = async (dateRange?: [Date, Date]): Promise<OrderResponse[]> => {
     const params = dateRange ? {
@@ -19,5 +19,12 @@ export const moveOrder = async (
         `/orders/${orderId}/move`,
         payload
     );
+    return data;
+};
+
+export const createOrder = async (
+    payload: OrderCreate
+): Promise<OrderResponse> => {
+    const { data } = await apiClient.post<OrderResponse>('/orders', payload);
     return data;
 };

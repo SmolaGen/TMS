@@ -16,7 +16,7 @@ class AbstractRepository(ABC, Generic[T]):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_all(self) -> Sequence[T]:
+    async def get_all(self, **kwargs) -> Sequence[T]:
         raise NotImplementedError
     
     @abstractmethod
@@ -41,8 +41,8 @@ class SQLAlchemyRepository(AbstractRepository[T]):
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
 
-    async def get_all(self) -> Sequence[T]:
-        query = select(self.model)
+    async def get_all(self, **kwargs) -> Sequence[T]:
+        query = select(self.model).filter_by(**kwargs)
         result = await self.session.execute(query)
         return result.scalars().all()
 
@@ -61,3 +61,17 @@ class DriverRepository(SQLAlchemyRepository[T]):
         query = select(self.model).filter_by(telegram_id=telegram_id)
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
+
+class OrderRepository(SQLAlchemyRepository[T]):
+    async def get_all(self, start_date=None, end_date=None) -> Sequence[T]:
+        from sqlalchemy import func
+        query = select(self.model)
+        if start_date:
+            # func.lower(Order.time_range) >= start_date
+            query = query.where(func.lower(self.model.time_range) >= start_date)
+        if end_date:
+            # func.upper(Order.time_range) <= end_date
+            query = query.where(func.upper(self.model.time_range) <= end_date)
+        
+        result = await self.session.execute(query)
+        return result.scalars().all()

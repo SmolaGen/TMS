@@ -77,6 +77,16 @@ async def create_order(
     """
     return await service.create_order(data, driver_id=current_driver.id)
 
+@router.get("/orders", response_model=List[OrderResponse])
+async def list_orders(
+    start: Optional[datetime] = None,
+    end: Optional[datetime] = None,
+    current_driver: Driver = Depends(get_current_driver),
+    service: OrderService = Depends(get_order_service)
+):
+    """Получить список заказов с опциональной фильтрацией по времени."""
+    return await service.get_orders_list(start_date=start, end_date=end)
+
 @router.patch("/orders/{order_id}/move", response_model=OrderResponse)
 async def move_order(
     order_id: int,
