@@ -6,8 +6,9 @@ TMS Database Models
 """
 
 from datetime import datetime
+from decimal import Decimal
 from enum import Enum as PyEnum
-from typing import Optional
+from typing import Optional, Any
 
 from geoalchemy2 import Geometry
 from sqlalchemy import (
@@ -16,11 +17,12 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     Index,
+    Numeric,
     String,
     Text,
     text,
 )
-from sqlalchemy.dialects.postgresql import TSTZRANGE
+from sqlalchemy.dialects.postgresql import TSTZRANGE, ExcludeConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -130,6 +132,9 @@ class Order(Base):
         time_range: Временной интервал выполнения (tstzrange)
         pickup_location: Точка погрузки (POINT)
         dropoff_location: Точка выгрузки (POINT)
+        distance_meters: Расстояние маршрута в метрах
+        duration_seconds: Расчётное время в пути (секунды)
+        price: Рассчитанная стоимость заказа
         comment: Комментарий к заказу
         created_at: Дата создания
         updated_at: Дата обновления
@@ -162,9 +167,12 @@ class Order(Base):
         comment="Приоритет заказа"
     )
     
-    # Временной интервал - будет добавлен через DDL в миграции
-    # так как SQLAlchemy не имеет нативной поддержки tstzrange
-    # time_range будет типа TSTZRANGE
+    # Временной интервал выполнения заказа (PostgreSQL tstzrange)
+    time_range: Mapped[Optional[Any]] = mapped_column(
+        TSTZRANGE,
+        nullable=True,
+        comment="Временной интервал выполнения заказа [start, end)"
+    )
     
     pickup_location: Mapped[Optional[str]] = mapped_column(
         Geometry(geometry_type="POINT", srid=4326),
@@ -175,6 +183,21 @@ class Order(Base):
         Geometry(geometry_type="POINT", srid=4326),
         nullable=True,
         comment="Координаты точки выгрузки (WGS84)"
+    )
+    
+    # Данные маршрута и цены (заполняются при создании через RoutingService)
+    distance_meters: Mapped[Optional[float]] = mapped_column(
+        nullable=True,
+        comment="Расстояние маршрута в метрах"
+    )
+    duration_seconds: Mapped[Optional[float]] = mapped_column(
+        nullable=True,
+        comment="Расчётное время в пути (секунды)"
+    )
+    price: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(10, 2),
+        nullable=True,
+        comment="Рассчитанная стоимость заказа"
     )
     
     comment: Mapped[Optional[str]] = mapped_column(
@@ -226,8 +249,18 @@ class Order(Base):
     __table_args__ = (
         # Индекс для быстрого поиска по статусу и приоритету
         Index("ix_orders_status_priority", "status", "priority"),
-        # Exclusion Constraint будет добавлен в Alembic миграции через DDL,
-        # так как SQLAlchemy не поддерживает EXCLUDE constraints нативно
+        
+        # Индекс для временного диапазона (GiST)
+        Index("ix_orders_time_range", "time_range", postgresql_using="gist"),
+        
+        # Exclusion Constraint: один водитель не может иметь пересекающиеся по времени заказы
+        # Применяется только к активным заказам (не completed и не cancelled)
+        ExcludeConstraint(
+            ("driver_id", "="),
+            ("time_range", "&&"),
+            name="no_driver_time_overlap",
+            where=text("status NOT IN ('completed', 'cancelled')")
+        ),
     )
     
     def __repr__(self) -> str:
