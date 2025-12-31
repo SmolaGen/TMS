@@ -56,7 +56,7 @@ TMS (Transport Management System) — отказоустойчивая сист�
 
 ### Architecture Patterns
 
-**Backend:**
+**Backend:**   
 - **Layered Architecture**: Routes → Services → Database
 - **Dependency Injection** через FastAPI `Depends()`
 - **Repository Pattern** для доступа к данным

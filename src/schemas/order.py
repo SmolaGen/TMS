@@ -31,6 +31,13 @@ class OrderResponse(BaseModel):
     comment: Optional[str]
     created_at: datetime
     updated_at: datetime
+    
+    # Lifecycle timestamps
+    arrived_at: Optional[datetime] = None
+    started_at: Optional[datetime] = None
+    end_time: Optional[datetime] = None
+    cancelled_at: Optional[datetime] = None
+    cancellation_reason: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
