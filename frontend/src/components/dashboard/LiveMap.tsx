@@ -30,8 +30,8 @@ export const LiveMap: React.FC<LiveMapProps> = ({ onDriverSelect }) => {
             )}
 
             <MapContainer
-                center={[55.751244, 37.618423]} // Москва
-                zoom={11}
+                center={[43.1198, 131.8869]} // Владивосток
+                zoom={12}
                 style={{ height: '100%', width: '100%' }}
             >
                 <TileLayer

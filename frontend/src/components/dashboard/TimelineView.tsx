@@ -41,12 +41,21 @@ interface VisTimelineOptions {
 interface TimelineViewProps {
     dateRange?: [Date, Date];
     drivers: TimelineDriver[];
+    orders?: Array<{
+        id: string;
+        group: string;
+        content: string;
+        start: Date;
+        end: Date;
+        className?: string;
+    }>;
     onOrderSelect?: (orderId: string) => void;
 }
 
 export const TimelineView: React.FC<TimelineViewProps> = ({
     dateRange,
     drivers,
+    orders: externalOrders = [],
     onOrderSelect,
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -110,9 +119,17 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
 
     // Синхронизация заказов с DataSet
     useEffect(() => {
+        const allOrders = [
+            ...orders.map(o => ({
+                ...o,
+                start: new Date(o.start),
+                end: o.end ? new Date(o.end) : undefined,
+            })),
+            ...externalOrders,
+        ];
         itemsDataSet.current.clear();
-        itemsDataSet.current.add(orders as VisTimelineItem[]);
-    }, [orders]);
+        itemsDataSet.current.add(allOrders as VisTimelineItem[]);
+    }, [orders, externalOrders]);
 
     // Синхронизация водителей (групп) с DataSet
     useEffect(() => {
