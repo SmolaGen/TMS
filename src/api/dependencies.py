@@ -6,6 +6,7 @@ from src.database.connection import async_session_factory
 from src.database.uow import SQLAlchemyUnitOfWork
 from src.services.location_manager import LocationManager
 from src.services.order_service import OrderService
+from src.services.routing import RoutingService
 from src.config import settings
 
 import redis.asyncio as aioredis
@@ -32,6 +33,13 @@ def get_driver_service(uow: SQLAlchemyUnitOfWork = Depends(get_uow)) -> DriverSe
     """Провайдер сервиса водителей."""
     return DriverService(uow)
 
-def get_order_service(uow: SQLAlchemyUnitOfWork = Depends(get_uow)) -> OrderService:
+def get_routing_service() -> RoutingService:
+    """Провайдер сервиса маршрутизации."""
+    return RoutingService()
+
+def get_order_service(
+    uow: SQLAlchemyUnitOfWork = Depends(get_uow),
+    routing: RoutingService = Depends(get_routing_service)
+) -> OrderService:
     """Провайдер сервиса заказов."""
-    return OrderService(uow)
+    return OrderService(uow, routing)

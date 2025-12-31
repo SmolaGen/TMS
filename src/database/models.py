@@ -6,23 +6,22 @@ TMS Database Models
 """
 
 from datetime import datetime
-from decimal import Decimal
 from enum import Enum as PyEnum
-from typing import Optional, Any
+from typing import Optional, List
+from decimal import Decimal
 
 from geoalchemy2 import Geometry
 from sqlalchemy import (
     BigInteger,
-    CheckConstraint,
     Enum,
     ForeignKey,
     Index,
-    Numeric,
     String,
     Text,
+    Numeric,
     text,
 )
-from sqlalchemy.dialects.postgresql import TSTZRANGE, ExcludeConstraint
+from sqlalchemy.dialects.postgresql import TSTZRANGE
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -42,7 +41,7 @@ class OrderStatus(str, PyEnum):
     """Статусы заказа."""
     PENDING = "pending"          # Ожидает назначения водителя
     ASSIGNED = "assigned"        # Назначен водитель
-    DRIVER_ARRIVED = "driver_arrived"  # Водитель прибыл на точку
+    DRIVER_ARRIVED = "driver_arrived" # Водитель прибыл на место
     IN_PROGRESS = "in_progress"  # Выполняется
     COMPLETED = "completed"      # Завершён
     CANCELLED = "cancelled"      # Отменён
@@ -59,16 +58,6 @@ class OrderPriority(str, PyEnum):
 class Driver(Base):
     """
     Модель водителя.
-    
-    Attributes:
-        id: Первичный ключ
-        telegram_id: Уникальный идентификатор в Telegram
-        name: Имя водителя
-        phone: Номер телефона
-        status: Текущий статус водителя
-        created_at: Дата создания записи
-        updated_at: Дата последнего обновления
-        is_active: Флаг активности (разрешен ли вход в бот)
     """
     __tablename__ = "drivers"
     
@@ -89,7 +78,8 @@ class Driver(Base):
         comment="Номер телефона"
     )
     status: Mapped[DriverStatus] = mapped_column(
-        Enum(DriverStatus, name="driver_status", values_callable=lambda x: [e.value for e in x]),
+        Enum(DriverStatus, name="driver_status", 
+             values_callable=lambda x: [e.value for e in x]),
         default=DriverStatus.OFFLINE,
         server_default=text("'offline'"),
         comment="Текущий статус"
@@ -110,40 +100,23 @@ class Driver(Base):
     )
     
     # Relationships
-    orders: Mapped[list["Order"]] = relationship(
+    orders: Mapped[List["Order"]] = relationship(
         "Order",
         back_populates="driver",
         lazy="selectin"
     )
     
     def __repr__(self) -> str:
-        return f"<Driver(id={self.id}, name='{self.name}', status={self.status.value}, is_active={self.is_active})>"
+        return f"<Driver(id={self.id}, name='{self.name}', status={self.status.value})>"
 
 
 class Order(Base):
     """
     Модель заказа.
     
-    Attributes:
-        id: Первичный ключ
-        driver_id: FK на водителя (nullable - может быть не назначен)
-        status: Статус заказа
-        priority: Приоритет заказа
-        time_range: Временной интервал выполнения (tstzrange)
-        pickup_location: Точка погрузки (POINT)
-        dropoff_location: Точка выгрузки (POINT)
-        distance_meters: Расстояние маршрута в метрах
-        duration_seconds: Расчётное время в пути (секунды)
-        price: Рассчитанная стоимость заказа
-        comment: Комментарий к заказу
-        created_at: Дата создания
-        updated_at: Дата обновления
-    
     Note:
         Exclusion Constraint `no_driver_time_overlap` гарантирует,
         что один водитель не может иметь пересекающиеся по времени заказы.
-        Constraint применяется только к активным заказам 
-        (status NOT IN ('completed', 'cancelled')).
     """
     __tablename__ = "orders"
     
@@ -155,23 +128,25 @@ class Order(Base):
         comment="FK на водителя"
     )
     status: Mapped[OrderStatus] = mapped_column(
-        Enum(OrderStatus, name="order_status", values_callable=lambda x: [e.value for e in x]),
+        Enum(OrderStatus, name="order_status",
+             values_callable=lambda x: [e.value for e in x]),
         default=OrderStatus.PENDING,
         server_default=text("'pending'"),
         comment="Статус заказа"
     )
     priority: Mapped[OrderPriority] = mapped_column(
-        Enum(OrderPriority, name="order_priority", values_callable=lambda x: [e.value for e in x]),
+        Enum(OrderPriority, name="order_priority",
+             values_callable=lambda x: [e.value for e in x]),
         default=OrderPriority.NORMAL,
         server_default=text("'normal'"),
         comment="Приоритет заказа"
     )
     
-    # Временной интервал выполнения заказа (PostgreSQL tstzrange)
-    time_range: Mapped[Optional[Any]] = mapped_column(
-        TSTZRANGE,
+    # Временной интервал выполнения заказа
+    time_range: Mapped[Optional[tuple]] = mapped_column(
+        TSTZRANGE(),
         nullable=True,
-        comment="Временной интервал выполнения заказа [start, end)"
+        comment="Временной интервал выполнения (с таймзоной)"
     )
     
     pickup_location: Mapped[Optional[str]] = mapped_column(
@@ -185,19 +160,21 @@ class Order(Base):
         comment="Координаты точки выгрузки (WGS84)"
     )
     
-    # Данные маршрута и цены (заполняются при создании через RoutingService)
+    # Рассчитанные данные от RoutingService
     distance_meters: Mapped[Optional[float]] = mapped_column(
         nullable=True,
-        comment="Расстояние маршрута в метрах"
+        comment="Дистанция в метрах (от OSRM)"
     )
     duration_seconds: Mapped[Optional[float]] = mapped_column(
         nullable=True,
-        comment="Расчётное время в пути (секунды)"
+        comment="Время в пути в секундах (от OSRM)"
     )
+    
+    # Стоимость
     price: Mapped[Optional[Decimal]] = mapped_column(
         Numeric(10, 2),
         nullable=True,
-        comment="Рассчитанная стоимость заказа"
+        comment="Итоговая стоимость заказа"
     )
     
     comment: Mapped[Optional[str]] = mapped_column(
@@ -206,6 +183,13 @@ class Order(Base):
         comment="Комментарий к заказу"
     )
     
+    # Lifecycle timestamps
+    arrived_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    started_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    end_time: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    cancelled_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    cancellation_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(
         default=datetime.utcnow,
         server_default=text("CURRENT_TIMESTAMP")
@@ -214,29 +198,6 @@ class Order(Base):
         default=datetime.utcnow,
         server_default=text("CURRENT_TIMESTAMP"),
         onupdate=datetime.utcnow
-    )
-
-    # Lifecycle timestamps
-    arrived_at: Mapped[Optional[datetime]] = mapped_column(
-        nullable=True,
-        comment="Время прибытия водителя"
-    )
-    started_at: Mapped[Optional[datetime]] = mapped_column(
-        nullable=True,
-        comment="Время начала выполнения"
-    )
-    end_time: Mapped[Optional[datetime]] = mapped_column(
-        nullable=True,
-        comment="Время завершения заказа"
-    )
-    cancelled_at: Mapped[Optional[datetime]] = mapped_column(
-        nullable=True,
-        comment="Время отмены"
-    )
-    cancellation_reason: Mapped[Optional[str]] = mapped_column(
-        String(500),
-        nullable=True,
-        comment="Причина отмены"
     )
     
     # Relationships
@@ -247,32 +208,13 @@ class Order(Base):
     )
     
     __table_args__ = (
-        # Индекс для быстрого поиска по статусу и приоритету
         Index("ix_orders_status_priority", "status", "priority"),
-        
-        # Индекс для временного диапазона (GiST)
-        Index("ix_orders_time_range", "time_range", postgresql_using="gist"),
-        
-        # Exclusion Constraint: один водитель не может иметь пересекающиеся по времени заказы
-        # Применяется только к активным заказам (не completed и не cancelled)
-        ExcludeConstraint(
-            ("driver_id", "="),
-            ("time_range", "&&"),
-            name="no_driver_time_overlap",
-            where=text("status NOT IN ('completed', 'cancelled')")
-        ),
     )
-    
-    def __repr__(self) -> str:
-        return f"<Order(id={self.id}, driver_id={self.driver_id}, status={self.status.value})>"
 
 
 class DriverLocationHistory(Base):
     """
     История перемещений водителя.
-    
-    Используется фоновым воркером для пакетной записи координат из Redis.
-    Служит для построения треков в интерфейсе диспетчера.
     """
     __tablename__ = "driver_location_history"
     
@@ -296,13 +238,8 @@ class DriverLocationHistory(Base):
         comment="Время записи в БД"
     )
     
-    # Relationships
     driver: Mapped["Driver"] = relationship("Driver", backref="location_history")
     
     __table_args__ = (
-        # Индекс для ускорения запросов по водителю и времени
         Index("ix_driver_location_time", "driver_id", "recorded_at"),
     )
-    
-    def __repr__(self) -> str:
-        return f"<DriverLocationHistory(driver_id={self.driver_id}, recorded_at={self.recorded_at})>"

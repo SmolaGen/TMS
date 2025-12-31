@@ -28,12 +28,6 @@ class OrderResponse(BaseModel):
     priority: OrderPriority
     time_start: Optional[datetime] = None  # Извлекается из tstzrange
     time_end: Optional[datetime] = None    # Извлекается из tstzrange
-    
-    # Данные маршрута и ценообразования
-    distance_meters: Optional[float] = None
-    duration_seconds: Optional[float] = None
-    price: Optional[float] = None  # Decimal конвертируется в float для JSON
-    
     comment: Optional[str]
     created_at: datetime
     updated_at: datetime

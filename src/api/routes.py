@@ -30,17 +30,7 @@ async def create_order(
     Создать новый заказ. 
     Проверяет пересечение времени для водителя на уровне БД (Exclusion Constraint).
     """
-    try:
-        return await service.create_order(data)
-    except IntegrityError as e:
-        # 23P01 - Код ошибки PostgreSQL для Exclusion Constraint
-        if hasattr(e.orig, 'pgcode') and e.orig.pgcode == '23P01':
-            logger.warning("order_overlap_detected", driver_id=data.driver_id)
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail={"error": "time_overlap", "message": "Driver is busy at this time"}
-            )
-        raise
+    return await service.create_order(data)
 
 @router.patch("/orders/{order_id}/move", response_model=OrderResponse)
 async def move_order(
@@ -49,18 +39,10 @@ async def move_order(
     service: OrderService = Depends(get_order_service)
 ):
     """Изменить время заказа (например, Drag-and-Drop в UI)."""
-    try:
-        result = await service.move_order(order_id, data)
-        if not result:
-            raise HTTPException(status_code=404, detail="Order not found")
-        return result
-    except IntegrityError as e:
-        if hasattr(e.orig, 'pgcode') and e.orig.pgcode == '23P01':
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail={"error": "time_overlap", "message": "Driver is busy at this time"}
-            )
-        raise
+    result = await service.move_order(order_id, data)
+    if not result:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return result
 
 @router.get("/drivers/live", response_model=List[DriverLocation])
 async def get_live_drivers(
