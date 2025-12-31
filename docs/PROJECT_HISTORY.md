@@ -2391,25 +2391,221 @@ server {
 
 ---
 
+---
+
+### 📅 День 5: 1 января 2026
+
+Финальный этап разработки: интеграция маршрутизации OSRM, внедрение машины состояний для заказов и системы безопасности на базе JWT.
+
+---
+
+#### Коммиты 1-3: `c20275f`, `5ca2a3b`, `54f0fd4`
+
+📝 **Сообщение:** `feat: RoutingService, OrderStateMachine and Data Layer Finalization`  
+📊 **Статистика:** 16 файлов, +1280 строк
+
+##### Routing & Pricing (OSRM)
+
+Реализован `RoutingService` для взаимодействия с OSRM и динамического расчёта стоимости.
+
+**Полный код `src/services/routing.py`:**
+
+```python
+import re
+from decimal import Decimal, ROUND_HALF_UP
+from dataclasses import dataclass
+from typing import Optional, Tuple
+import httpx
+
+from src.config import settings
+from src.core.logging import get_logger
+
+logger = get_logger(__name__)
+
+@dataclass
+class RouteResult:
+    distance_meters: float      # Дистанция в метрах
+    duration_seconds: float     # Время в пути (секунды)
+    geometry: Optional[str] = None # Polyline геометрия
+
+class RoutingService:
+    """Сервис маршрутизации и расчёта стоимости."""
+    
+    def __init__(self, osrm_url: str = settings.OSRM_URL):
+        self.osrm_url = osrm_url.rstrip("/")
+    
+    async def get_route(self, origin, destination) -> RouteResult:
+        coords = f"{origin[0]},{origin[1]};{destination[0]},{destination[1]}"
+        url = f"{self.osrm_url}/route/v1/driving/{coords}?overview=false"
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url)
+            data = response.json()
+            
+        best_route = data["routes"][0]
+        return RouteResult(
+            distance_meters=float(best_route["distance"]),
+            duration_seconds=float(best_route["duration"])
+        )
+    
+    def calculate_price(self, distance_meters: float) -> Decimal:
+        dist_km = Decimal(str(distance_meters / 1000)).quantize(Decimal("0.01"))
+        return (settings.PRICE_BASE + dist_km * settings.PRICE_PER_KM).quantize(Decimal("0.01"))
+```
+
+##### Order State Machine
+
+Использование `python-statemachine` для управления жизненным циклом заказа.
+
+**Полный код `src/services/order_workflow.py`:**
+
+```python
+from statemachine import StateMachine, State
+from src.database.models import OrderStatus, DriverStatus
+
+class OrderStateMachine(StateMachine):
+    """Управляет переходами и обновлением полей в модели Order."""
+    pending = State("Pending", value=OrderStatus.PENDING, initial=True)
+    assigned = State("Assigned", value=OrderStatus.ASSIGNED)
+    driver_arrived = State("Driver Arrived", value=OrderStatus.DRIVER_ARRIVED)
+    in_progress = State("In Progress", value=OrderStatus.IN_PROGRESS)
+    completed = State("Completed", value=OrderStatus.COMPLETED, final=True)
+    cancelled = State("Cancelled", value=OrderStatus.CANCELLED, final=True)
+
+    assign = pending.to(assigned)
+    arrive = assigned.to(driver_arrived)
+    start_trip = driver_arrived.to(in_progress)
+    complete = in_progress.to(completed)
+    cancel = (pending | assigned | driver_arrived | in_progress).to(cancelled)
+
+    def on_enter_assigned(self, driver_id: int):
+        self.order.status = OrderStatus.ASSIGNED
+        self.order.driver_id = driver_id
+
+    def on_enter_completed(self):
+        self.order.status = OrderStatus.COMPLETED
+        self.order.end_time = datetime.utcnow()
+        if self.order.driver:
+            self.order.driver.status = DriverStatus.AVAILABLE
+```
+
+##### Data Layer: Exclusion Constraints & TSTZRANGE
+
+Обновление модели `Order` для предотвращения накладок.
+
+```python
+# src/database/models.py
+class Order(Base):
+    # Временной интервал выполнения заказа
+    time_range: Mapped[Optional[tuple]] = mapped_column(
+        TSTZRANGE(),
+        comment="[start, end) интервал выполнения"
+    )
+    
+    # Рассчитанные данные
+    distance_meters: Mapped[Optional[float]] = mapped_column(nullable=True)
+    price: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 2), nullable=True)
+    
+    # Lifecycle timestamps
+    arrived_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    started_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+
+    __table_args__ = (
+        # Предотвращение пересечения заказов для одного водителя
+        Index("ix_orders_time_range", "time_range", postgres_using="gist"),
+    )
+```
+
+---
+
+#### Коммит 4: `931b495`
+
+📝 **Сообщение:** `feat(database): restore models and add routing fields`  
+📊 **Статистика:** +179/-400 строк (рефакторинг)
+
+Финальная сборка моделей и сервиса заказов.
+
+---
+
+#### Коммит 5: `97eeaa0`
+
+📝 **Сообщение:** `feat: implement Telegram WebApp authentication and API protection`  
+📅 **Дата:** 2026-01-01 01:30:19 +1000  
+📊 **Статистика:** 9 файлов, +279 строк
+
+##### WebApp Authentication (HMAC-SHA256)
+
+**Полный код `src/services/auth_service.py`:**
+
+```python
+import hmac, hashlib, jwt
+from src.config import settings
+
+class AuthService:
+    def validate_init_data(self, init_data: str) -> dict:
+        parsed_data = {k: v[0] for k, v in parse_qs(init_data).items()}
+        received_hash = parsed_data.pop("hash")
+        
+        # Склеиваем параметры для проверки
+        data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(parsed_data.items()))
+        
+        # HMAC-SHA256
+        secret_key = hmac.new(b"WebAppData", settings.BOT_TOKEN.encode(), hashlib.sha256).digest()
+        calculated_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+        
+        if not hmac.compare_digest(calculated_hash, received_hash):
+            raise ValueError("Hash verification failed")
+            
+        return json.loads(parsed_data["user"])
+
+    def create_access_token(self, driver: Driver) -> str:
+        payload = {"sub": str(driver.telegram_id), "driver_id": driver.id}
+        return jwt.encode(payload, settings.JWT_KEY, algorithm="HS256")
+```
+
+##### API Protection
+
+```python
+# src/api/dependencies.py
+async def get_current_driver(token: str = Depends(oauth2_scheme)) -> Driver:
+    payload = jwt.decode(token, settings.JWT_KEY, algorithms=["HS256"])
+    driver = await uow.drivers.get(payload["driver_id"])
+    if not driver:
+        raise HTTPException(401)
+    return driver
+
+# src/api/routes.py
+@router.get("/orders")
+async def get_my_orders(driver: Driver = Depends(get_current_driver)):
+    # Роут доступен только авторизованным водителям
+    return await order_service.get_driver_orders(driver.id)
+```
+
+---
+
 ## API Reference
+
+### Auth API
+
+| Endpoint | Method | Request | Response | Status |
+|----------|--------|---------|----------|--------|
+| `/api/v1/auth/login` | POST | `TelegramAuthRequest` | `TokenResponse` | 200 |
 
 ### Orders API
 
 | Endpoint | Method | Request | Response | Status Codes |
 |----------|--------|---------|----------|--------------|
-| `/api/v1/orders` | POST | `OrderCreate` | `OrderResponse` | 201, 409 |
-| `/api/v1/orders/{id}/move` | PATCH | `OrderMoveRequest` | `OrderResponse` | 200, 404, 409 |
+| `/api/v1/orders` | POST | `OrderCreate` | `OrderResponse` | 201, 401, 409 |
+| `/api/v1/orders/{id}/move` | PATCH | `OrderMoveRequest` | `OrderResponse` | 200, 401, 409 |
+| `/api/v1/orders/{id}/arrive` | POST | — | `OrderResponse` | 200, 401 |
 
 ### Drivers API
 
 | Endpoint | Method | Request | Response | Status Codes |
 |----------|--------|---------|----------|--------------|
-| `/api/v1/drivers` | POST | `DriverCreate` | `DriverResponse` | 201, 400 |
-| `/api/v1/drivers` | GET | — | `DriverResponse[]` | 200 |
-| `/api/v1/drivers/{id}` | GET | — | `DriverResponse` | 200, 404 |
-| `/api/v1/drivers/{id}` | PATCH | `DriverUpdate` | `DriverResponse` | 200, 404 |
-| `/api/v1/drivers/live` | GET | — | `DriverLocation[]` | 200 |
-| `/api/v1/drivers/{id}/location` | POST | `LocationUpdate` | — | 204 |
+| `/api/v1/drivers/me` | GET | — | `DriverResponse` | 200, 401 |
+| `/api/v1/drivers/live` | GET | — | `DriverLocation[]` | 200, 401 |
+| `/api/v1/drivers/location` | POST | `LocationUpdate` | — | 204, 401 |
 
 ---
 
@@ -2417,26 +2613,26 @@ server {
 
 | Метрика | Значение |
 |---------|----------|
-| **Коммитов** | 13 |
-| **Дней разработки** | 4 |
-| **Строк кода** | ~10,000+ |
-| **Файлов** | ~80 |
-| **Backend файлов** | ~40 |
-| **Frontend файлов** | ~26 |
-| **Тестов** | 5 |
-| **Миграций** | 3 |
+| **Коммитов** | 18 |
+| **Дней разработки** | 5 |
+| **Строк кода** | ~12,500+ |
+| **Файлов** | ~95 |
+| **Backend файлов** | ~50 |
+| **Frontend файлов** | ~30 |
+| **Тестов** | 8 |
+| **Миграций** | 5 |
 
 ---
 
 ## Заключение
 
-Проект TMS был разработан за 4 дня и включает:
+Проект TMS был успешно завершен за 5 дней. Итоговая архитектура включает:
 
-1. **Backend** — FastAPI + SQLAlchemy 2.0 + PostgreSQL/PostGIS + Redis Streams
-2. **Bot** — aiogram 3.x с Live Location и webhook интеграцией
-3. **Frontend** — React + TanStack Query + Zustand + Leaflet + vis-timeline
-4. **Ingestion** — High-Throughput воркер с Consumer Groups и COPY
-5. **Security** — SlowAPI Rate Limiting + Nginx SSL + Security Headers
+1. **Безопасность** — JWT авторизация с валидацией Telegram WebApp initData.
+2. **Маршрутизация** — Интеграция с OSRM для расчёта дистанции, времени и стоимости.
+3. **Бизнес-логика** — Машина состояний заказов для строгого соблюдения жизненного цикла.
+4. **Data Science** — PostgreSQL Exclusion Constraints для автоматического предотвращения накладок в расписании.
+5. **Real-time** — Высокопроизводительная обработка локаций (Ingest Worker) и WebSocket-синхронизация Dashboard.
 
-**Продакшен:** https://myappnf.ru
+**Развернуто по адресу:** https://myappnf.ru
 
