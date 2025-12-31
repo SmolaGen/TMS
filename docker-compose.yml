@@ -41,8 +41,6 @@ services:
       - tms-network
 
   # OSRM для маршрутизации (Приморский край + Якутия)
-  # ВАЖНО: Перед запуском необходимо подготовить данные OSM
-  # См. README.md для инструкций по подготовке данных
   osrm:
     image: osrm/osrm-backend:latest
     container_name: tms-osrm
@@ -51,7 +49,6 @@ services:
       - "5000:5000"
     volumes:
       - ./osrm-data:/data
-    # Команда для запуска в режиме MLD (Multi-Level Dijkstra)
     command: osrm-routed --algorithm mld /data/far-eastern-fed-district-latest.osrm
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
@@ -62,11 +59,9 @@ services:
     networks:
       - tms-network
     profiles:
-      - routing  # Включается только с --profile routing
+      - routing
 
-  # Photon для геокодинга (на базе OpenSearch)
-  # ВАЖНО: Требуется vm.max_map_count >= 262144
-  # sudo sysctl -w vm.max_map_count=262144
+  # Photon для геокодинга
   photon:
     image: komoot/photon:latest
     container_name: tms-photon
@@ -86,9 +81,9 @@ services:
     networks:
       - tms-network
     profiles:
-      - geocoding  # Включается только с --profile geocoding
+      - geocoding
 
-  # FastAPI Backend (заготовка)
+  # FastAPI Backend
   backend:
     build:
       context: .
@@ -106,6 +101,7 @@ services:
       - PHOTON_URL=http://photon:2322
     volumes:
       - ./src:/app/src
+      - ./alembic:/app/alembic
     depends_on:
       postgis:
         condition: service_healthy
@@ -119,7 +115,7 @@ services:
     networks:
       - tms-network
 
-  # High-Throughput Location Ingest Worker
+  # Ingest Worker
   ingest-worker:
     build:
       context: .
@@ -140,11 +136,11 @@ services:
       redis:
         condition: service_healthy
     deploy:
-      replicas: 1  # Увеличить для параллельной обработки
+      replicas: 1
     networks:
       - tms-network
 
-  # Nginx Reverse Proxy (SSL, Gzip, Static)
+  # Nginx Reverse Proxy
   nginx:
     build:
       context: ./nginx
@@ -155,18 +151,15 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      # Frontend build
       - ./frontend/dist:/usr/share/nginx/html:ro
-      # SSL certificates (Let's Encrypt)
       - /etc/letsencrypt:/etc/letsencrypt:ro
-      # Certbot challenges
       - ./certbot/www:/var/www/certbot:ro
     depends_on:
       - backend
     networks:
       - tms-network
     profiles:
-      - production  # Включается только с --profile production
+      - production
 
 networks:
   tms-network:
