@@ -42,11 +42,17 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     SECRET_KEY: str = "your-secret-key-change-me"
     
+    # JWT Authentication
+    JWT_SECRET_KEY: str = "6064f7b6b3e7f6d1a9e8b7c6d5a4f3e2d1c0b9a8f7e6d5c4b3a2f1e0d9c8b7a"
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 часа
+    TELEGRAM_INIT_DATA_EXPIRE_SECONDS: int = 86400  # 24 часа
+    
     # Logging
     LOG_LEVEL: str = "INFO"
 
     # Telegram Bot
-    TELEGRAM_BOT_TOKEN: str = "your-bot-token"
+    TELEGRAM_BOT_TOKEN: str = "8237141688:AAHGU9MTuw42AEaQVZpM4UHT9SoxkE2dC9U"
     TELEGRAM_WEBHOOK_URL: str = "https://myappnf.ru/bot/webhook"
     WEBAPP_URL: str = "https://myappnf.ru/webapp"
 
