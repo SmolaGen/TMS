@@ -4,7 +4,9 @@ TMS Configuration
 Конфигурация приложения через pydantic-settings.
 """
 
+from decimal import Decimal
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 
 class Settings(BaseSettings):
@@ -25,9 +27,15 @@ class Settings(BaseSettings):
     
     # OSRM
     OSRM_URL: str = "http://localhost:5000"
+    OSRM_TIMEOUT: float = 10.0
+    
+    # Pricing
+    PRICE_BASE: Decimal = Decimal("300")
+    PRICE_PER_KM: Decimal = Decimal("25")
     
     # Photon
     PHOTON_URL: str = "http://localhost:2322"
+
     
     # Application
     APP_ENV: str = "development"
