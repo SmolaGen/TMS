@@ -54,11 +54,36 @@ export interface ConflictError {
   message: string;
 }
 
+// Ответ API для водителей
+export interface DriverResponse {
+  id: number;
+  telegram_id: number;
+  name: string;
+  phone: string | null;
+  status: DriverStatus;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Схема создания заказа
+export interface OrderCreate {
+  driver_id?: number | null;
+  time_start: string; // ISO
+  time_end: string;   // ISO
+  pickup_lat: number;
+  pickup_lon: number;
+  dropoff_lat: number;
+  dropoff_lon: number;
+  priority: OrderPriority;
+  comment?: string | null;
+}
+
 // WebSocket сообщения
-export type WSMessageType = 
-  | 'ORDER_UPDATED' 
-  | 'ORDER_CREATED' 
-  | 'ORDER_DELETED' 
+export type WSMessageType =
+  | 'ORDER_UPDATED'
+  | 'ORDER_CREATED'
+  | 'ORDER_DELETED'
   | 'DRIVER_LOCATION';
 
 export interface WSMessage {

@@ -110,6 +110,12 @@ class OrderService:
                 raise HTTPException(status_code=404, detail=f"Заказ #{order_id} не найден")
             return OrderResponse.model_validate(order)
 
+    async def get_orders_list(self, start_date: Optional[datetime] = None, end_date: Optional[datetime] = None) -> List[OrderResponse]:
+        """Получает список заказов с опциональной фильтрацией по времени."""
+        async with self.uow:
+            orders = await self.uow.orders.get_all(start_date=start_date, end_date=end_date)
+            return [OrderResponse.model_validate(o) for o in orders]
+
     async def move_order(self, order_id: int, dto: OrderMoveRequest) -> Optional[OrderResponse]:
         """
         Изменяет время выполнения заказа (Drag-and-Drop).
