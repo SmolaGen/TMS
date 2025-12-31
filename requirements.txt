@@ -35,3 +35,4 @@ aiogram>=3.15.0
 
 # Rate Limiting
 slowapi>=0.1.9
+pyjwt[crypto]>=2.8.0

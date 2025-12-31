@@ -31,11 +31,12 @@ class OrderService:
         """Создаёт экземпляр машины состояний для заказа."""
         return OrderStateMachine(order)
 
-    async def create_order(self, dto: OrderCreate) -> OrderResponse:
+    async def create_order(self, dto: OrderCreate, driver_id: Optional[int] = None) -> OrderResponse:
         """
         Создаёт новый заказ с автоматическим расчётом цены и времени.
         """
-        logger.info("creating_order", driver_id=dto.driver_id, pickup=(dto.pickup_lat, dto.pickup_lon))
+        target_driver_id = driver_id if driver_id is not None else dto.driver_id
+        logger.info("creating_order", driver_id=target_driver_id, pickup=(dto.pickup_lat, dto.pickup_lon))
         
         # 1. Запрос к RoutingService для получения дистанции и времени
         origin = (dto.pickup_lon, dto.pickup_lat)
@@ -71,8 +72,8 @@ class OrderService:
             dropoff_wkt = f"SRID=4326;POINT({dto.dropoff_lon} {dto.dropoff_lat})"
             
             order = Order(
-                driver_id=dto.driver_id,
-                status=OrderStatus.ASSIGNED if dto.driver_id else OrderStatus.PENDING,
+                driver_id=target_driver_id,
+                status=OrderStatus.ASSIGNED if target_driver_id else OrderStatus.PENDING,
                 priority=dto.priority,
                 time_range=time_range,
                 pickup_location=pickup_wkt,
@@ -92,10 +93,10 @@ class OrderService:
                 # Обработка Exclusion Constraint: no_driver_time_overlap
                 error_msg = str(e).lower()
                 if "no_driver_time_overlap" in error_msg:
-                    logger.warning("order_overlap_detected", driver_id=dto.driver_id, time_range=time_range)
+                    logger.warning("order_overlap_detected", driver_id=target_driver_id, time_range=time_range)
                     raise HTTPException(
                         status_code=409, 
-                        detail=f"Водитель #{dto.driver_id} уже занят в указанный интервал времени ({time_start.strftime('%H:%M')} - {time_end.strftime('%H:%M')})"
+                        detail=f"Водитель #{target_driver_id} уже занят в указанный интервал времени ({time_start.strftime('%H:%M')} - {time_end.strftime('%H:%M')})"
                     )
                 raise HTTPException(status_code=500, detail="Ошибка базы данных при создании заказа")
             

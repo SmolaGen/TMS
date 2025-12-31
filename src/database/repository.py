@@ -55,3 +55,9 @@ class SQLAlchemyRepository(AbstractRepository[T]):
         query = delete(self.model).where(self.model.id == id)
         result = await self.session.execute(query)
         return result.rowcount > 0
+
+class DriverRepository(SQLAlchemyRepository[T]):
+    async def get_by_telegram_id(self, telegram_id: int) -> Optional[T]:
+        query = select(self.model).filter_by(telegram_id=telegram_id)
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()
