@@ -16,10 +16,11 @@ class AuthService:
 
     def validate_init_data(self, init_data: str) -> dict:
         """
-        Валидирует данные от Telegram WebApp.
+        Валидирует данные от Telegram WebApp или Login Widget.
         
-        Алгоритм согласно документации Telegram:
-        https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
+        Поддерживает два формата:
+        1. Mini App initData (с полем user в JSON)
+        2. Login Widget данные (прямые поля id, first_name и т.д.)
         """
         from src.core.logging import get_logger
         logger = get_logger(__name__)
@@ -47,25 +48,32 @@ class AuthService:
             if current_time - auth_date > settings.TELEGRAM_INIT_DATA_EXPIRE_SECONDS:
                 raise ValueError(f"initData expired (age={current_time - auth_date}s, max={settings.TELEGRAM_INIT_DATA_EXPIRE_SECONDS}s)")
             
-            # 2. Формирование data_check_string
+            # 2. Формирование data_check_string  
             # Сортируем ключи по алфавиту и склеиваем в формате key=value через \n
             data_check_string = "\n".join(
                 f"{k}={v}" for k, v in sorted(parsed_data.items())
             )
             
             logger.info(f"data_check_string (first 200 chars): {data_check_string[:200]}")
-            
-            # 3. Вычисление HMAC-SHA256
-            # Сначала вычисляем секретный ключ на основе токена бота
             logger.info(f"Using bot_token: {self.bot_token[:10]}...{self.bot_token[-5:]}")
             
-            secret_key = hmac.new(
-                b"WebAppData",
-                self.bot_token.encode(),
-                hashlib.sha256
-            ).digest()
+            # 3. Определяем тип данных и вычисляем хеш
+            is_login_widget = "user" not in parsed_data and "id" in parsed_data
             
-            # Затем вычисляем хеш данных
+            if is_login_widget:
+                # Login Widget: secret_key = SHA256(bot_token)
+                logger.info("Detected Login Widget format")
+                secret_key = hashlib.sha256(self.bot_token.encode()).digest()
+            else:
+                # Mini App: secret_key = HMAC-SHA256("WebAppData", bot_token)
+                logger.info("Detected Mini App initData format")
+                secret_key = hmac.new(
+                    b"WebAppData",
+                    self.bot_token.encode(),
+                    hashlib.sha256
+                ).digest()
+            
+            # Вычисляем хеш данных
             calculated_hash = hmac.new(
                 secret_key,
                 data_check_string.encode(),
@@ -79,13 +87,25 @@ class AuthService:
             if not hmac.compare_digest(calculated_hash, received_hash):
                 raise ValueError("Hash verification failed")
             
-            # 5. Десериализация user данных
-            user_data_json = parsed_data.get("user")
-            if not user_data_json:
-                raise ValueError("Missing user data")
-                
-            user_data = json.loads(user_data_json)
-            logger.info(f"User validated: id={user_data.get('id')}, name={user_data.get('first_name')}")
+            # 5. Формирование user_data
+            if is_login_widget:
+                # Login Widget: данные пользователя в корне
+                user_data = {
+                    "id": int(parsed_data.get("id", 0)),
+                    "first_name": parsed_data.get("first_name", "Unknown"),
+                    "last_name": parsed_data.get("last_name"),
+                    "username": parsed_data.get("username"),
+                    "photo_url": parsed_data.get("photo_url"),
+                }
+                logger.info(f"User validated (Login Widget): id={user_data.get('id')}, name={user_data.get('first_name')}")
+            else:
+                # Mini App: данные пользователя в JSON поле user
+                user_data_json = parsed_data.get("user")
+                if not user_data_json:
+                    raise ValueError("Missing user data")
+                user_data = json.loads(user_data_json)
+                logger.info(f"User validated (Mini App): id={user_data.get('id')}, name={user_data.get('first_name')}")
+            
             return user_data
             
         except (ValueError, json.JSONDecodeError) as e:
