@@ -35,41 +35,25 @@ export function useTelegramAuth() {
     });
 
     const authenticate = useCallback(async () => {
-        // Проверяем наличие Telegram WebApp
-        const tg = (window as any).Telegram?.WebApp;
-
-        if (!tg) {
-            // Режим разработки: проверяем сохраненный токен
-            const savedToken = localStorage.getItem(TOKEN_KEY);
-            if (savedToken) {
-                setState({
-                    isLoading: false,
-                    isAuthenticated: true,
-                    user: null,
-                    error: null,
-                    token: savedToken,
-                });
-                return;
-            }
-
+        // 1. Сначала проверяем сохраненный токен в localStorage
+        const savedToken = localStorage.getItem(TOKEN_KEY);
+        if (savedToken) {
             setState({
                 isLoading: false,
-                isAuthenticated: false,
+                isAuthenticated: true,
                 user: null,
-                error: 'Telegram WebApp не найден. Откройте приложение через Telegram.',
-                token: null,
+                error: null,
+                token: savedToken,
             });
+            console.log('[Auth] Found saved token, using it');
             return;
         }
 
-        // Инициализируем Telegram WebApp
-        tg.ready();
-        tg.expand();
+        // 2. Проверяем наличие Telegram WebApp с initData
+        const tg = (window as any).Telegram?.WebApp;
 
-        const initData = tg.initData;
-        const initDataUnsafe = tg.initDataUnsafe;
-
-        if (!initData) {
+        if (!tg || !tg.initData) {
+            // Нет ни токена, ни initData — показываем страницу авторизации
             setState({
                 isLoading: false,
                 isAuthenticated: false,
@@ -79,6 +63,13 @@ export function useTelegramAuth() {
             });
             return;
         }
+
+        // 3. Есть initData — авторизуемся через Mini App
+        tg.ready();
+        tg.expand();
+
+        const initData = tg.initData;
+        const initDataUnsafe = tg.initDataUnsafe;
 
         try {
             // Отправляем initData на бэкенд для валидации
