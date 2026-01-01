@@ -1,14 +1,15 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useMap } from 'react-leaflet';
 import L from 'leaflet';
-import type { DriverLocation, DriverStatus } from '../../types/api';
+import { DriverStatus } from '../../types/api';
+import type { DriverLocation } from '../../types/api';
 
 // Иконки по статусу - используем divIcon для простоты
 const createIcon = (status: DriverStatus): L.DivIcon => {
     const colors: Record<DriverStatus, string> = {
-        available: '#52c41a',  // зелёный
-        busy: '#faad14',       // жёлтый
-        offline: '#ff4d4f',    // красный
+        [DriverStatus.AVAILABLE]: '#52c41a',  // зелёный
+        [DriverStatus.BUSY]: '#faad14',       // жёлтый
+        [DriverStatus.OFFLINE]: '#ff4d4f',    // красный
     };
 
     return L.divIcon({
@@ -29,9 +30,9 @@ const createIcon = (status: DriverStatus): L.DivIcon => {
 };
 
 const icons: Record<DriverStatus, L.DivIcon> = {
-    available: createIcon('available'),
-    busy: createIcon('busy'),
-    offline: createIcon('offline'),
+    [DriverStatus.AVAILABLE]: createIcon(DriverStatus.AVAILABLE),
+    [DriverStatus.BUSY]: createIcon(DriverStatus.BUSY),
+    [DriverStatus.OFFLINE]: createIcon(DriverStatus.OFFLINE),
 };
 
 interface DriverMarkersProps {
@@ -48,7 +49,7 @@ export const DriverMarkers: React.FC<DriverMarkersProps> = ({ drivers, onDriverC
     // Помощник для безопасного получения иконки
     const getIcon = useCallback((status?: DriverStatus) => {
         if (status && icons[status]) return icons[status];
-        return icons.available;
+        return icons[DriverStatus.AVAILABLE];
     }, []);
 
     // Для плавной анимации

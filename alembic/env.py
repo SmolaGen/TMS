@@ -29,6 +29,14 @@ if config.config_file_name is not None:
 # add your model's MetaData object here for 'autogenerate' support
 target_metadata = Base.metadata
 
+def include_object(obj, name, type_, reflected, compare_to):
+    """Игнорируем системные таблицы и всё, что не описано в моделях."""
+    if type_ == "table":
+        # Если таблица есть в базе, но нет в моделях - игнорируем (не удаляем)
+        if reflected and compare_to is None:
+            return False
+    return True
+
 
 def run_migrations_offline() -> None:
     """
@@ -50,6 +58,7 @@ def run_migrations_offline() -> None:
         dialect_opts={"paramstyle": "named"},
         compare_type=True,
         compare_server_default=True,
+        include_object=include_object,
     )
 
     with context.begin_transaction():
@@ -63,6 +72,7 @@ def do_run_migrations(connection: Connection) -> None:
         target_metadata=target_metadata,
         compare_type=True,
         compare_server_default=True,
+        include_object=include_object,
     )
 
     with context.begin_transaction():
