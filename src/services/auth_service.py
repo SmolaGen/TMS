@@ -21,21 +21,31 @@ class AuthService:
         Алгоритм согласно документации Telegram:
         https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
         """
+        from src.core.logging import get_logger
+        logger = get_logger(__name__)
+        
         try:
+            logger.info(f"Validating initData, length={len(init_data)}")
+            
             # Парсинг строки запроса
             parsed_data = {k: v[0] for k, v in parse_qs(init_data).items()}
+            
+            logger.info(f"Parsed keys: {list(parsed_data.keys())}")
             
             if "hash" not in parsed_data:
                 raise ValueError("Missing hash in initData")
             
             received_hash = parsed_data.pop("hash")
+            logger.info(f"Received hash: {received_hash[:20]}...")
             
             # 1. Проверка auth_date на свежесть
             auth_date = int(parsed_data.get("auth_date", 0))
             current_time = int(datetime.now(tz=timezone.utc).timestamp())
             
+            logger.info(f"auth_date={auth_date}, current_time={current_time}, diff={current_time - auth_date}s")
+            
             if current_time - auth_date > settings.TELEGRAM_INIT_DATA_EXPIRE_SECONDS:
-                raise ValueError("initData expired")
+                raise ValueError(f"initData expired (age={current_time - auth_date}s, max={settings.TELEGRAM_INIT_DATA_EXPIRE_SECONDS}s)")
             
             # 2. Формирование data_check_string
             # Сортируем ключи по алфавиту и склеиваем в формате key=value через \n
@@ -43,8 +53,12 @@ class AuthService:
                 f"{k}={v}" for k, v in sorted(parsed_data.items())
             )
             
+            logger.info(f"data_check_string (first 200 chars): {data_check_string[:200]}")
+            
             # 3. Вычисление HMAC-SHA256
             # Сначала вычисляем секретный ключ на основе токена бота
+            logger.info(f"Using bot_token: {self.bot_token[:10]}...{self.bot_token[-5:]}")
+            
             secret_key = hmac.new(
                 b"WebAppData",
                 self.bot_token.encode(),
@@ -58,6 +72,9 @@ class AuthService:
                 hashlib.sha256
             ).hexdigest()
             
+            logger.info(f"Calculated hash: {calculated_hash[:20]}...")
+            logger.info(f"Hash match: {calculated_hash == received_hash}")
+            
             # 4. Сравнение хешей
             if not hmac.compare_digest(calculated_hash, received_hash):
                 raise ValueError("Hash verification failed")
@@ -68,9 +85,11 @@ class AuthService:
                 raise ValueError("Missing user data")
                 
             user_data = json.loads(user_data_json)
+            logger.info(f"User validated: id={user_data.get('id')}, name={user_data.get('first_name')}")
             return user_data
             
         except (ValueError, json.JSONDecodeError) as e:
+            logger.error(f"Validation failed: {str(e)}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail=f"Invalid Telegram initData: {str(e)}"

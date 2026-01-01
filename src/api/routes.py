@@ -58,12 +58,11 @@ async def login(
     driver = await driver_service.get_by_telegram_id(telegram_id)
     if not driver:
         # Авто-регистрация
-        driver_dto = DriverCreate(
+        driver = await driver_service.create_driver_from_telegram(
             telegram_id=telegram_id,
             name=user_data.get("first_name", "Unknown Driver"),
-            phone=None  # Телефон можно обновить позже
+            username=user_data.get("username")
         )
-        driver = await driver_service.register_driver(driver_dto)
         logger.info("driver_auto_registered", telegram_id=telegram_id, driver_id=driver.id)
     
     # 3. Генерация токена
