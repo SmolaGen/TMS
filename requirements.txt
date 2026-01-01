@@ -10,6 +10,7 @@ sqlalchemy[asyncio]>=2.0.25
 asyncpg>=0.29.0
 psycopg[binary]>=3.1.0  # For high-throughput COPY operations
 geoalchemy2>=0.14.0
+shapely>=2.0.0
 alembic>=1.13.0
 
 # Cache & Messaging
