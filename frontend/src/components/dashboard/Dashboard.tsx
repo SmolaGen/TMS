@@ -76,7 +76,10 @@ export const Dashboard: React.FC = () => {
             <Content style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                 {/* Карта - 60% высоты */}
                 <div style={{ flex: '0 0 60%', position: 'relative' }}>
-                    <LiveMap onDriverSelect={(id) => console.log('Selected driver:', id)} />
+                    <LiveMap
+                        onDriverSelect={(id) => console.log('Selected driver:', id)}
+                        selectedOrderId={selectedOrderId}
+                    />
                 </div>
 
                 {/* Таймлайн - 40% высоты */}

@@ -50,6 +50,7 @@ export interface OrderResponse {
   end_time: string | null;
   cancelled_at: string | null;
   cancellation_reason: string | null;
+  route_geometry: string | null; // Polyline
 }
 
 // Преобразованный заказ для Timeline
@@ -129,4 +130,13 @@ export type WSMessageType =
 export interface WSMessage {
   type: WSMessageType;
   payload: unknown;
+}
+
+// Результат геокодинга
+export interface GeocodingResult {
+  name: string;
+  lat: number;
+  lon: number;
+  address_full?: string;
+  osm_id?: number;
 }

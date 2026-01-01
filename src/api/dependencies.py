@@ -9,6 +9,7 @@ from src.services.location_manager import LocationManager
 from src.services.order_service import OrderService
 from src.services.routing import RoutingService
 from src.services.auth_service import AuthService
+from src.services.geocoding import GeocodingService
 from src.services.order_workflow import OrderWorkflowService
 from src.config import settings
 
@@ -54,6 +55,10 @@ def get_order_service(
 def get_auth_service() -> AuthService:
     """Провайдер сервиса аутентификации."""
     return AuthService()
+
+def get_geocoding_service() -> GeocodingService:
+    """Провайдер сервиса геокодинга."""
+    return GeocodingService()
 
 security = HTTPBearer()
 

@@ -183,6 +183,12 @@ class Order(Base):
         comment="Итоговая стоимость заказа"
     )
     
+    route_geometry: Mapped[Optional[str]] = mapped_column(
+        Text,
+        nullable=True,
+        comment="Закодированная геометрия маршрута (polyline)"
+    )
+    
     comment: Mapped[Optional[str]] = mapped_column(
         Text,
         nullable=True,

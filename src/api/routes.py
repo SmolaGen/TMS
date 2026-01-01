@@ -12,11 +12,11 @@ from src.api.dependencies import (
     get_order_service, 
     get_location_manager, 
     get_driver_service,
-    get_auth_service,
-    get_current_driver,
+    get_geocoding_service,
     get_order_workflow_service
 )
 from src.services.order_workflow import OrderWorkflowService
+from src.schemas.geocoding import GeocodingResult
 from src.schemas.auth import TelegramAuthRequest, TokenResponse
 from src.database.models import OrderStatus, OrderPriority, Driver
 from src.services.auth_service import AuthService
@@ -258,3 +258,25 @@ async def update_driver(
     if not driver:
         raise HTTPException(status_code=404, detail="Driver not found")
     return driver
+
+# --- Geocoding ---
+
+@router.get("/geocoding/search", response_model=List[GeocodingResult])
+async def search_address(
+    q: str,
+    limit: int = 10,
+    service: GeocodingService = Depends(get_geocoding_service),
+    current_driver: Driver = Depends(get_current_driver)
+):
+    """Поиск адресов через Photon."""
+    return await service.search(q, limit=limit)
+
+@router.get("/geocoding/reverse", response_model=Optional[GeocodingResult])
+async def reverse_geocode(
+    lat: float,
+    lon: float,
+    service: GeocodingService = Depends(get_geocoding_service),
+    current_driver: Driver = Depends(get_current_driver)
+):
+    """Обратный геокодинг (адрес по координатам)."""
+    return await service.reverse(lat, lon)

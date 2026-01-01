@@ -149,12 +149,13 @@ class RoutingService:
     async def get_route_with_price(
         self,
         origin: Tuple[float, float],
-        destination: Tuple[float, float]
+        destination: Tuple[float, float],
+        with_geometry: bool = True
     ) -> Tuple[RouteResult, PriceResult]:
         """
         Комбинированный метод: маршрут + стоимость.
         """
-        route = await self.get_route(origin, destination)
+        route = await self.get_route(origin, destination, with_geometry=with_geometry)
         price = self.calculate_price(route.distance_meters)
         return route, price
     

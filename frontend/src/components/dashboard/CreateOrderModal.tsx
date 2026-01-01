@@ -2,6 +2,7 @@ import React from 'react';
 import { Modal, Form, Select, DatePicker, Input } from 'antd';
 import type { OrderCreate, OrderPriority } from '../../types/api';
 import { useDrivers } from '../../hooks/useDrivers';
+import { AddressPicker } from '../common/AddressPicker';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
@@ -13,17 +14,6 @@ interface CreateOrderModalProps {
     onCreate: (values: OrderCreate) => void;
     loading?: boolean;
 }
-
-const VLADIVOSTOK_LOCATIONS = [
-    { name: 'ЖД Вокзал', lat: 43.1155, lng: 131.8855 },
-    { name: 'Покровский парк', lat: 43.1134, lng: 131.8903 },
-    { name: 'Золотой мост', lat: 43.1067, lng: 131.8954 },
-    { name: 'ДВФУ', lat: 43.0227, lng: 131.8957 },
-    { name: 'Аэропорт', lat: 43.3961, lng: 132.1481 },
-    { name: 'Фокино', lat: 42.9627, lng: 132.4011 },
-    { name: 'Артём', lat: 43.3536, lng: 132.1886 },
-    { name: 'Уссурийск', lat: 43.8029, lng: 131.9452 },
-];
 
 export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     open,
@@ -38,21 +28,16 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         try {
             const values = await form.validateFields();
 
-            const fromLoc = VLADIVOSTOK_LOCATIONS.find(l => l.name === values.from);
-            const toLoc = VLADIVOSTOK_LOCATIONS.find(l => l.name === values.to);
-
-            if (!fromLoc || !toLoc) return;
-
             const payload: OrderCreate = {
                 driver_id: values.driver_id === 'unassigned' ? null : Number(values.driver_id),
                 time_start: values.time[0].toISOString(),
                 time_end: values.time[1].toISOString(),
-                pickup_lat: fromLoc.lat,
-                pickup_lon: fromLoc.lng,
-                dropoff_lat: toLoc.lat,
-                dropoff_lon: toLoc.lng,
-                pickup_address: fromLoc.name,
-                dropoff_address: toLoc.name,
+                pickup_lat: values.pickup.lat,
+                pickup_lon: values.pickup.lon,
+                dropoff_lat: values.dropoff.lat,
+                dropoff_lon: values.dropoff.lon,
+                pickup_address: values.pickup.address,
+                dropoff_address: values.dropoff.address,
                 customer_name: values.customer_name,
                 customer_phone: values.customer_phone,
                 priority: values.priority as OrderPriority,
@@ -89,27 +74,29 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
             >
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                     <Form.Item
-                        name="from"
+                        name="pickup"
                         label="Откуда"
                         rules={[{ required: true, message: 'Выберите точку отправления' }]}
                     >
-                        <Select placeholder="Выберите место">
-                            {VLADIVOSTOK_LOCATIONS.map(l => (
-                                <Option key={l.name} value={l.name}>{l.name}</Option>
-                            ))}
-                        </Select>
+                        <AddressPicker
+                            placeholder="Введите адрес отправления"
+                            onChange={(address, lat, lon) => {
+                                form.setFieldValue('pickup', { address, lat, lon });
+                            }}
+                        />
                     </Form.Item>
 
                     <Form.Item
-                        name="to"
+                        name="dropoff"
                         label="Куда"
                         rules={[{ required: true, message: 'Выберите точку назначения' }]}
                     >
-                        <Select placeholder="Выберите место">
-                            {VLADIVOSTOK_LOCATIONS.map(l => (
-                                <Option key={l.name} value={l.name}>{l.name}</Option>
-                            ))}
-                        </Select>
+                        <AddressPicker
+                            placeholder="Введите адрес назначения"
+                            onChange={(address, lat, lon) => {
+                                form.setFieldValue('dropoff', { address, lat, lon });
+                            }}
+                        />
                     </Form.Item>
                 </div>
 
