@@ -13,9 +13,12 @@ from src.api.dependencies import (
     get_location_manager, 
     get_driver_service,
     get_geocoding_service,
-    get_order_workflow_service
+    get_order_workflow_service,
+    get_auth_service,
+    get_current_driver
 )
 from src.services.order_workflow import OrderWorkflowService
+from src.services.geocoding import GeocodingService
 from src.schemas.geocoding import GeocodingResult
 from src.schemas.auth import TelegramAuthRequest, TokenResponse
 from src.database.models import OrderStatus, OrderPriority, Driver
@@ -265,8 +268,7 @@ async def update_driver(
 async def search_address(
     q: str,
     limit: int = 10,
-    service: GeocodingService = Depends(get_geocoding_service),
-    current_driver: Driver = Depends(get_current_driver)
+    service: GeocodingService = Depends(get_geocoding_service)
 ):
     """Поиск адресов через Photon."""
     return await service.search(q, limit=limit)
@@ -275,8 +277,7 @@ async def search_address(
 async def reverse_geocode(
     lat: float,
     lon: float,
-    service: GeocodingService = Depends(get_geocoding_service),
-    current_driver: Driver = Depends(get_current_driver)
+    service: GeocodingService = Depends(get_geocoding_service)
 ):
     """Обратный геокодинг (адрес по координатам)."""
     return await service.reverse(lat, lon)

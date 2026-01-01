@@ -24,8 +24,9 @@ class GeocodingService:
             "lang": lang
         }
 
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"}
         try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
+            async with httpx.AsyncClient(timeout=5.0, headers=headers) as client:
                 # Временно используем публичный API если локальный недоступен (для разработки)
                 try:
                     response = await client.get(url, params=params)
@@ -33,7 +34,12 @@ class GeocodingService:
                 except (httpx.ConnectError, httpx.HTTPStatusError):
                     # Fallback на публичный photon.komoot.io
                     public_url = "https://photon.komoot.io/api"
-                    response = await client.get(public_url, params=params)
+                    # Публичный API не поддерживает lang=ru
+                    public_params = params.copy()
+                    if "lang" in public_params:
+                        del public_params["lang"]
+                    
+                    response = await client.get(public_url, params=public_params)
                     response.raise_for_status()
                 
                 data = response.json()
@@ -78,15 +84,21 @@ class GeocodingService:
             "lang": lang
         }
 
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"}
         try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
+            async with httpx.AsyncClient(timeout=5.0, headers=headers) as client:
                 try:
                     response = await client.get(url, params=params)
                     response.raise_for_status()
                 except (httpx.ConnectError, httpx.HTTPStatusError):
                     # Fallback на публичный photon.komoot.io
                     public_url = "https://photon.komoot.io/reverse"
-                    response = await client.get(public_url, params=params)
+                    # Публичный API не поддерживает lang=ru
+                    public_params = params.copy()
+                    if "lang" in public_params:
+                        del public_params["lang"]
+                        
+                    response = await client.get(public_url, params=public_params)
                     response.raise_for_status()
                     
                 data = response.json()
