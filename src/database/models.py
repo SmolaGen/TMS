@@ -11,6 +11,7 @@ from typing import Optional, List
 from decimal import Decimal
 
 from geoalchemy2 import Geometry
+from geoalchemy2.shape import to_shape
 from sqlalchemy import (
     BigInteger,
     Enum,
@@ -160,6 +161,11 @@ class Order(Base):
         comment="Координаты точки выгрузки (WGS84)"
     )
     
+    pickup_address: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    dropoff_address: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    customer_phone: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    customer_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    
     # Рассчитанные данные от RoutingService
     distance_meters: Mapped[Optional[float]] = mapped_column(
         nullable=True,
@@ -206,6 +212,30 @@ class Order(Base):
         back_populates="orders",
         lazy="joined"
     )
+
+    @property
+    def time_start(self) -> Optional[datetime]:
+        return self.time_range.lower if self.time_range else None
+
+    @property
+    def time_end(self) -> Optional[datetime]:
+        return self.time_range.upper if self.time_range else None
+
+    @property
+    def pickup_lat(self) -> Optional[float]:
+        return to_shape(self.pickup_location).y if self.pickup_location else None
+
+    @property
+    def pickup_lon(self) -> Optional[float]:
+        return to_shape(self.pickup_location).x if self.pickup_location else None
+
+    @property
+    def dropoff_lat(self) -> Optional[float]:
+        return to_shape(self.dropoff_location).y if self.dropoff_location else None
+
+    @property
+    def dropoff_lon(self) -> Optional[float]:
+        return to_shape(self.dropoff_location).x if self.dropoff_location else None
     
     __table_args__ = (
         Index("ix_orders_status_priority", "status", "priority"),

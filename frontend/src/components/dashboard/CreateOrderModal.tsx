@@ -51,6 +51,10 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                 pickup_lon: fromLoc.lng,
                 dropoff_lat: toLoc.lat,
                 dropoff_lon: toLoc.lng,
+                pickup_address: fromLoc.name,
+                dropoff_address: toLoc.name,
+                customer_name: values.customer_name,
+                customer_phone: values.customer_phone,
                 priority: values.priority as OrderPriority,
                 comment: values.comment,
             };
@@ -145,6 +149,22 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                                 <Option key={d.id} value={d.id}>{d.content}</Option>
                             ))}
                         </Select>
+                    </Form.Item>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <Form.Item
+                        name="customer_name"
+                        label="Имя клиента"
+                    >
+                        <Input placeholder="Иван Иванов" />
+                    </Form.Item>
+
+                    <Form.Item
+                        name="customer_phone"
+                        label="Телефон клиента"
+                    >
+                        <Input placeholder="+7 (___) ___-__-__" />
                     </Form.Item>
                 </div>
 

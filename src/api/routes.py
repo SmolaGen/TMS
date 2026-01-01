@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.exc import IntegrityError
-from typing import List
+from datetime import datetime
+from typing import List, Optional
 
 from src.schemas.order import OrderCreate, OrderResponse, OrderMoveRequest, LocationUpdate
 from src.schemas.driver import DriverCreate, DriverResponse, DriverUpdate
@@ -12,8 +13,10 @@ from src.api.dependencies import (
     get_location_manager, 
     get_driver_service,
     get_auth_service,
-    get_current_driver
+    get_current_driver,
+    get_order_workflow_service
 )
+from src.services.order_workflow import OrderWorkflowService
 from src.schemas.auth import TelegramAuthRequest, TokenResponse
 from src.database.models import OrderStatus, OrderPriority, Driver
 from src.services.auth_service import AuthService
@@ -100,6 +103,75 @@ async def move_order(
     if not result:
         raise HTTPException(status_code=404, detail="Order not found")
     return result
+
+@router.post("/orders/{order_id}/assign/{driver_id}", response_model=OrderResponse)
+async def assign_order(
+    order_id: int,
+    driver_id: int,
+    current_driver: Driver = Depends(get_current_driver),
+    service: OrderWorkflowService = Depends(get_order_workflow_service),
+    order_service: OrderService = Depends(get_order_service)
+):
+    """Назначить водителя на заказ."""
+    await service.assign_driver(order_id, driver_id)
+    return await order_service.get_order(order_id)
+
+@router.post("/orders/{order_id}/cancel", response_model=OrderResponse)
+async def cancel_order(
+    order_id: int,
+    reason: Optional[str] = None,
+    current_driver: Driver = Depends(get_current_driver),
+    service: OrderWorkflowService = Depends(get_order_workflow_service),
+    order_service: OrderService = Depends(get_order_service)
+):
+    """Отменить заказ."""
+    await service.cancel_order(order_id, reason)
+    return await order_service.get_order(order_id)
+
+@router.post("/orders/{order_id}/complete", response_model=OrderResponse)
+async def complete_order(
+    order_id: int,
+    current_driver: Driver = Depends(get_current_driver),
+    service: OrderWorkflowService = Depends(get_order_workflow_service),
+    order_service: OrderService = Depends(get_order_service)
+):
+    """Завершить заказ."""
+    await service.complete_order(order_id)
+    return await order_service.get_order(order_id)
+
+@router.post("/orders/{order_id}/arrive", response_model=OrderResponse)
+async def mark_arrived(
+    order_id: int,
+    current_driver: Driver = Depends(get_current_driver),
+    service: OrderWorkflowService = Depends(get_order_workflow_service),
+    order_service: OrderService = Depends(get_order_service)
+):
+    """Отметить прибытие водителя."""
+    await service.mark_arrived(order_id)
+    return await order_service.get_order(order_id)
+
+@router.post("/orders/{order_id}/start", response_model=OrderResponse)
+async def start_trip(
+    order_id: int,
+    current_driver: Driver = Depends(get_current_driver),
+    service: OrderWorkflowService = Depends(get_order_workflow_service),
+    order_service: OrderService = Depends(get_order_service)
+):
+    """Начать поездку."""
+    await service.start_trip(order_id)
+    return await order_service.get_order(order_id)
+
+@router.get("/orders/{order_id}", response_model=OrderResponse)
+async def get_order(
+    order_id: int,
+    current_driver: Driver = Depends(get_current_driver),
+    service: OrderService = Depends(get_order_service)
+):
+    """Получить детали конкретного заказа."""
+    order = await service.get_order(order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return order
 
 @router.get("/drivers/live", response_model=List[DriverLocation])
 async def get_live_drivers(

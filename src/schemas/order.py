@@ -14,6 +14,10 @@ class OrderCreate(BaseModel):
     dropoff_lon: float = Field(..., ge=-180, le=180)
     priority: OrderPriority = OrderPriority.NORMAL
     comment: Optional[str] = None
+    pickup_address: Optional[str] = None
+    dropoff_address: Optional[str] = None
+    customer_phone: Optional[str] = None
+    customer_name: Optional[str] = None
 
 class OrderMoveRequest(BaseModel):
     """Схема для Drag-and-Drop (изменение времени)."""
@@ -26,9 +30,18 @@ class OrderResponse(BaseModel):
     driver_id: Optional[int]
     status: OrderStatus
     priority: OrderPriority
+    pickup_lat: Optional[float] = None
+    pickup_lon: Optional[float] = None
+    dropoff_lat: Optional[float] = None
+    dropoff_lon: Optional[float] = None
     time_start: Optional[datetime] = None  # Извлекается из tstzrange
     time_end: Optional[datetime] = None    # Извлекается из tstzrange
     comment: Optional[str]
+    pickup_address: Optional[str]
+    dropoff_address: Optional[str]
+    customer_phone: Optional[str]
+    customer_name: Optional[str]
+    price: Optional[float] = None
     created_at: datetime
     updated_at: datetime
     

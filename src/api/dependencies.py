@@ -9,6 +9,7 @@ from src.services.location_manager import LocationManager
 from src.services.order_service import OrderService
 from src.services.routing import RoutingService
 from src.services.auth_service import AuthService
+from src.services.order_workflow import OrderWorkflowService
 from src.config import settings
 
 import jwt
@@ -107,3 +108,9 @@ async def get_current_driver(
                 detail="Driver is inactive"
             )
         return driver
+
+def get_order_workflow_service(
+    uow: SQLAlchemyUnitOfWork = Depends(get_uow)
+) -> OrderWorkflowService:
+    """Провайдер сервиса управления жизненным циклом заказов."""
+    return OrderWorkflowService(uow)

@@ -4,6 +4,7 @@ import { PlusOutlined } from '@ant-design/icons';
 import { LiveMap } from './LiveMap';
 import { TimelineView } from './TimelineView';
 import { CreateOrderModal } from './CreateOrderModal';
+import { OrderDetailDrawer } from './OrderDetailDrawer';
 import { useWebSocketSync } from '../../hooks/useWebSocketSync';
 import { useDrivers } from '../../hooks/useDrivers';
 import { useCreateOrder } from '../../hooks/useOrders';
@@ -66,20 +67,11 @@ export const Dashboard: React.FC = () => {
                 </Button>
             </div>
 
-            {selectedOrderId && (
-                <div style={{
-                    position: 'fixed',
-                    bottom: 50,
-                    left: 16,
-                    zIndex: 1000,
-                    background: 'white',
-                    padding: '8px 16px',
-                    borderRadius: 8,
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                }}>
-                    Выбран заказ: #{selectedOrderId}
-                </div>
-            )}
+            <OrderDetailDrawer
+                orderId={selectedOrderId}
+                visible={!!selectedOrderId}
+                onClose={() => setSelectedOrderId(null)}
+            />
 
             <Content style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                 {/* Карта - 60% высоты */}

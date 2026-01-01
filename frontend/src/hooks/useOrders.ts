@@ -1,7 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notification } from 'antd';
 import { useRef, useCallback } from 'react';
-import { fetchOrders, moveOrder, createOrder } from '../api/orders';
+import {
+    fetchOrders,
+    moveOrder,
+    createOrder,
+    fetchOrderById,
+    cancelOrder,
+    completeOrder,
+    markArrived,
+    startTrip,
+    assignOrder
+} from '../api/orders';
 import type { OrderResponse, TimelineOrder, OrderMoveRequest } from '../types/api';
 
 // Локальный тип для vis-timeline item
@@ -148,6 +158,62 @@ export const useCreateOrder = () => {
             notification.error({
                 message: 'Ошибка создания',
                 description: error.response?.data?.detail || 'Не удалось создать заказ',
+            });
+        },
+    });
+};
+
+export const useOrder = (orderId?: number | string) => {
+    return useQuery({
+        queryKey: ['order', orderId],
+        queryFn: () => orderId ? fetchOrderById(orderId) : null,
+        enabled: !!orderId,
+    });
+};
+
+export type OrderAction = 'cancel' | 'complete' | 'arrive' | 'start' | 'assign';
+
+export const useUpdateOrderStatus = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ orderId, action, reason, driverId }: {
+            orderId: number | string;
+            action: OrderAction;
+            reason?: string;
+            driverId?: number
+        }) => {
+            switch (action) {
+                case 'cancel': return cancelOrder(orderId, reason);
+                case 'complete': return completeOrder(orderId);
+                case 'arrive': return markArrived(orderId);
+                case 'start': return startTrip(orderId);
+                case 'assign':
+                    if (!driverId) throw new Error('Driver ID is required for assignment');
+                    return assignOrder(orderId, driverId);
+                default: throw new Error(`Unknown action: ${action}`);
+            }
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['orders'] });
+            queryClient.invalidateQueries({ queryKey: ['order', variables.orderId] });
+
+            const messages = {
+                cancel: 'Заказ отменён',
+                complete: 'Заказ завершён',
+                arrive: 'Водитель прибыл',
+                start: 'Поездка началась',
+                assign: 'Водитель назначен',
+            };
+
+            notification.success({
+                message: messages[variables.action],
+            });
+        },
+        onError: (error: any) => {
+            notification.error({
+                message: 'Ошибка при обновлении статуса',
+                description: error.response?.data?.detail || 'Не удалось выполнить действие',
             });
         },
     });
