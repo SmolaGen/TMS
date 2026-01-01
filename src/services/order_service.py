@@ -85,6 +85,7 @@ class OrderService:
                 distance_meters=route.distance_meters,
                 duration_seconds=route.duration_seconds,
                 price=price.total_price,
+                route_geometry=route.geometry,
                 comment=dto.comment
             )
             

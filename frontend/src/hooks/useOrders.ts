@@ -40,6 +40,15 @@ const toTimelineOrder = (order: OrderResponse): TimelineOrder | null => {
     };
 };
 
+export const useOrdersRaw = (dateRange?: [Date, Date]) => {
+    return useQuery({
+        queryKey: ['orders', dateRange?.map(d => d.toISOString())],
+        queryFn: () => fetchOrders(dateRange),
+        staleTime: 30_000,
+        refetchInterval: 60_000,
+    });
+};
+
 export const useOrders = (dateRange?: [Date, Date]) => {
     return useQuery({
         queryKey: ['orders', dateRange?.map(d => d.toISOString())],

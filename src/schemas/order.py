@@ -51,6 +51,7 @@ class OrderResponse(BaseModel):
     end_time: Optional[datetime] = None
     cancelled_at: Optional[datetime] = None
     cancellation_reason: Optional[str] = None
+    route_geometry: Optional[str] = None  # Polyline для отрисовки на карте
 
     model_config = ConfigDict(from_attributes=True)
 
