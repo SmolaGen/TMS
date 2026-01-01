@@ -48,3 +48,23 @@ class DriverService:
             
             await self.uow.commit()
             return DriverResponse.model_validate(driver)
+
+    async def get_by_telegram_id(self, telegram_id: int) -> Optional[Driver]:
+        """Получить водителя по Telegram ID."""
+        async with self.uow:
+            driver = await self.uow.drivers.get_by_attribute("telegram_id", telegram_id)
+            return driver
+
+    async def create_driver_from_telegram(self, telegram_id: int, name: str, username: str = None) -> Driver:
+        """Создать нового водителя из данных Telegram."""
+        async with self.uow:
+            driver = Driver(
+                telegram_id=telegram_id,
+                name=name,
+                phone=username or "",
+                status=DriverStatus.OFFLINE,
+                is_active=True
+            )
+            self.uow.drivers.add(driver)
+            await self.uow.commit()
+            return driver
