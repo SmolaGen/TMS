@@ -1,5 +1,5 @@
-from datetime import timedelta
-from typing import Optional
+from datetime import datetime, timedelta
+from typing import Optional, List
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 
