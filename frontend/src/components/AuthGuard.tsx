@@ -38,8 +38,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
         // Callback для Telegram Login Widget
         window.onTelegramAuth = async (user: TelegramLoginUser) => {
             try {
-                // Формируем строку данных для валидации
-                const dataCheckArr: string[] = [];
+                // Формируем строку данных для валидации (hash НЕ включается в data_check_string)
                 const authData: Record<string, string | number> = {
                     id: user.id,
                     first_name: user.first_name,
@@ -49,10 +48,13 @@ export function AuthGuard({ children }: AuthGuardProps) {
                 if (user.username) authData.username = user.username;
                 if (user.photo_url) authData.photo_url = user.photo_url;
 
-                // Сортируем и формируем строку
+                // Сортируем и формируем строку (без hash)
+                const dataCheckArr: string[] = [];
                 Object.keys(authData).sort().forEach(key => {
                     dataCheckArr.push(`${key}=${authData[key]}`);
                 });
+                
+                // Hash добавляется в конец, но не участвует в data_check_string
                 dataCheckArr.push(`hash=${user.hash}`);
 
                 const initData = dataCheckArr.join('&');
