@@ -36,6 +36,7 @@ class AuthService:
             if "hash" not in parsed_data:
                 raise ValueError("Missing hash in initData")
             
+            # Извлекаем hash ДО формирования data_check_string
             received_hash = parsed_data.pop("hash")
             logger.info(f"Received hash: {received_hash[:20]}...")
             
@@ -48,7 +49,7 @@ class AuthService:
             if current_time - auth_date > settings.TELEGRAM_INIT_DATA_EXPIRE_SECONDS:
                 raise ValueError(f"initData expired (age={current_time - auth_date}s, max={settings.TELEGRAM_INIT_DATA_EXPIRE_SECONDS}s)")
             
-            # 2. Формирование data_check_string  
+            # 2. Формирование data_check_string (БЕЗ hash, он уже извлечен)
             # Сортируем ключи по алфавиту и склеиваем в формате key=value через \n
             data_check_string = "\n".join(
                 f"{k}={v}" for k, v in sorted(parsed_data.items())
