@@ -1,0 +1,54 @@
+/* TMS Dashboard Styles */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+}
+
+/* Leaflet маркеры водителей */
+.driver-marker {
+  background: transparent;
+  border: none;
+}
+
+/* Timeline стили для заказов по приоритету */
+.vis-item.order-low {
+  background-color: #d9f7be;
+  border-color: #52c41a;
+}
+
+.vis-item.order-normal {
+  background-color: #bae7ff;
+  border-color: #1890ff;
+}
+
+.vis-item.order-high {
+  background-color: #ffe58f;
+  border-color: #faad14;
+}
+
+.vis-item.order-urgent {
+  background-color: #ffccc7;
+  border-color: #ff4d4f;
+}
+
+/* Timeline группы */
+.vis-label {
+  font-weight: 500;
+  color: #333;
+}
+
+/* Улучшение читаемости timeline */
+.vis-timeline {
+  border: none !important;
+}
+
+.vis-panel.vis-left {
+  border-right: 1px solid #e8e8e8 !important;
+}

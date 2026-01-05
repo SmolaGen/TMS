@@ -4,10 +4,9 @@ TMS - Transport Management System
 FastAPI приложение для управления транспортом.
 """
 
-import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, Response
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -21,29 +20,8 @@ from src.core.middleware import CorrelationIdMiddleware
 from src.api.routes import router as api_router
 from aiogram.types import Update
 
-# Prometheus metrics
-from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
-
-# Sentry SDK
-import sentry_sdk
-from sentry_sdk.integrations.fastapi import FastApiIntegration
-from sentry_sdk.integrations.starlette import StarletteIntegration
-
 logger = get_logger(__name__)
 configure_logging(settings.LOG_LEVEL)
-
-# Prometheus Metrics
-REQUEST_COUNT = Counter(
-    'tms_requests_total',
-    'Total request count',
-    ['method', 'endpoint', 'status']
-)
-REQUEST_LATENCY = Histogram(
-    'tms_request_latency_seconds',
-    'Request latency in seconds',
-    ['method', 'endpoint']
-)
-
 
 
 @asynccontextmanager
@@ -52,25 +30,10 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("app_starting", env=settings.APP_ENV)
     
-    # Initialize Sentry (only in production)
-    sentry_dsn = os.environ.get("SENTRY_DSN")
-    if sentry_dsn and settings.APP_ENV == "production":
-        sentry_sdk.init(
-            dsn=sentry_dsn,
-            integrations=[
-                StarletteIntegration(transaction_style="endpoint"),
-                FastApiIntegration(transaction_style="endpoint"),
-            ],
-            traces_sample_rate=0.1,  # 10% трейсов
-            environment=settings.APP_ENV,
-        )
-        logger.info("sentry_initialized")
-    
     # Инициализация Redis (для LocationManager в API)
     # NOTE: ingest_worker запускается как отдельный процесс (не в lifespan)
     # Это обеспечивает масштабируемость и отказоустойчивость
     logger.info("lifespan_redis_ready")
-
 
     # Инициализация Бота (graceful fallback если токен невалидный)
     try:
@@ -134,15 +97,6 @@ async def health_check():
     return {"status": "healthy", "service": "tms-backend"}
 
 
-@app.get("/metrics")
-async def metrics():
-    """Prometheus metrics endpoint."""
-    return Response(
-        content=generate_latest(),
-        media_type=CONTENT_TYPE_LATEST
-    )
-
-
 @app.post("/bot/webhook")
 async def bot_webhook(update: dict):
     """Эндпоинт для получения обновлений от Telegram."""
@@ -195,3 +149,9 @@ async def root():
         "redoc": "/redoc",
     }
 
+
+# TODO: Добавить роуты для:
+# - /api/v1/drivers - CRUD для водителей
+# - /api/v1/orders - CRUD для заказов
+# - /api/v1/routing - Маршрутизация через OSRM
+# - /api/v1/geocoding - Геокодинг через Photon
