@@ -14,6 +14,7 @@ import type { TimelineDriver } from '../../types/api';
 export const Dashboard: React.FC = () => {
     const { isConnected } = useWebSocketSync();
     const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+    const [selectedDriverId, setSelectedDriverId] = useState<number | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     // Реальные данные через хуки
@@ -113,11 +114,13 @@ export const Dashboard: React.FC = () => {
                     boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
                 }}>
                     <LiveMap
-                        onDriverSelect={(id) => console.log('Selected driver:', id)}
+                        onDriverSelect={setSelectedDriverId}
                         selectedOrderId={selectedOrderId}
+                        selectedDriverId={selectedDriverId}
                         orders={orders}
                     />
                 </div>
+
 
                 {/* Таймлайн - 45% высоты */}
                 <div style={{

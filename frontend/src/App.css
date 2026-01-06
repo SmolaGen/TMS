@@ -131,3 +131,43 @@ body,
 .kpi-card {
   animation: fadeInUp 0.3s ease-out;
 }
+
+/* Маркеры водителей */
+.custom-driver-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.custom-cluster-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Анимация появления маркера */
+@keyframes markerPulse {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.1);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.driver-marker-available {
+  animation: markerPulse 2s infinite;
+}
+
+/* Стили для popup */
+.leaflet-popup-content-wrapper {
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.leaflet-popup-content {
+  margin: 12px;
+}
