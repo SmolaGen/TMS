@@ -96,7 +96,7 @@ async def show_user_card(callback: CallbackQuery):
 
 @router.callback_query(F.data.startswith("admin:set_role:"))
 async def set_user_role(callback: CallbackQuery, bot: Bot):
-    _, _, _, user_id, role_val = callback.data.split(":")
+    _, _, user_id, role_val = callback.data.split(":")
     user_id = int(user_id)
     new_role = UserRole(role_val)
     
