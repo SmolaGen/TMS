@@ -1,30 +1,152 @@
+/* ============================================
+   TMS Design System - CSS Variables
+   ============================================ */
+
 :root {
-  /* Размеры layout */
-  --sidebar-width: 200px;
-  --sidebar-collapsed-width: 80px;
-  --header-height: 64px;
+  /* === Brand Colors === */
+  --tms-primary: #1677ff;
+  --tms-primary-hover: #4096ff;
+  --tms-primary-active: #0958d9;
 
-  /* Тени */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --tms-success: #52c41a;
+  --tms-warning: #faad14;
+  --tms-error: #ff4d4f;
+  --tms-info: #1677ff;
 
-  /* Переходы */
-  --transition-fast: 0.2s ease;
+  /* === Background Colors === */
+  --tms-bg-base: #ffffff;
+  --tms-bg-container: #ffffff;
+  --tms-bg-elevated: #ffffff;
+  --tms-bg-layout: #f5f5f5;
+  --tms-bg-spotlight: #f0f5ff;
+
+  /* === Text Colors === */
+  --tms-text-primary: rgba(0, 0, 0, 0.88);
+  --tms-text-secondary: rgba(0, 0, 0, 0.65);
+  --tms-text-tertiary: rgba(0, 0, 0, 0.45);
+  --tms-text-disabled: rgba(0, 0, 0, 0.25);
+
+  /* === Border Colors === */
+  --tms-border-base: #d9d9d9;
+  --tms-border-split: rgba(0, 0, 0, 0.06);
+
+  /* === Shadows === */
+  --tms-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02);
+  --tms-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --tms-shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.12);
+  --tms-shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.16);
+
+  /* === Spacing === */
+  --tms-spacing-xs: 4px;
+  --tms-spacing-sm: 8px;
+  --tms-spacing-md: 16px;
+  --tms-spacing-lg: 24px;
+  --tms-spacing-xl: 32px;
+
+  /* === Border Radius === */
+  --tms-radius-sm: 4px;
+  --tms-radius-md: 8px;
+  --tms-radius-lg: 12px;
+  --tms-radius-xl: 16px;
+
+  /* === Typography === */
+  --tms-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --tms-font-size-sm: 12px;
+  --tms-font-size-base: 14px;
+  --tms-font-size-lg: 16px;
+  --tms-font-size-xl: 20px;
+  --tms-font-size-2xl: 24px;
+
+  /* === Transitions === */
+  --tms-transition-fast: 0.15s ease-out;
+  --tms-transition-normal: 0.25s ease-out;
+  --tms-transition-slow: 0.4s ease-out;
+
+  /* === Z-Index Scale === */
+  --tms-z-dropdown: 1050;
+  --tms-z-modal: 1000;
+  --tms-z-overlay: 900;
+  --tms-z-header: 100;
+  --tms-z-map-controls: 500;
+}
+
+/* ============================================
+   Dark Theme Override
+   ============================================ */
+
+body.dark-theme {
+  /* === Background Colors === */
+  --tms-bg-base: #141414;
+  --tms-bg-container: #1f1f1f;
+  --tms-bg-elevated: #262626;
+  --tms-bg-layout: #000000;
+  --tms-bg-spotlight: #111a2c;
+
+  /* === Text Colors === */
+  --tms-text-primary: rgba(255, 255, 255, 0.88);
+  --tms-text-secondary: rgba(255, 255, 255, 0.65);
+  --tms-text-tertiary: rgba(255, 255, 255, 0.45);
+  --tms-text-disabled: rgba(255, 255, 255, 0.25);
+
+  /* === Border Colors === */
+  --tms-border-base: #424242;
+  --tms-border-split: rgba(255, 255, 255, 0.08);
+
+  /* === Shadows (более мягкие для темной темы) === */
+  --tms-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --tms-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --tms-shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --tms-shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================
+   Utility Classes
+   ============================================ */
+
+.tms-card {
+  background: var(--tms-bg-container);
+  border-radius: var(--tms-radius-lg);
+  box-shadow: var(--tms-shadow-md);
+  padding: var(--tms-spacing-md);
+}
+
+.tms-surface {
+  background: var(--tms-bg-elevated);
+  border-radius: var(--tms-radius-md);
+}
+
+.tms-text-primary {
+  color: var(--tms-text-primary);
+}
+
+.tms-text-secondary {
+  color: var(--tms-text-secondary);
+}
+
+/* ============================================
+   Base Styles
+   ============================================ */
+
+html,
+body {
+  font-family: var(--tms-font-family);
+  font-size: var(--tms-font-size-base);
+  color: var(--tms-text-primary);
+  background: var(--tms-bg-layout);
+  transition: background-color var(--tms-transition-normal), color var(--tms-transition-normal);
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  width: 100%;
 }
 
 * {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
 }
 
-html,
-body,
 #root {
   height: 100vh;
   width: 100%;
-  margin: 0;
-  padding: 0;
 }
 
 /* Leaflet маркеры водителей */
@@ -33,68 +155,69 @@ body,
   border: none;
 }
 
-/* Timeline стили для заказов по приоритету */
+/* Timeline стили для заказов по приоритету (обновленные) */
 .vis-item.order-low {
-  background-color: #d9f7be;
-  border-color: #52c41a;
+  background-color: color-mix(in srgb, var(--tms-success) 20%, var(--tms-bg-container));
+  border-color: var(--tms-success);
 }
 
 .vis-item.order-normal {
-  background-color: #bae7ff;
-  border-color: #1890ff;
+  background-color: color-mix(in srgb, var(--tms-primary) 20%, var(--tms-bg-container));
+  border-color: var(--tms-primary);
 }
 
 .vis-item.order-high {
-  background-color: #ffe58f;
-  border-color: #faad14;
+  background-color: color-mix(in srgb, var(--tms-warning) 25%, var(--tms-bg-container));
+  border-color: var(--tms-warning);
 }
 
 .vis-item.order-urgent {
-  background-color: #ffccc7;
-  border-color: #ff4d4f;
+  background-color: color-mix(in srgb, var(--tms-error) 20%, var(--tms-bg-container));
+  border-color: var(--tms-error);
 }
 
-/* Timeline статусы */
+/* Timeline статусы - совместимость с темной темой */
 .vis-item.timeline-item-pending {
-  background-color: #fff7e6 !important;
-  border-color: #ffc53d !important;
+  background-color: color-mix(in srgb, #faad14 20%, var(--tms-bg-container)) !important;
+  border-color: #faad14 !important;
 }
 
 .vis-item.timeline-item-accepted {
-  background-color: #e6f7ff !important;
-  border-color: #1890ff !important;
+  background-color: color-mix(in srgb, #1677ff 20%, var(--tms-bg-container)) !important;
+  border-color: #1677ff !important;
 }
 
 .vis-item.timeline-item-progress {
-  background-color: #f6ffed !important;
+  background-color: color-mix(in srgb, #52c41a 20%, var(--tms-bg-container)) !important;
   border-color: #52c41a !important;
 }
 
 .vis-item.timeline-item-completed {
-  background-color: #f5f5f5 !important;
-  border-color: #d9d9d9 !important;
+  background-color: color-mix(in srgb, var(--tms-text-disabled) 20%, var(--tms-bg-container)) !important;
+  border-color: var(--tms-border-base) !important;
   opacity: 0.7;
 }
 
 .vis-item.timeline-item-cancelled {
-  background-color: #fff1f0 !important;
+  background-color: color-mix(in srgb, #ff4d4f 20%, var(--tms-bg-container)) !important;
   border-color: #ff4d4f !important;
   text-decoration: line-through;
 }
 
 /* Таблица: подсветка строк без водителя */
 .order-row-warning {
-  background-color: #fffbe6 !important;
+  background-color: color-mix(in srgb, var(--tms-warning) 10%, var(--tms-bg-container)) !important;
 }
 
 .order-row-warning:hover>td {
-  background-color: #fff1b8 !important;
+  background-color: color-mix(in srgb, var(--tms-warning) 20%, var(--tms-bg-container)) !important;
 }
 
-/* Timeline группы */
+/* Timeline файлы и структура (темная тема) */
 .vis-label {
   font-weight: 500;
-  color: #333;
+  color: var(--tms-text-primary);
+  transition: color var(--tms-transition-normal);
 }
 
 /* Улучшение читаемости timeline */
@@ -103,7 +226,31 @@ body,
 }
 
 .vis-panel.vis-left {
-  border-right: 1px solid #e8e8e8 !important;
+  border-right: 1px solid var(--tms-border-base) !important;
+}
+
+body.dark-theme .vis-timeline {
+  border-color: var(--tms-border-base) !important;
+}
+
+body.dark-theme .vis-panel.vis-left {
+  border-right-color: var(--tms-border-base) !important;
+}
+
+body.dark-theme .vis-panel.vis-bottom {
+  border-top-color: var(--tms-border-base) !important;
+}
+
+body.dark-theme .vis-time-axis .vis-text {
+  color: var(--tms-text-secondary) !important;
+}
+
+body.dark-theme .vis-panel.vis-center,
+body.dark-theme .vis-panel.vis-left,
+body.dark-theme .vis-panel.vis-right,
+body.dark-theme .vis-panel.vis-top,
+body.dark-theme .vis-panel.vis-bottom {
+  background: var(--tms-bg-container) !important;
 }
 
 /* Hover для алертов */
@@ -112,7 +259,7 @@ body,
 }
 
 .alert-item:hover {
-  background-color: #f5f5f5 !important;
+  background-color: var(--tms-bg-layout) !important;
 }
 
 /* Анимация появления KPI */
@@ -165,22 +312,27 @@ body,
 /* Стили для popup */
 .leaflet-popup-content-wrapper {
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--tms-shadow-md);
+  background: var(--tms-bg-container);
+  color: var(--tms-text-primary);
 }
 
 .leaflet-popup-content {
   margin: 12px;
 }
 
-/* Стили для страницы водителей */
+.leaflet-popup-tip {
+  background: var(--tms-bg-container);
+}
 
+/* Стили для страницы водителей */
 .driver-row-inactive {
-  background-color: #fafafa !important;
+  background-color: var(--tms-bg-layout) !important;
   opacity: 0.7;
 }
 
 .driver-row-inactive:hover>td {
-  background-color: #f0f0f0 !important;
+  background-color: var(--tms-bg-layout) !important;
 }
 
 /* Карточка водителя - анимация при наведении */

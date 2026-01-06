@@ -11,6 +11,9 @@ import { SettingsPage } from './pages/SettingsPage';
 import { DriverApp } from './pages/DriverApp';
 import { AuthGuard } from './components/AuthGuard';
 import { useTelegramAuth } from './hooks/useTelegramAuth';
+import { useTheme } from './hooks/useTheme';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import type { ThemeMode } from './theme';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -23,12 +26,27 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+    const { themeConfig, toggleTheme, isDark, mode, setMode } = useTheme();
+
+    // Глобальные шорткаты
+    useKeyboardShortcuts([
+        {
+            key: 'd',
+            handler: toggleTheme,
+            description: 'Переключить тему'
+        }
+    ]);
+
     return (
         <QueryClientProvider client={queryClient}>
-            <ConfigProvider locale={ruRU}>
+            <ConfigProvider locale={ruRU} theme={themeConfig}>
                 <BrowserRouter>
                     <AuthGuard>
-                        <AppRoutes />
+                        <AppRoutes
+                            onThemeChange={setMode}
+                            themeMode={mode}
+                            isDark={isDark}
+                        />
                     </AuthGuard>
                 </BrowserRouter>
             </ConfigProvider>
@@ -36,7 +54,13 @@ function App() {
     );
 }
 
-function AppRoutes() {
+interface AppRoutesProps {
+    onThemeChange: (mode: ThemeMode) => void;
+    themeMode: ThemeMode;
+    isDark: boolean;
+}
+
+function AppRoutes({ onThemeChange, themeMode, isDark }: AppRoutesProps) {
     const { user } = useTelegramAuth();
     const role = user?.role;
 
@@ -54,7 +78,11 @@ function AppRoutes() {
     }
 
     return (
-        <AppLayout>
+        <AppLayout
+            onThemeChange={onThemeChange}
+            themeMode={themeMode}
+            isDark={isDark}
+        >
             <Routes>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/orders" element={<OrdersPage />} />

@@ -10,6 +10,7 @@ import { useDrivers } from '../../hooks/useDrivers';
 import { useCreateOrder, useOrdersRaw } from '../../hooks/useOrders';
 import { KPIWidgets } from './KPIWidgets';
 import type { TimelineDriver } from '../../types/api';
+import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 
 export const Dashboard: React.FC = () => {
     const { isConnected } = useWebSocketSync();
@@ -21,6 +22,23 @@ export const Dashboard: React.FC = () => {
     const { data: drivers = [] } = useDrivers();
     const { mutate: createOrder, isPending: isCreating } = useCreateOrder();
     const { data: orders = [] } = useOrdersRaw();
+
+    // Горячие клавиши
+    useKeyboardShortcuts([
+        {
+            key: 'n',
+            handler: () => setIsModalOpen(true),
+            description: 'Новый заказ'
+        },
+        {
+            key: 'Escape',
+            handler: () => {
+                setIsModalOpen(false);
+                setSelectedOrderId(null);
+            },
+            description: 'Закрыть'
+        },
+    ]);
 
     // Преобразование водителей для Timeline
     const timelineDrivers: TimelineDriver[] = useMemo(() => {

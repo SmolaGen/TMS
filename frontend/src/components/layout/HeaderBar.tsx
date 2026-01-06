@@ -8,14 +8,24 @@ import {
 import type { MenuProps } from 'antd';
 import { useTelegramAuth } from '../../hooks/useTelegramAuth';
 import { AlertCenter } from '../dashboard/AlertCenter';
+import { ThemeToggle } from '../common/ThemeToggle';
+import type { ThemeMode } from '../../theme';
 
 const { Header } = Layout;
 
 interface HeaderBarProps {
     collapsed: boolean;
+    onThemeChange: (mode: ThemeMode) => void;
+    themeMode: ThemeMode;
+    isDark: boolean;
 }
 
-export const HeaderBar: React.FC<HeaderBarProps> = ({ collapsed }) => {
+export const HeaderBar: React.FC<HeaderBarProps> = ({
+    collapsed,
+    onThemeChange,
+    themeMode,
+    isDark
+}) => {
     const { user, logout } = useTelegramAuth();
 
     const profileMenuItems: MenuProps['items'] = [
@@ -58,6 +68,13 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({ collapsed }) => {
 
             {/* Правая часть */}
             <Space size="large">
+                <ThemeToggle
+                    mode={themeMode}
+                    onModeChange={onThemeChange}
+                    isDark={isDark}
+                    showDropdown
+                />
+
                 <AlertCenter />
 
                 <Dropdown menu={{ items: profileMenuItems }} placement="bottomRight">

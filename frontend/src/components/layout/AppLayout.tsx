@@ -5,11 +5,21 @@ import { HeaderBar } from './HeaderBar';
 
 const { Content, Footer } = Layout;
 
+import type { ThemeMode } from '../../theme';
+
 interface AppLayoutProps {
     children: React.ReactNode;
+    onThemeChange: (mode: ThemeMode) => void;
+    themeMode: ThemeMode;
+    isDark: boolean;
 }
 
-export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
+export const AppLayout: React.FC<AppLayoutProps> = ({
+    children,
+    onThemeChange,
+    themeMode,
+    isDark
+}) => {
     const [collapsed, setCollapsed] = useState(false);
 
     return (
@@ -19,7 +29,12 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                 onCollapse={setCollapsed}
             />
             <Layout>
-                <HeaderBar collapsed={collapsed} />
+                <HeaderBar
+                    collapsed={collapsed}
+                    onThemeChange={onThemeChange}
+                    themeMode={themeMode}
+                    isDark={isDark}
+                />
                 <Content style={{
                     margin: '16px',
                     padding: '16px',
