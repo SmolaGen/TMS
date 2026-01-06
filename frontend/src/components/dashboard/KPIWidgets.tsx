@@ -1,5 +1,5 @@
 import React from 'react';
-import { Row, Col, Card, Statistic, Skeleton } from 'antd';
+import { Card, Statistic, Skeleton } from 'antd';
 import {
     ShoppingCartOutlined,
     CarOutlined,
@@ -9,38 +9,55 @@ import {
 } from '@ant-design/icons';
 import { useKPIStats } from '../../hooks/useKPIStats';
 
-const cardStyle: React.CSSProperties = {
-    borderRadius: 12,
-    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-    border: 'none',
-    height: '100%',
-};
-
-const iconStyle = (color: string): React.CSSProperties => ({
-    fontSize: 24,
+const iconStyle = (color: string, isMobile: boolean): React.CSSProperties => ({
+    fontSize: isMobile ? 18 : 24,
     color,
-    padding: 12,
-    borderRadius: 12,
+    padding: isMobile ? 8 : 12,
+    borderRadius: 10,
     backgroundColor: `${color}15`,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
 });
 
+// Хук для определения мобильного устройства
+const useIsMobile = () => {
+    const [isMobile, setIsMobile] = React.useState(
+        typeof window !== 'undefined' ? window.innerWidth <= 768 : false
+    );
+
+    React.useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    return isMobile;
+};
+
 export const KPIWidgets: React.FC = () => {
     const { data, isLoading, error } = useKPIStats();
+    const isMobile = useIsMobile();
 
     if (isLoading) {
         return (
-            <Row gutter={[16, 16]}>
+            <div style={{
+                display: 'flex',
+                gap: isMobile ? 8 : 16,
+                overflowX: 'auto',
+                paddingBottom: 8,
+                marginBottom: isMobile ? 8 : 16,
+            }}>
                 {[1, 2, 3, 4, 5].map((i) => (
-                    <Col key={i} xs={12} sm={8} md={6} lg={4.8} xl={4.8}>
-                        <Card style={cardStyle} size="small">
-                            <Skeleton active paragraph={{ rows: 0 }} title={{ width: '100%' }} />
-                        </Card>
-                    </Col>
+                    <Card key={i} size="small" style={{
+                        minWidth: isMobile ? 120 : 180,
+                        borderRadius: 12,
+                        flexShrink: 0,
+                    }}>
+                        <Skeleton active paragraph={{ rows: 0 }} title={{ width: '100%' }} />
+                    </Card>
                 ))}
-            </Row>
+            </div>
         );
     }
 
@@ -52,72 +69,108 @@ export const KPIWidgets: React.FC = () => {
 
     const kpiItems = [
         {
-            title: 'Активных заказов',
+            title: 'Активных',
+            fullTitle: 'Активных заказов',
             value: stats.activeOrders,
-            icon: <ShoppingCartOutlined style={iconStyle('#1890ff')} />,
+            icon: <ShoppingCartOutlined style={iconStyle('#1890ff', isMobile)} />,
             color: '#1890ff',
         },
         {
-            title: 'Свободных водителей',
+            title: 'Свободных',
+            fullTitle: 'Свободных водителей',
             value: stats.freeDrivers,
-            icon: <CarOutlined style={iconStyle('#52c41a')} />,
+            icon: <CarOutlined style={iconStyle('#52c41a', isMobile)} />,
             color: '#52c41a',
         },
         {
-            title: 'Выполнено сегодня',
+            title: 'Выполнено',
+            fullTitle: 'Выполнено сегодня',
             value: stats.completedToday,
-            icon: <CheckCircleOutlined style={iconStyle('#722ed1')} />,
+            icon: <CheckCircleOutlined style={iconStyle('#722ed1', isMobile)} />,
             color: '#722ed1',
         },
         {
-            title: 'Средняя оценка',
+            title: 'Оценка',
+            fullTitle: 'Средняя оценка',
             value: stats.averageRating,
             precision: 1,
             suffix: '⭐',
-            icon: <StarOutlined style={iconStyle('#faad14')} />,
+            icon: <StarOutlined style={iconStyle('#faad14', isMobile)} />,
             color: '#faad14',
         },
         {
-            title: 'Среднее ожидание',
+            title: 'Ожидание',
+            fullTitle: 'Среднее ожидание',
             value: stats.averageWaitTime,
             suffix: 'мин',
-            icon: <ClockCircleOutlined style={iconStyle('#eb2f96')} />,
+            icon: <ClockCircleOutlined style={iconStyle('#eb2f96', isMobile)} />,
             color: '#eb2f96',
         },
     ];
 
     return (
-        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+        <div style={{
+            display: 'flex',
+            gap: isMobile ? 8 : 16,
+            overflowX: 'auto',
+            paddingBottom: 8,
+            marginBottom: isMobile ? 8 : 16,
+            WebkitOverflowScrolling: 'touch',
+        }}>
             {kpiItems.map((item, index) => (
-                <Col key={index} xs={12} sm={8} md={6} lg={4.8} xl={4.8} style={{ flexBasis: '20%', maxWidth: '20%' }}>
-                    <Card
-                        size="small"
-                        style={cardStyle}
-                        className="kpi-card"
-                        hoverable
-                    >
-                        <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 16
-                        }}>
-                            {item.icon}
-                            <Statistic
-                                title={<span style={{ color: 'var(--tms-text-secondary)', fontSize: 13 }}>{item.title}</span>}
-                                value={item.value}
-                                precision={item.precision}
-                                suffix={<span style={{ fontSize: 14, color: 'var(--tms-text-secondary)', marginLeft: 4 }}>{item.suffix}</span>}
-                                valueStyle={{
+                <Card
+                    key={index}
+                    size="small"
+                    style={{
+                        minWidth: isMobile ? 100 : 180,
+                        borderRadius: 12,
+                        flexShrink: 0,
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                        border: 'none',
+                    }}
+                    className="kpi-card"
+                    hoverable
+                >
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: isMobile ? 8 : 16,
+                        flexDirection: isMobile ? 'column' : 'row',
+                    }}>
+                        {item.icon}
+                        <Statistic
+                            title={
+                                <span style={{
+                                    color: 'var(--tms-text-secondary)',
+                                    fontSize: isMobile ? 11 : 13,
+                                    whiteSpace: 'nowrap',
+                                }}>
+                                    {isMobile ? item.title : item.fullTitle}
+                                </span>
+                            }
+                            value={item.value}
+                            precision={item.precision}
+                            suffix={
+                                <span style={{
+                                    fontSize: isMobile ? 12 : 14,
+                                    color: 'var(--tms-text-secondary)',
+                                    marginLeft: 2,
+                                }}>
+                                    {item.suffix}
+                                </span>
+                            }
+                            styles={{
+                                content: {
                                     color: item.color,
-                                    fontSize: 22,
+                                    fontSize: isMobile ? 18 : 22,
                                     fontWeight: 700,
-                                    lineHeight: '28px'
-                                }}
-                            />
-                        </div>
-                    </Card>
-                </Col>
+                                    lineHeight: isMobile ? '22px' : '28px',
+                                }
+                            }}
+                        />
+                    </div>
+                </Card>
             ))}
-        </Row>
+        </div>
     );
 };

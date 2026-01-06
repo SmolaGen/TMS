@@ -156,11 +156,11 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({ orderId, v
                 <>
                     <div style={{ marginBottom: 24 }}>
                         <Space align="center">
-                            <Tag color={statusColors[order.status]}>
-                                {order.status.toUpperCase()}
+                            <Tag color={statusColors[order.status] || 'default'}>
+                                {(order.status || 'unknown').toUpperCase()}
                             </Tag>
-                            <Tag color={priorityColors[order.priority]}>
-                                {order.priority.toUpperCase()}
+                            <Tag color={priorityColors[order.priority] || 'gold'}>
+                                {(order.priority || 'normal').toUpperCase()}
                             </Tag>
                         </Space>
                     </div>

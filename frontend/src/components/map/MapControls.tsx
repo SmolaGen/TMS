@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, Switch, Space, Typography, Divider, Button } from 'antd';
 import {
     CarOutlined,
@@ -19,12 +19,34 @@ interface MapControlsProps {
     onResetView: () => void;
 }
 
+// Хук для определения мобильного устройства
+const useIsMobile = () => {
+    const [isMobile, setIsMobile] = useState(
+        typeof window !== 'undefined' ? window.innerWidth <= 768 : false
+    );
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    return isMobile;
+};
+
 export const MapControls: React.FC<MapControlsProps> = ({
     state,
     onChange,
     onCenterOnSelected,
     onResetView,
 }) => {
+    const isMobile = useIsMobile();
+
+    // Скрываем на мобильных
+    if (isMobile) {
+        return null;
+    }
+
     return (
         <Card
             size="small"
@@ -37,7 +59,7 @@ export const MapControls: React.FC<MapControlsProps> = ({
                 boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
             }}
         >
-            <Space direction="vertical" style={{ width: '100%' }}>
+            <Space orientation="vertical" style={{ width: '100%' }}>
                 <Typography.Text strong>
                     🗺️ Управление картой
                 </Typography.Text>

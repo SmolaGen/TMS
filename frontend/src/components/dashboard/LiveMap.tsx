@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import { useDriverLocations } from '../../hooks/useDriverLocations';
 import { useDrivers } from '../../hooks/useDrivers';
+import { useTheme } from '../../hooks/useTheme';
 import { ClusteredDriverMarkers } from '../map/ClusteredDriverMarkers';
 import { MapControls } from '../map/MapControls';
 import type { MapControlsState } from '../map/MapControls';
@@ -81,12 +82,18 @@ const MapCenterController: React.FC<{
     return null;
 };
 
+// Тайлы для карты
+const TILE_LIGHT = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+const TILE_DARK = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+const TILE_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
+
 export const LiveMap: React.FC<LiveMapProps> = ({
     onDriverSelect,
     selectedOrderId,
     selectedDriverId,
     orders: propOrders
 }) => {
+    const { isDark } = useTheme();
     const { data: hookDriverLocations = [] } = useDriverLocations();
     const { data: hookDrivers = [] } = useDrivers();
     const { data: hookOrders = [] } = useOrdersRaw();
@@ -129,8 +136,9 @@ export const LiveMap: React.FC<LiveMapProps> = ({
                 scrollWheelZoom={true}
             >
                 <TileLayer
-                    url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                    key={isDark ? 'dark' : 'light'}
+                    url={isDark ? TILE_DARK : TILE_LIGHT}
+                    attribution={TILE_ATTRIBUTION}
                 />
 
                 <OrderMapController selectedOrderId={selectedOrderId} orders={orders} />
