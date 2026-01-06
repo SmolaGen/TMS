@@ -57,7 +57,7 @@ services:
 
   # Photon для геокодинга
   photon:
-    image: komoot/photon:latest
+    image: rtuszik/photon-docker:latest
     container_name: tms-photon
     restart: unless-stopped
     ports:
@@ -66,6 +66,7 @@ services:
       - photon_data:/photon/photon_data
     environment:
       - JAVA_OPTS=-Xms512m -Xmx2g
+      - REGION=russia
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:2322/api?q=test"]
       interval: 30s
