@@ -19,6 +19,35 @@ interface AuthState {
 
 const TOKEN_KEY = 'tms_auth_token';
 
+interface JwtPayload {
+    sub: string;
+    exp: number;
+}
+
+/**
+ * Проверяет, валиден ли JWT токен и не истек ли он.
+ */
+function isTokenValid(token: string): boolean {
+    if (!token) return false;
+    try {
+        const base64Url = token.split('.')[1];
+        if (!base64Url) return false;
+
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map((c) => {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+
+        const payload: JwtPayload = JSON.parse(jsonPayload);
+        const now = Math.floor(Date.now() / 1000);
+
+        return payload.exp > now;
+    } catch (e) {
+        console.error('[Auth] Error decoding token:', e);
+        return false;
+    }
+}
+
 /**
  * Хук для авторизации через Telegram Mini App.
  * 
@@ -37,7 +66,7 @@ export function useTelegramAuth() {
     const authenticate = useCallback(async () => {
         // 1. Сначала проверяем сохраненный токен в localStorage
         const savedToken = localStorage.getItem(TOKEN_KEY);
-        if (savedToken) {
+        if (savedToken && isTokenValid(savedToken)) {
             setState({
                 isLoading: false,
                 isAuthenticated: true,
@@ -45,8 +74,13 @@ export function useTelegramAuth() {
                 error: null,
                 token: savedToken,
             });
-            console.log('[Auth] Found saved token, using it');
+            console.log('[Auth] Found valid saved token, using it');
             return;
+        }
+
+        if (savedToken && !isTokenValid(savedToken)) {
+            console.log('[Auth] Saved token expired or invalid, removing it');
+            localStorage.removeItem(TOKEN_KEY);
         }
 
         // 2. Проверяем наличие Telegram WebApp с initData
@@ -130,6 +164,15 @@ export function useTelegramAuth() {
 
     useEffect(() => {
         authenticate();
+
+        // Слушаем событие истечения токена из интерцептора
+        const handleTokenExpired = () => {
+            console.log('[Auth] Token expired event received, re-authenticating...');
+            authenticate();
+        };
+
+        window.addEventListener('auth:token-expired', handleTokenExpired);
+        return () => window.removeEventListener('auth:token-expired', handleTokenExpired);
     }, [authenticate]);
 
     return {

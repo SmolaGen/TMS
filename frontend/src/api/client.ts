@@ -23,10 +23,19 @@ apiClient.interceptors.request.use(
     }
 );
 
-// Интерцептор для логирования ошибок
+// Интерцептор для логирования ошибок и обработки 401
 apiClient.interceptors.response.use(
     (response) => response,
     (error) => {
+        if (error.response?.status === 401) {
+            const detail = error.response.data?.detail;
+            // Если токен истек или невалиден - очищаем его
+            if (detail === 'Token expired' || detail === 'Invalid token') {
+                console.warn('[Auth] Token expired, clearing storage');
+                localStorage.removeItem(TOKEN_KEY);
+                window.dispatchEvent(new CustomEvent('auth:token-expired'));
+            }
+        }
         console.error('[API Error]', error.response?.status, error.response?.data);
         return Promise.reject(error);
     }
