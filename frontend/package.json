@@ -27,6 +27,7 @@
     "dayjs": "^1.11.19",
     "leaflet": "^1.9.4",
     "react-leaflet": "^5.0.0",
+    "react-router-dom": "^7.11.0",
     "vis-data": "^8.0.3",
     "vis-timeline": "^8.5.0",
     "zustand": "^5.0.9"

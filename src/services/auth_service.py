@@ -125,6 +125,7 @@ class AuthService:
             "sub": str(driver.telegram_id),
             "driver_id": driver.id,
             "name": driver.name,
+            "role": driver.role.value,
             "exp": expire,
             "iat": datetime.now(tz=timezone.utc)
         }
@@ -141,5 +142,6 @@ class AuthService:
             access_token=token,
             driver_id=driver.id,
             name=driver.name,
-            telegram_id=driver.telegram_id
+            telegram_id=driver.telegram_id,
+            role=driver.role.value
         )

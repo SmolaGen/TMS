@@ -12,3 +12,4 @@ class TokenResponse(BaseModel):
     driver_id: int
     name: str
     telegram_id: int
+    role: str
