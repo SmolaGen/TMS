@@ -2,6 +2,7 @@ import pytest
 import pytest_asyncio
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock
+from sqlalchemy import select
 
 from src.services.driver_service import DriverService
 from src.database.uow import AbstractUnitOfWork
@@ -17,6 +18,10 @@ def mock_uow():
     uow.__aexit__ = AsyncMock(return_value=None)
     uow.commit = AsyncMock()
     uow.rollback = AsyncMock()
+    
+    # Mock session for direct sql queries
+    uow._session = AsyncMock()
+    
     return uow
 
 @pytest.fixture
@@ -92,3 +97,42 @@ async def test_get_driver_not_found(driver_service, mock_uow):
     
     # Assert
     assert result is None
+
+@pytest.mark.asyncio
+async def test_get_driver_stats(driver_service, mock_uow):
+    # Arrange
+    driver_id = 1
+    now = datetime.utcnow()
+    driver = Driver(
+        id=driver_id, 
+        telegram_id=123, 
+        name="Ivan",
+        created_at=now,
+        updated_at=now
+    )
+    mock_uow.drivers.get = AsyncMock(return_value=driver)
+    
+    # Mock individual scalar queries
+    # Sequence of calls: total, completed, cancelled, active, revenue, distance
+    mock_uow._session.scalar = AsyncMock(side_effect=[
+        10,  # total
+        8,   # completed
+        1,   # cancelled
+        1,   # active
+        5000.0, # revenue
+        10000, # distance (meters)
+    ])
+    
+    # Act
+    result = await driver_service.get_driver_stats(driver_id, days=30)
+    
+    # Assert
+    assert result is not None
+    assert result['driver_id'] == driver_id
+    assert result['total_orders'] == 10
+    assert result['completed_orders'] == 8
+    assert result['cancelled_orders'] == 1
+    assert result['active_orders'] == 1
+    assert result['total_revenue'] == 5000.0
+    assert result['total_distance_km'] == 10.0
+    assert result['completion_rate'] == 80.0
