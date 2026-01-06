@@ -64,3 +64,14 @@ ai_agent_files/
 .agent/
 mock_bot.py
 init_osrm.sh
+
+# IDE & Agents
+.augment/
+.cursor/
+.kilocode/
+.windsurf/
+.github/
+.cursorrules
+AGENTS.md
+Check_tg_app.md
+.env.example
