@@ -140,7 +140,7 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({ orderId, v
             );
         }
 
-        return <Space direction="vertical" style={{ width: '100%' }}>{actions}</Space>;
+        return <Space orientation="vertical" style={{ width: '100%' }}>{actions}</Space>;
     };
 
     return (

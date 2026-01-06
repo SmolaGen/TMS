@@ -61,7 +61,7 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
             width={600}
             okText="Создать"
             cancelText="Отмена"
-            destroyOnClose
+            destroyOnHidden
         >
             <Form
                 form={form}
