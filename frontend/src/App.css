@@ -345,3 +345,98 @@ body.dark-theme .vis-panel.vis-bottom {
 .leaflet-container {
   border-radius: 8px;
 }
+
+/* ============================================
+   Mobile Responsive Styles
+   ============================================ */
+
+/* Планшеты и мобильные (до 992px) */
+@media (max-width: 992px) {
+  .tms-search-desktop {
+    max-width: 250px !important;
+  }
+}
+
+/* Мобильные устройства (до 768px) */
+@media (max-width: 768px) {
+
+  /* Скрыть поиск на мобильных */
+  .tms-search-desktop {
+    display: none !important;
+  }
+
+  /* Адаптивный header */
+  .tms-header-mobile {
+    padding: 0 12px !important;
+    margin-left: 0 !important;
+  }
+
+  /* Адаптивный контент */
+  .tms-content-mobile {
+    margin: 8px !important;
+    padding: 12px !important;
+    margin-left: 0 !important;
+  }
+
+  /* Кнопка меню */
+  .tms-menu-button {
+    display: flex !important;
+  }
+
+  /* Dashboard сетка */
+  .ant-row {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  .ant-col {
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+  }
+
+  /* Карточки на полную ширину */
+  .ant-card {
+    margin-bottom: 8px;
+  }
+
+  /* Таблицы - горизонтальный скролл */
+  .ant-table-wrapper {
+    overflow-x: auto;
+  }
+
+  /* Уменьшенные отступы для KPI */
+  .kpi-card {
+    padding: 12px !important;
+  }
+
+  /* Drawer на весь экран */
+  .ant-drawer-content-wrapper {
+    max-width: 100vw !important;
+  }
+
+  /* Footer компактный */
+  .tms-footer-mobile {
+    padding: 8px !important;
+    font-size: 12px;
+  }
+}
+
+/* Очень маленькие экраны (до 480px) */
+@media (max-width: 480px) {
+
+  /* Ещё меньше отступов */
+  .tms-content-mobile {
+    margin: 4px !important;
+    padding: 8px !important;
+  }
+
+  /* Уменьшенный размер иконок */
+  .anticon {
+    font-size: 16px;
+  }
+
+  /* Компактные кнопки в Space */
+  .ant-space {
+    gap: 8px !important;
+  }
+}

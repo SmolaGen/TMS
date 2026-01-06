@@ -15,9 +15,14 @@ const { Sider } = Layout;
 interface SidebarProps {
     collapsed: boolean;
     onCollapse: (collapsed: boolean) => void;
+    isMobileDrawer?: boolean;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+    collapsed,
+    onCollapse,
+    isMobileDrawer = false
+}) => {
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -54,8 +59,42 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onCollapse }) => {
 
     const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
         navigate(key);
+        // Закрыть drawer после навигации на мобильных
+        if (isMobileDrawer) {
+            onCollapse(true);
+        }
     };
 
+    // Для мобильного drawer - простой вид без Sider обёртки
+    if (isMobileDrawer) {
+        return (
+            <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <div style={{
+                    height: 64,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#fff',
+                    fontSize: 20,
+                    fontWeight: 'bold',
+                    borderBottom: '1px solid rgba(255,255,255,0.1)',
+                }}>
+                    🚗 TMS Park
+                </div>
+
+                <Menu
+                    theme="dark"
+                    mode="inline"
+                    selectedKeys={[location.pathname]}
+                    items={menuItems}
+                    onClick={handleMenuClick}
+                    style={{ flex: 1, borderRight: 0 }}
+                />
+            </div>
+        );
+    }
+
+    // Десктопный вид
     return (
         <Sider
             collapsible
