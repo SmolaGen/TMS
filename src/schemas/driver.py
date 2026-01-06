@@ -25,3 +25,24 @@ class DriverResponse(DriverBase):
     status: DriverStatus
     created_at: datetime
     updated_at: datetime
+
+class DriverStatsResponse(BaseModel):
+    """Статистика водителя за период."""
+    driver_id: int
+    period_days: int
+    total_orders: int
+    completed_orders: int
+    cancelled_orders: int
+    active_orders: int
+    completion_rate: float  # Процент завершённых
+    total_revenue: float    # Сумма заработка
+    total_distance_km: float
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DriverWithStats(DriverResponse):
+    """Водитель с краткой статистикой."""
+    orders_today: int = 0
+    orders_this_week: int = 0
+    last_location_at: datetime | None = None

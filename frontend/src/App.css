@@ -171,3 +171,25 @@ body,
 .leaflet-popup-content {
   margin: 12px;
 }
+
+/* Стили для страницы водителей */
+
+.driver-row-inactive {
+  background-color: #fafafa !important;
+  opacity: 0.7;
+}
+
+.driver-row-inactive:hover>td {
+  background-color: #f0f0f0 !important;
+}
+
+/* Карточка водителя - анимация при наведении */
+.ant-card:hover .ant-avatar {
+  transform: scale(1.05);
+  transition: transform 0.2s ease;
+}
+
+/* Мини-карта в drawer */
+.leaflet-container {
+  border-radius: 8px;
+}
