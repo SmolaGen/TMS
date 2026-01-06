@@ -7,6 +7,7 @@ interface TelegramUser {
     last_name?: string;
     username?: string;
     photo_url?: string;
+    role?: string;
 }
 
 interface AuthState {
@@ -18,9 +19,9 @@ interface AuthState {
 }
 
 const TOKEN_KEY = 'tms_auth_token';
-
 interface JwtPayload {
     sub: string;
+    role: string;
     exp: number;
 }
 
@@ -67,14 +68,27 @@ export function useTelegramAuth() {
         // 1. Сначала проверяем сохраненный токен в localStorage
         const savedToken = localStorage.getItem(TOKEN_KEY);
         if (savedToken && isTokenValid(savedToken)) {
+            // Извлекаем ID пользователя из JWT (поле 'sub')
+            let userId: number | undefined;
+            let role: string | undefined;
+            try {
+                const base64Url = savedToken.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const payload: JwtPayload = JSON.parse(atob(base64));
+                userId = parseInt(payload.sub);
+                role = payload.role;
+            } catch (e) {
+                console.error('[Auth] Failed to parse user data from token');
+            }
+
             setState({
                 isLoading: false,
                 isAuthenticated: true,
-                user: null,
+                user: userId ? { id: userId, first_name: 'User', role } : null,
                 error: null,
                 token: savedToken,
             });
-            console.log('[Auth] Found valid saved token, using it');
+            console.log('[Auth] Valid token found, restored user:', { userId, role });
             return;
         }
 
@@ -107,12 +121,13 @@ export function useTelegramAuth() {
 
         try {
             // Отправляем initData на бэкенд для валидации
-            const response = await apiClient.post<{ access_token: string; token_type: string }>(
+            const response = await apiClient.post<{ access_token: string; token_type: string; role: string }>(
                 '/auth/login',
                 { init_data: initData }
             );
 
             const token = response.data.access_token;
+            const role = response.data.role;
 
             // Сохраняем токен
             localStorage.setItem(TOKEN_KEY, token);
@@ -124,6 +139,7 @@ export function useTelegramAuth() {
                 last_name: initDataUnsafe?.user?.last_name,
                 username: initDataUnsafe?.user?.username,
                 photo_url: initDataUnsafe?.user?.photo_url,
+                role: role
             };
 
             setState({

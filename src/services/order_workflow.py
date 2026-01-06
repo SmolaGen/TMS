@@ -38,16 +38,20 @@ class OrderStateMachine(StateMachine):
 
     def __init__(self, order: Order):
         self.order = order
-        # Инициализируем SM текущим статусом заказа
+        # Инициализируем SM текущим статусом заказа. 
+        # В python-statemachine 2.x это может вызвать on_enter_{state}
         super().__init__(start_value=order.status)
 
     # === CALLBACKS ===
 
-    def on_enter_assigned(self, driver_id: Optional[int] = None):
+    def before_assign(self, driver_id: int):
+        """Вызывается только при переходе 'assign'"""
+        self.order.driver_id = driver_id
+        logger.info("order_assign_transition", order_id=self.order.id, driver_id=driver_id)
+
+    def on_enter_assigned(self):
         self.order.status = OrderStatus.ASSIGNED
-        if driver_id is not None:
-            self.order.driver_id = driver_id
-        logger.info("order_assigned_callback", order_id=self.order.id, driver_id=self.order.driver_id)
+        logger.info("order_entered_assigned", order_id=self.order.id)
 
     def on_enter_pending(self):
         self.order.status = OrderStatus.PENDING

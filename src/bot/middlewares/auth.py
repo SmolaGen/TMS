@@ -31,8 +31,12 @@ class AuthMiddleware(BaseMiddleware):
         telegram_id = user.id
         username = user.username
         
-        # 1. Проверка на админа (по username из конфига)
-        is_admin = username == settings.ADMIN_USERNAME
+        # 1. Проверка на админа (по username или telegram_id из конфига)
+        is_admin = False
+        if telegram_id == settings.ADMIN_TELEGRAM_ID:
+            is_admin = True
+        elif username and settings.ADMIN_USERNAME:
+            is_admin = username.lower() == settings.ADMIN_USERNAME.lower()
         
         # 2. Поиск или создание пользователя в БД
         async with SQLAlchemyUnitOfWork() as uow:
@@ -55,8 +59,6 @@ class AuthMiddleware(BaseMiddleware):
                 # Если это не админ, уведомляем админа о новой заявке
                 if not is_admin:
                     from src.bot.handlers.admin import notify_admin_new_user
-                    # Мы не можем вызвать notify_admin_new_user напрямую без bot, 
-                    # но bot есть в data или его можно получить из middleware
                     bot = data.get("bot")
                     if bot:
                         await notify_admin_new_user(bot, {
@@ -64,6 +66,12 @@ class AuthMiddleware(BaseMiddleware):
                             "username": username,
                             "first_name": user.first_name
                         })
+            elif is_admin and db_user.role != UserRole.ADMIN:
+                # Автоматически повышаем до админа, если username совпал
+                db_user.role = UserRole.ADMIN
+                db_user.is_active = True
+                await uow.commit()
+                logger.info("user_promoted_to_admin", telegram_id=telegram_id, username=username)
 
         # 3. Проверка прав доступа
         if not is_admin:

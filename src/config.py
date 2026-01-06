@@ -56,6 +56,7 @@ class Settings(BaseSettings):
     TELEGRAM_WEBHOOK_URL: str = "https://myappnf.ru/bot/webhook"
     WEBAPP_URL: str = "https://myappnf.ru/webapp"
     ADMIN_USERNAME: str = "alsmolentsev"
+    ADMIN_TELEGRAM_ID: int = 7711619136
 
     # Idempotency
     IDEMPOTENCY_TTL_SECONDS: int = 86400  # 24 часа
