@@ -104,7 +104,7 @@ export const OrdersPage: React.FC = () => {
     const isLoading = isOrdersLoading || isDriversLoading;
 
     return (
-        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--tms-bg-layout)', padding: '0 24px 24px' }}>
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '0 8px 16px' }}>
             <div style={{
                 padding: '16px 0',
                 display: 'flex',
@@ -135,7 +135,7 @@ export const OrdersPage: React.FC = () => {
             <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
                 <Spin spinning={isLoading} tip="Загрузка данных...">
                     {viewMode === 'table-only' && (
-                        <div style={{ height: '100%' }}>
+                        <div style={{ height: '100%' }} className="glass-card">
                             <OrdersTable
                                 orders={filteredOrders}
                                 drivers={drivers}
@@ -147,7 +147,7 @@ export const OrdersPage: React.FC = () => {
 
                     {viewMode === 'table-map' && (
                         <div style={{ display: 'flex', height: '100%', gap: 16 }}>
-                            <div style={{ flex: 1, overflow: 'auto' }}>
+                            <div style={{ flex: 1, overflow: 'auto' }} className="glass-card">
                                 <OrdersTable
                                     orders={filteredOrders}
                                     drivers={drivers}
@@ -155,7 +155,7 @@ export const OrdersPage: React.FC = () => {
                                     onSelect={setSelectedOrderId}
                                 />
                             </div>
-                            <div style={{ width: '40%', minWidth: 400, borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                            <div className="glass-card" style={{ width: '40%', minWidth: 400, borderRadius: 20, overflow: 'hidden', padding: 0, border: 'var(--tms-glass-border)' }}>
                                 <LiveMap selectedOrderId={selectedOrderId} orders={filteredOrders} />
                             </div>
                         </div>
@@ -163,15 +163,13 @@ export const OrdersPage: React.FC = () => {
 
                     {viewMode === 'map-timeline' && (
                         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 16 }}>
-                            <div style={{ flex: '0 0 55%', position: 'relative', borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                            <div className="glass-card" style={{ flex: '0 0 55%', position: 'relative', borderRadius: 20, overflow: 'hidden', padding: 0, border: 'var(--tms-glass-border)' }}>
                                 <LiveMap selectedOrderId={selectedOrderId} orders={filteredOrders} />
                             </div>
-                            <div style={{
+                            <div className="glass-card" style={{
                                 flex: '1 1 auto',
-                                background: 'var(--tms-bg-container)',
                                 borderRadius: 12,
                                 overflow: 'hidden',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
                                 padding: '8px 16px'
                             }}>
                                 <TimelineView

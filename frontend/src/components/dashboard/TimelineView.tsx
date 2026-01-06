@@ -172,7 +172,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
             style={{
                 height: '100%',
                 minHeight: 200,
-                background: 'var(--tms-bg-container)',
+                background: 'transparent',
             }}
         />
     );

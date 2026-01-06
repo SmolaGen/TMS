@@ -49,11 +49,8 @@ export const OrderFilters: React.FC<OrderFiltersProps> = ({
     }));
 
     return (
-        <div style={{
+        <div className="glass-card" style={{
             padding: '12px 16px',
-            background: 'var(--tms-bg-container)',
-            borderRadius: 8,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
             marginBottom: 16,
         }}>
             <Space wrap size="middle">

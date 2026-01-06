@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Space, Button } from 'antd';
+import { Button, Tooltip, Badge } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { LiveMap } from './LiveMap';
 import { TimelineView } from './TimelineView';
@@ -8,11 +8,9 @@ import { OrderDetailDrawer } from './OrderDetailDrawer';
 import { useWebSocketSync } from '../../hooks/useWebSocketSync';
 import { useDrivers } from '../../hooks/useDrivers';
 import { useCreateOrder, useOrdersRaw } from '../../hooks/useOrders';
-import { KPIWidgets } from './KPIWidgets';
 import type { TimelineDriver } from '../../types/api';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 
-// Хук для определения мобильного устройства
 const useIsMobile = (breakpoint = 768) => {
     const [isMobile, setIsMobile] = useState(
         typeof window !== 'undefined' ? window.innerWidth <= breakpoint : false
@@ -34,12 +32,10 @@ export const Dashboard: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const isMobile = useIsMobile();
 
-    // Реальные данные через хуки
     const { data: drivers = [] } = useDrivers();
     const { mutate: createOrder, isPending: isCreating } = useCreateOrder();
     const { data: orders = [] } = useOrdersRaw();
 
-    // Горячие клавиши
     useKeyboardShortcuts([
         {
             key: 'n',
@@ -56,7 +52,6 @@ export const Dashboard: React.FC = () => {
         },
     ]);
 
-    // Преобразование водителей для Timeline
     const timelineDrivers: TimelineDriver[] = useMemo(() => {
         const transformed: TimelineDriver[] = drivers.map(d => ({
             id: String(d.id),
@@ -82,62 +77,119 @@ export const Dashboard: React.FC = () => {
             height: '100%',
             display: 'flex',
             flexDirection: 'column',
-            background: 'var(--tms-bg-layout)',
             position: 'relative',
-            overflow: 'hidden',
+            gap: isMobile ? 12 : 24,
         }}>
-            {/* KPI Панель */}
-            <div style={{ padding: isMobile ? '8px 8px 0' : '16px 16px 0' }}>
-                <KPIWidgets />
-            </div>
 
-            {/* Статус подключения и кнопка */}
+
+            {/* Основной контент */}
             <div style={{
-                position: 'absolute',
-                top: isMobile ? 'auto' : 100,
-                bottom: isMobile ? 90 : 'auto',
-                right: isMobile ? 16 : 32,
-                zIndex: 1000,
+                flex: 1,
                 display: 'flex',
                 flexDirection: 'column',
-                gap: isMobile ? 8 : 12,
-                alignItems: 'flex-end',
+                gap: isMobile ? 12 : 24,
+                overflow: 'hidden',
+                position: 'relative',
             }}>
-                <Space
+                {/* Карта */}
+                <div
+                    className="glass-card"
                     style={{
-                        background: 'var(--tms-bg-elevated)',
-                        padding: isMobile ? '3px 8px' : '4px 12px',
-                        borderRadius: 20,
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                        fontSize: isMobile ? 11 : 12,
-                        fontWeight: 500
+                        flex: isMobile ? '0 0 250px' : '0 0 55%',
+                        minHeight: isMobile ? 250 : 350,
+                        position: 'relative',
+                        overflow: 'hidden',
+                        padding: 0, // Map needs no padding
+                        border: 'var(--tms-glass-border)',
                     }}
                 >
-                    <span style={{
-                        display: 'inline-block',
-                        width: isMobile ? 6 : 8,
-                        height: isMobile ? 6 : 8,
-                        borderRadius: '50%',
-                        backgroundColor: isConnected ? '#52c41a' : '#faad14',
-                    }} />
-                    {isConnected ? 'Online' : 'Подключение...'}
-                </Space>
+                    <LiveMap
+                        onDriverSelect={setSelectedDriverId}
+                        selectedOrderId={selectedOrderId}
+                        selectedDriverId={selectedDriverId}
+                        orders={orders}
+                    />
+
+                    {/* Status Indicator inside Map */}
+                    <div style={{
+                        position: 'absolute',
+                        top: 16,
+                        left: 16, // Left side now because controls are right
+                        zIndex: 1000,
+                    }}>
+                        <Tooltip title={isConnected ? "Подключено к серверу" : "Нет соединения"}>
+                            <div className="glass-panel" style={{
+                                padding: '6px 12px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8,
+                                borderRadius: 20,
+                            }}>
+                                <div style={{
+                                    width: 8,
+                                    height: 8,
+                                    borderRadius: '50%',
+                                    background: isConnected ? '#10b981' : '#f59e0b',
+                                    boxShadow: isConnected ? '0 0 8px #10b981' : 'none',
+                                    animation: isConnected ? 'markerPulse 2s infinite' : 'none'
+                                }} />
+                                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--tms-text-secondary)' }}>
+                                    {isConnected ? 'LIVE' : 'OFFLINE'}
+                                </span>
+                            </div>
+                        </Tooltip>
+                    </div>
+                </div>
+
+                {/* Таймлайн */}
+                <div
+                    className="glass-card"
+                    style={{
+                        flex: '1 1 auto',
+                        minHeight: isMobile ? 180 : 250,
+                        padding: isMobile ? '8px' : '16px',
+                        overflow: 'hidden',
+                        display: 'flex',
+                        flexDirection: 'column'
+                    }}
+                >
+                    <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontWeight: 700, fontSize: 16 }}>График заказов</span>
+                        <Badge count={orders.length} style={{ backgroundColor: '#2563eb' }} />
+                    </div>
+                    <div style={{ flex: 1, position: 'relative' }}>
+                        <TimelineView
+                            drivers={timelineDrivers}
+                            onOrderSelect={setSelectedOrderId}
+                            selectedOrderId={selectedOrderId}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* Floating Action Button */}
+            <div style={{
+                position: 'fixed',
+                bottom: 32,
+                right: 32,
+                zIndex: 1100,
+            }}>
                 <Button
                     type="primary"
                     icon={<PlusOutlined />}
-                    size={isMobile ? 'middle' : 'large'}
-                    shape="round"
+                    size="large"
+                    shape="circle"
                     onClick={() => setIsModalOpen(true)}
                     style={{
-                        boxShadow: '0 4px 12px rgba(24, 144, 255, 0.35)',
-                        height: isMobile ? 40 : 48,
-                        padding: isMobile ? '0 16px' : '0 24px',
-                        fontSize: isMobile ? 14 : 16,
-                        fontWeight: 600
+                        width: 64,
+                        height: 64,
+                        fontSize: 24,
+                        background: 'var(--tms-gradient-primary)',
+                        border: 'none',
+                        boxShadow: '0 8px 30px rgba(59, 130, 246, 0.4)',
                     }}
-                >
-                    {isMobile ? '+' : 'Новый заказ'}
-                </Button>
+                    className="hover-lift"
+                />
             </div>
 
             <OrderDetailDrawer
@@ -145,49 +197,6 @@ export const Dashboard: React.FC = () => {
                 visible={!!selectedOrderId}
                 onClose={() => setSelectedOrderId(null)}
             />
-
-            <div style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                padding: isMobile ? '0 8px 8px' : '0 16px 16px',
-                gap: isMobile ? 8 : 16,
-                overflow: 'hidden',
-            }}>
-                {/* Карта */}
-                <div style={{
-                    flex: isMobile ? '0 0 200px' : '0 0 55%',
-                    minHeight: isMobile ? 180 : 300,
-                    position: 'relative',
-                    borderRadius: isMobile ? 8 : 12,
-                    overflow: 'hidden',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
-                }}>
-                    <LiveMap
-                        onDriverSelect={setSelectedDriverId}
-                        selectedOrderId={selectedOrderId}
-                        selectedDriverId={selectedDriverId}
-                        orders={orders}
-                    />
-                </div>
-
-                {/* Таймлайн */}
-                <div style={{
-                    flex: '1 1 auto',
-                    minHeight: isMobile ? 150 : 200,
-                    background: 'var(--tms-bg-container)',
-                    borderRadius: isMobile ? 8 : 12,
-                    padding: isMobile ? '6px 8px' : '8px 16px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                    overflow: 'hidden'
-                }}>
-                    <TimelineView
-                        drivers={timelineDrivers}
-                        onOrderSelect={setSelectedOrderId}
-                        selectedOrderId={selectedOrderId}
-                    />
-                </div>
-            </div>
 
             <CreateOrderModal
                 open={isModalOpen}
