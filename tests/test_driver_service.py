@@ -75,6 +75,7 @@ async def test_get_driver_found(driver_service, mock_uow):
         telegram_id=123, 
         name="Ivan", 
         status=DriverStatus.AVAILABLE,
+        is_active=True,
         created_at=now,
         updated_at=now
     )
@@ -107,6 +108,7 @@ async def test_get_driver_stats(driver_service, mock_uow):
         id=driver_id, 
         telegram_id=123, 
         name="Ivan",
+        is_active=True,
         created_at=now,
         updated_at=now
     )

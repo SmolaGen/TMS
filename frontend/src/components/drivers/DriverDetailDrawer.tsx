@@ -29,6 +29,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { apiClient } from '../../api/client';
+import { useTheme } from '../../hooks/useTheme';
 import type { DriverResponse, DriverLocation, DriverStats } from '../../types/api';
 import { DriverStatus } from '../../types/api';
 import dayjs from 'dayjs';
@@ -50,11 +51,16 @@ const statusConfig: Record<DriverStatus, { color: string; text: string }> = {
     [DriverStatus.OFFLINE]: { color: 'default', text: 'Оффлайн' },
 };
 
+// Тайлы для карты
+const TILE_LIGHT = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+const TILE_DARK = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+
 export const DriverDetailDrawer: React.FC<DriverDetailDrawerProps> = ({
     driverId,
     open,
     onClose,
 }) => {
+    const { isDark } = useTheme();
     // Загрузить данные водителя
     const { data: driver, isLoading: isLoadingDriver } = useQuery<DriverResponse>({
         queryKey: ['driver', driverId],
@@ -253,7 +259,8 @@ export const DriverDetailDrawer: React.FC<DriverDetailDrawerProps> = ({
                                         scrollWheelZoom={false}
                                     >
                                         <TileLayer
-                                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                            key={isDark ? 'dark' : 'light'}
+                                            url={isDark ? TILE_DARK : TILE_LIGHT}
                                         />
                                         <Marker position={[driverLocation.latitude, driverLocation.longitude]}>
                                             <Popup>
