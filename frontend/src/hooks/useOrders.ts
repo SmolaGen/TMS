@@ -12,6 +12,8 @@ import {
     startTrip,
     assignOrder
 } from '../api/orders';
+import { isDevMode } from '../components/DevAuthSelector';
+import { MOCK_ORDERS } from '../api/mockData';
 import type { OrderResponse, TimelineOrder, OrderMoveRequest } from '../types/api';
 
 // Локальный тип для vis-timeline item
@@ -43,7 +45,14 @@ const toTimelineOrder = (order: OrderResponse): TimelineOrder | null => {
 export const useOrdersRaw = (dateRange?: [Date, Date]) => {
     return useQuery({
         queryKey: ['orders', dateRange?.map(d => d.toISOString())],
-        queryFn: () => fetchOrders(dateRange),
+        queryFn: async () => {
+            // В dev-режиме возвращаем мок-данные
+            if (isDevMode()) {
+                console.log('[DEV] Using mock orders data');
+                return MOCK_ORDERS;
+            }
+            return fetchOrders(dateRange);
+        },
         staleTime: 30_000,
         refetchInterval: 60_000,
     });

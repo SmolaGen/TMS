@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layout, Badge, Button } from 'antd';
+import { Badge, Button } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { LiveMap } from './LiveMap';
 import { TimelineView } from './TimelineView';
@@ -9,7 +9,6 @@ import { useWebSocketSync } from '../../hooks/useWebSocketSync';
 import { useDrivers } from '../../hooks/useDrivers';
 import { useCreateOrder } from '../../hooks/useOrders';
 
-const { Content } = Layout;
 
 export const Dashboard: React.FC = () => {
     const { isConnected } = useWebSocketSync();
@@ -29,12 +28,12 @@ export const Dashboard: React.FC = () => {
     };
 
     return (
-        <Layout style={{ height: '100vh', background: '#f5f5f5' }}>
+        <div style={{ height: 'calc(100vh - 160px)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
             {/* Статус подключения и кнопка создания заказа */}
             <div style={{
-                position: 'fixed',
-                top: 16,
-                left: 16,
+                position: 'absolute',
+                top: 0,
+                right: 0,
                 zIndex: 1000,
                 display: 'flex',
                 gap: '12px',
@@ -73,7 +72,7 @@ export const Dashboard: React.FC = () => {
                 onClose={() => setSelectedOrderId(null)}
             />
 
-            <Content style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                 {/* Карта - 60% высоты */}
                 <div style={{ flex: '0 0 60%', position: 'relative' }}>
                     <LiveMap
@@ -93,7 +92,7 @@ export const Dashboard: React.FC = () => {
                         onOrderSelect={setSelectedOrderId}
                     />
                 </div>
-            </Content>
+            </div>
 
             <CreateOrderModal
                 open={isModalOpen}
@@ -101,6 +100,6 @@ export const Dashboard: React.FC = () => {
                 onCreate={handleCreateOrder}
                 loading={isCreating}
             />
-        </Layout>
+        </div>
     );
 };

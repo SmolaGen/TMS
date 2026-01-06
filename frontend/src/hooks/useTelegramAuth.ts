@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '../api/client';
+import { isDevMode, getDevUser, clearDevUser } from '../components/DevAuthSelector';
 
 interface TelegramUser {
     id: number;           // Telegram ID
@@ -68,6 +69,38 @@ export function useTelegramAuth() {
     });
 
     const authenticate = useCallback(async () => {
+        // 0. Проверяем dev-режим
+        if (isDevMode()) {
+            const devUser = getDevUser();
+            if (devUser) {
+                console.log('[Auth] Dev mode: using saved dev user', devUser);
+                setState({
+                    isLoading: false,
+                    isAuthenticated: true,
+                    user: {
+                        id: devUser.id,
+                        driver_id: devUser.driver_id,
+                        first_name: devUser.first_name,
+                        last_name: devUser.last_name,
+                        username: devUser.username,
+                        role: devUser.role,
+                    },
+                    error: null,
+                    token: 'dev-token',
+                });
+                return;
+            }
+            // Нет dev-пользователя - показываем экран выбора
+            setState({
+                isLoading: false,
+                isAuthenticated: false,
+                user: null,
+                error: null,
+                token: null,
+            });
+            return;
+        }
+
         // 1. Сначала проверяем сохраненный токен в localStorage
         const savedToken = localStorage.getItem(TOKEN_KEY);
         if (savedToken && isTokenValid(savedToken)) {
@@ -174,6 +207,7 @@ export function useTelegramAuth() {
 
     const logout = useCallback(() => {
         localStorage.removeItem(TOKEN_KEY);
+        clearDevUser(); // Очищаем dev-авторизацию
         setState({
             isLoading: false,
             isAuthenticated: false,
