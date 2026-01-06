@@ -132,8 +132,9 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                         rules={[{ required: true }]}
                     >
                         <Select>
+                            <Option value="unassigned">Не назначен</Option>
                             {drivers.map(d => (
-                                <Option key={d.id} value={d.id}>{d.content}</Option>
+                                <Option key={d.id} value={d.id}>{d.name}</Option>
                             ))}
                         </Select>
                     </Form.Item>

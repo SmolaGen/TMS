@@ -37,6 +37,7 @@ export const ViewToggle: React.FC<ViewToggleProps> = ({ value, onChange }) => {
             value={value}
             onChange={(val) => onChange(val as ViewMode)}
             options={options}
+            style={{ marginBottom: 16 }}
         />
     );
 };

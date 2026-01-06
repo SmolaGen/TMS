@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Button, Space, Spin, message } from 'antd';
+import { Button, Space, Spin, Typography } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { OrderFilters } from '../components/orders/OrderFilters';
 import type { OrderFiltersState } from '../components/orders/OrderFilters';
@@ -10,12 +10,15 @@ import { TimelineView } from '../components/dashboard/TimelineView';
 import { LiveMap } from '../components/dashboard/LiveMap';
 import { OrderDetailDrawer } from '../components/dashboard/OrderDetailDrawer';
 import { CreateOrderModal } from '../components/dashboard/CreateOrderModal';
-import { useOrdersRaw, useCreateOrder, useUpdateOrderStatus } from '../hooks/useOrders';
+import { useOrdersRaw, useCreateOrder } from '../hooks/useOrders';
 import { useDrivers } from '../hooks/useDrivers';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
+import type { TimelineDriver } from '../types/api';
 
 dayjs.extend(isBetween);
+
+const { Title } = Typography;
 
 const defaultFilters: OrderFiltersState = {
     status: [],
@@ -28,13 +31,26 @@ const defaultFilters: OrderFiltersState = {
 export const OrdersPage: React.FC = () => {
     const [viewMode, setViewMode] = useState<ViewMode>('table-map');
     const [filters, setFilters] = useState<OrderFiltersState>(defaultFilters);
-    const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+    const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-    const { data: orders = [], isLoading } = useOrdersRaw();
-    const { data: drivers = [] } = useDrivers();
+    const { data: orders = [], isLoading: isOrdersLoading } = useOrdersRaw();
+    const { data: drivers = [], isLoading: isDriversLoading } = useDrivers();
     const { mutate: createOrder, isPending: isCreating } = useCreateOrder();
-    const { mutate: updateStatus } = useUpdateOrderStatus();
+
+    // Преобразование водителей для Timeline
+    const timelineDrivers: TimelineDriver[] = useMemo(() => {
+        const transformed: TimelineDriver[] = drivers.map(d => ({
+            id: String(d.id),
+            content: d.name || 'Безымянный',
+            name: d.name || 'Безымянный'
+        }));
+
+        return [
+            { id: 'unassigned', content: '❌ Не назначено', name: 'Не назначено' },
+            ...transformed
+        ];
+    }, [drivers]);
 
     // Фильтрация заказов
     const filteredOrders = useMemo(() => {
@@ -43,13 +59,10 @@ export const OrdersPage: React.FC = () => {
             if (filters.status.length > 0 && !filters.status.includes(order.status)) {
                 return false;
             }
-            // Фильтр по водителю
+            // Фильтр по водителю (driver_id может быть 0 или null для неназначенных)
             if (filters.driverIds.length > 0) {
-                const hasUnassigned = filters.driverIds.includes('unassigned');
-                const matchedDriver = order.driver_id && filters.driverIds.includes(order.driver_id);
-                const isUnassignedMatch = hasUnassigned && !order.driver_id;
-
-                if (!matchedDriver && !isUnassignedMatch) {
+                const orderDriverId = order.driver_id || 0;
+                if (!filters.driverIds.includes(orderDriverId)) {
                     return false;
                 }
             }
@@ -60,24 +73,19 @@ export const OrdersPage: React.FC = () => {
                     return false;
                 }
             }
+            // Фильтр по приоритету
+            if (filters.priority.length > 0 && !filters.priority.includes(order.priority)) {
+                return false;
+            }
             // Поиск
             if (filters.search) {
                 const searchLower = filters.search.toLowerCase();
                 const matchAddress =
-                    order.pickup_address?.toLowerCase().includes(searchLower) ||
-                    order.dropoff_address?.toLowerCase().includes(searchLower);
-                const matchId = String(order.id).includes(filters.search);
-                const matchCustomer =
-                    order.customer_name?.toLowerCase().includes(searchLower) ||
-                    order.customer_phone?.includes(filters.search);
-
-                if (!matchAddress && !matchId && !matchCustomer) {
+                    (order.pickup_address?.toLowerCase().includes(searchLower)) ||
+                    (order.dropoff_address?.toLowerCase().includes(searchLower));
+                if (!matchAddress && !String(order.id).includes(filters.search)) {
                     return false;
                 }
-            }
-            // Приоритет
-            if (filters.priority.length > 0 && !filters.priority.includes(order.priority)) {
-                return false;
             }
             return true;
         });
@@ -93,86 +101,83 @@ export const OrdersPage: React.FC = () => {
         });
     };
 
-    const handleCancelOrder = (orderId: string) => {
-        updateStatus({ orderId, action: 'cancel', reason: 'Отмена диспетчером' });
-    };
-
-    const handleAssignOrder = (orderId: string) => {
-        setSelectedOrderId(orderId);
-        message.info('Выберите водителя в деталях заказа');
-    };
+    const isLoading = isOrdersLoading || isDriversLoading;
 
     return (
-        <div style={{ height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column' }}>
-            {/* Верхняя панель */}
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#f0f2f5', padding: '0 24px 24px' }}>
             <div style={{
-                padding: '16px',
+                padding: '16px 0',
                 display: 'flex',
                 justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                flexWrap: 'wrap',
-                gap: '16px',
-                background: '#fff',
-                borderBottom: '1px solid #f0f0f0'
+                alignItems: 'center',
             }}>
-                <OrderFilters
-                    filters={filters}
-                    onChange={handleFiltersChange}
-                    onReset={() => setFilters(defaultFilters)}
-                />
+                <Title level={4} style={{ margin: 0 }}>Управление заказами</Title>
                 <Space>
                     <ViewToggle value={viewMode} onChange={setViewMode} />
                     <Button
                         type="primary"
                         icon={<PlusOutlined />}
                         onClick={() => setIsCreateModalOpen(true)}
+                        size="large"
+                        shape="round"
                     >
                         Новый заказ
                     </Button>
                 </Space>
             </div>
 
-            {/* Контент в зависимости от режима */}
+            <OrderFilters
+                filters={filters}
+                onChange={handleFiltersChange}
+                onReset={() => setFilters(defaultFilters)}
+            />
+
             <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
-                <Spin spinning={isLoading}>
+                <Spin spinning={isLoading} tip="Загрузка данных...">
                     {viewMode === 'table-only' && (
-                        <div style={{ height: '100%', padding: '16px' }}>
+                        <div style={{ height: '100%' }}>
                             <OrdersTable
                                 orders={filteredOrders}
+                                drivers={drivers}
                                 loading={isLoading}
                                 onSelect={setSelectedOrderId}
-                                onCancel={handleCancelOrder}
-                                onAssign={handleAssignOrder}
                             />
                         </div>
                     )}
 
                     {viewMode === 'table-map' && (
-                        <div style={{ display: 'flex', height: '100%', gap: 16, padding: '16px' }}>
+                        <div style={{ display: 'flex', height: '100%', gap: 16 }}>
                             <div style={{ flex: 1, overflow: 'auto' }}>
                                 <OrdersTable
                                     orders={filteredOrders}
+                                    drivers={drivers}
                                     loading={isLoading}
                                     onSelect={setSelectedOrderId}
-                                    onCancel={handleCancelOrder}
-                                    onAssign={handleAssignOrder}
                                 />
                             </div>
-                            <div style={{ width: '40%', minWidth: 400, borderRadius: 8, overflow: 'hidden', border: '1px solid #f0f0f0' }}>
-                                <LiveMap selectedOrderId={selectedOrderId} />
+                            <div style={{ width: '40%', minWidth: 400, borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                                <LiveMap selectedOrderId={selectedOrderId} orders={filteredOrders} />
                             </div>
                         </div>
                     )}
 
                     {viewMode === 'map-timeline' && (
-                        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                            <div style={{ flex: '1 1 50%', position: 'relative' }}>
-                                <LiveMap selectedOrderId={selectedOrderId} />
+                        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 16 }}>
+                            <div style={{ flex: '0 0 55%', position: 'relative', borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                                <LiveMap selectedOrderId={selectedOrderId} orders={filteredOrders} />
                             </div>
-                            <div style={{ flex: '0 0 300px', borderTop: '2px solid #e8e8e8' }}>
+                            <div style={{
+                                flex: '1 1 auto',
+                                background: '#fff',
+                                borderRadius: 12,
+                                overflow: 'hidden',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                                padding: '8px 16px'
+                            }}>
                                 <TimelineView
-                                    drivers={drivers}
+                                    drivers={timelineDrivers}
                                     onOrderSelect={setSelectedOrderId}
+                                    selectedOrderId={selectedOrderId}
                                 />
                             </div>
                         </div>
@@ -180,14 +185,12 @@ export const OrdersPage: React.FC = () => {
                 </Spin>
             </div>
 
-            {/* Drawer деталей заказа */}
             <OrderDetailDrawer
-                orderId={selectedOrderId ? Number(selectedOrderId) : null}
+                orderId={selectedOrderId ? String(selectedOrderId) : null}
                 visible={!!selectedOrderId}
                 onClose={() => setSelectedOrderId(null)}
             />
 
-            {/* Модал создания заказа */}
             <CreateOrderModal
                 open={isCreateModalOpen}
                 onCancel={() => setIsCreateModalOpen(false)}

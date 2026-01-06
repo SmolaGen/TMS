@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Space, Button } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { LiveMap } from './LiveMap';
@@ -9,16 +9,30 @@ import { useWebSocketSync } from '../../hooks/useWebSocketSync';
 import { useDrivers } from '../../hooks/useDrivers';
 import { useCreateOrder, useOrdersRaw } from '../../hooks/useOrders';
 import { KPIWidgets } from './KPIWidgets';
+import type { TimelineDriver } from '../../types/api';
 
 export const Dashboard: React.FC = () => {
     const { isConnected } = useWebSocketSync();
-    const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+    const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     // Реальные данные через хуки
     const { data: drivers = [] } = useDrivers();
     const { mutate: createOrder, isPending: isCreating } = useCreateOrder();
     const { data: orders = [] } = useOrdersRaw();
+
+    // Преобразование водителей для Timeline
+    const timelineDrivers: TimelineDriver[] = useMemo(() => {
+        const transformed: TimelineDriver[] = drivers.map(d => ({
+            id: String(d.id),
+            content: d.name || 'Безымянный',
+        }));
+
+        return [
+            { id: 'unassigned', content: '❌ Не назначено' },
+            ...transformed
+        ];
+    }, [drivers]);
 
     const handleCreateOrder = (values: any) => {
         createOrder(values, {
@@ -84,7 +98,7 @@ export const Dashboard: React.FC = () => {
             </div>
 
             <OrderDetailDrawer
-                orderId={selectedOrderId}
+                orderId={selectedOrderId ? String(selectedOrderId) : null}
                 visible={!!selectedOrderId}
                 onClose={() => setSelectedOrderId(null)}
             />
@@ -115,8 +129,9 @@ export const Dashboard: React.FC = () => {
                     overflow: 'hidden'
                 }}>
                     <TimelineView
-                        drivers={drivers}
+                        drivers={timelineDrivers}
                         onOrderSelect={setSelectedOrderId}
+                        selectedOrderId={selectedOrderId}
                     />
                 </div>
             </div>

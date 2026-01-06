@@ -7,35 +7,30 @@ import {
     EnvironmentOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import type { OrderResponse } from '../../types/api';
+import type { OrderResponse, DriverResponse } from '../../types/api';
 import dayjs from 'dayjs';
 
 interface OrdersTableProps {
     orders: OrderResponse[];
+    drivers: DriverResponse[];
     loading?: boolean;
-    onSelect: (orderId: string) => void;
-    onAssign?: (orderId: string) => void;
-    onCancel?: (orderId: string) => void;
+    onSelect: (orderId: number) => void;
+    onAssign?: (orderId: number) => void;
+    onCancel?: (orderId: number) => void;
 }
 
 const statusConfig: Record<string, { color: string; text: string }> = {
-    pending: { color: 'warning', text: 'Ожидает' },
-    assigned: { color: 'processing', text: 'Назначен' },
-    driver_arrived: { color: 'processing', text: 'Прибыл' },
-    in_progress: { color: 'success', text: 'В пути' },
-    completed: { color: 'default', text: 'Завершён' },
-    cancelled: { color: 'error', text: 'Отменён' },
-};
-
-const priorityConfig: Record<string, { color: string; text: string }> = {
-    urgent: { color: 'red', text: 'Срочный' },
-    high: { color: 'orange', text: 'Высокий' },
-    normal: { color: 'blue', text: 'Обычный' },
-    low: { color: 'green', text: 'Низкий' },
+    pending: { color: 'orange', text: 'Ожидает' },
+    assigned: { color: 'blue', text: 'Назначен' },
+    driver_arrived: { color: 'cyan', text: 'Прибыл' },
+    in_progress: { color: 'green', text: 'В пути' },
+    completed: { color: 'default', text: 'Завершен' },
+    cancelled: { color: 'red', text: 'Отменен' },
 };
 
 export const OrdersTable: React.FC<OrdersTableProps> = ({
     orders,
+    drivers,
     loading,
     onSelect,
     onAssign,
@@ -55,23 +50,8 @@ export const OrdersTable: React.FC<OrdersTableProps> = ({
             dataIndex: 'status',
             key: 'status',
             width: 120,
-            filters: Object.entries(statusConfig).map(([value, { text }]) => ({
-                text,
-                value,
-            })),
-            onFilter: (value, record) => record.status === value,
             render: (status: string) => {
                 const config = statusConfig[status] || { color: 'default', text: status };
-                return <Tag color={config.color}>{config.text}</Tag>;
-            },
-        },
-        {
-            title: 'Приоритет',
-            dataIndex: 'priority',
-            key: 'priority',
-            width: 100,
-            render: (priority: string) => {
-                const config = priorityConfig[priority] || { color: 'default', text: priority };
                 return <Tag color={config.color}>{config.text}</Tag>;
             },
         },
@@ -105,54 +85,55 @@ export const OrdersTable: React.FC<OrdersTableProps> = ({
         },
         {
             title: 'Водитель',
-            dataIndex: 'driver_name',
+            dataIndex: 'driver_id',
             key: 'driver',
-            width: 150,
-            render: (name, record) =>
-                name || (
-                    <Button
-                        type="link"
-                        size="small"
-                        icon={<UserAddOutlined />}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onAssign?.(String(record.id));
-                        }}
-                    >
-                        Назначить
-                    </Button>
-                ),
+            width: 180,
+            render: (driverId) => {
+                const driver = drivers.find(d => d.id === driverId);
+                return driver ? (
+                    <Typography.Text strong>{driver.name}</Typography.Text>
+                ) : (
+                    <Typography.Text type="secondary">Не назначен</Typography.Text>
+                );
+            },
         },
         {
-            title: 'Время',
+            title: 'Начало',
             dataIndex: 'time_start',
-            key: 'time',
+            key: 'time_start',
             width: 100,
-            sorter: (a, b) => {
-                const timeA = a.time_start ? dayjs(a.time_start).unix() : 0;
-                const timeB = b.time_start ? dayjs(b.time_start).unix() : 0;
-                return timeA - timeB;
-            },
             render: (time) => time ? dayjs(time).format('HH:mm') : '-',
         },
         {
             title: 'Действия',
             key: 'actions',
-            width: 100,
+            width: 120,
             fixed: 'right',
             render: (_, record) => (
                 <Space>
-                    <Tooltip title="Редактировать">
+                    {!record.driver_id && record.status === 'pending' && (
+                        <Tooltip title="Назначить">
+                            <Button
+                                type="text"
+                                icon={<UserAddOutlined />}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onAssign?.(record.id);
+                                }}
+                            />
+                        </Tooltip>
+                    )}
+                    <Tooltip title="Детали">
                         <Button
                             type="text"
                             icon={<EditOutlined />}
                             onClick={(e) => {
                                 e.stopPropagation();
-                                onSelect(String(record.id));
+                                onSelect(record.id);
                             }}
                         />
                     </Tooltip>
-                    {record.status !== 'cancelled' && record.status !== 'completed' && (
+                    {['pending', 'assigned'].includes(record.status) && (
                         <Tooltip title="Отменить">
                             <Button
                                 type="text"
@@ -160,7 +141,7 @@ export const OrdersTable: React.FC<OrdersTableProps> = ({
                                 icon={<DeleteOutlined />}
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    onCancel?.(String(record.id));
+                                    onCancel?.(record.id);
                                 }}
                             />
                         </Tooltip>
@@ -171,27 +152,27 @@ export const OrdersTable: React.FC<OrdersTableProps> = ({
     ];
 
     return (
-        <Table
-            columns={columns}
-            dataSource={orders}
-            rowKey="id"
-            loading={loading}
-            size="small"
-            pagination={{
-                defaultPageSize: 20,
-                showSizeChanger: true,
-                showTotal: (total) => `Всего: ${total} заказов`,
-            }}
-            scroll={{ x: 1000 }}
-            onRow={(record) => ({
-                onClick: () => onSelect(String(record.id)),
-                style: { cursor: 'pointer' },
-            })}
-            rowClassName={(record) =>
-                record.status === 'pending' && !record.driver_id
-                    ? 'order-row-warning'
-                    : ''
-            }
-        />
+        <div style={{ background: '#fff', borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+            <Table
+                columns={columns}
+                dataSource={orders}
+                rowKey="id"
+                loading={loading}
+                size="small"
+                pagination={{
+                    defaultPageSize: 10,
+                    showSizeChanger: true,
+                    pageSizeOptions: ['10', '20', '50'],
+                    showTotal: (total) => `Всего ${total} заказов`,
+                }}
+                onRow={(record) => ({
+                    onClick: () => onSelect(record.id),
+                    style: { cursor: 'pointer' },
+                })}
+                rowClassName={(record) =>
+                    !record.driver_id && record.status === 'pending' ? 'order-row-warning' : ''
+                }
+            />
+        </div>
     );
 };

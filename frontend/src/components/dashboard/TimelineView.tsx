@@ -34,6 +34,11 @@ interface VisTimelineOptions {
         item?: number;
         axis?: number;
     };
+    zoomable?: boolean;
+    zoomKey?: string;
+    horizontalScroll?: boolean;
+    showCurrentTime?: boolean;
+    snap?: (date: Date, scale: string, step: number) => Date;
     onMove?: (item: VisTimelineItem, callback: (item: VisTimelineItem | null) => void) => void;
     onMoving?: (item: VisTimelineItem, callback: (item: VisTimelineItem | null) => void) => void;
 }
@@ -49,7 +54,8 @@ interface TimelineViewProps {
         end: Date;
         className?: string;
     }>;
-    onOrderSelect?: (orderId: string) => void;
+    onOrderSelect?: (orderId: number) => void;
+    selectedOrderId?: number | string | null;
 }
 
 export const TimelineView: React.FC<TimelineViewProps> = ({
@@ -57,6 +63,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     drivers,
     orders: externalOrders = [],
     onOrderSelect,
+    selectedOrderId,
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const timelineRef = useRef<Timeline | null>(null);
@@ -83,10 +90,24 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                 item: 10,
                 axis: 5,
             },
+            zoomable: true,
+            zoomKey: 'ctrlKey',
+            horizontalScroll: true,
+            showCurrentTime: true,
+            snap: (date: Date) => {
+                // Snap к 15-минутным интервалам
+                const minutes = date.getMinutes();
+                const snapped = Math.round(minutes / 15) * 15;
+                const newDate = new Date(date);
+                newDate.setMinutes(snapped);
+                newDate.setSeconds(0);
+                newDate.setMilliseconds(0);
+                return newDate;
+            },
 
             // Callback при перемещении - Optimistic UI
             onMove: (item, callback) => {
-                handleMove(item as Parameters<typeof handleMove>[0], callback as Parameters<typeof handleMove>[1]);
+                handleMove(item as any, callback as any);
             },
 
             // Валидация во время перемещения
@@ -99,12 +120,12 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
             containerRef.current,
             itemsDataSet.current,
             groupsDataSet.current,
-            options as Record<string, unknown>
+            options as any
         );
 
         timeline.on('select', (properties: { items: (string | number)[] }) => {
             if (properties.items.length > 0 && onOrderSelect) {
-                onOrderSelect(String(properties.items[0]));
+                onOrderSelect(Number(properties.items[0]));
             }
         });
 
@@ -137,14 +158,23 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
         groupsDataSet.current.add(drivers as unknown as VisTimelineGroup[]);
     }, [drivers]);
 
+    // Прокрутка к выбранному заказу
+    useEffect(() => {
+        if (selectedOrderId && timelineRef.current) {
+            timelineRef.current.setSelection(String(selectedOrderId));
+            timelineRef.current.focus(String(selectedOrderId), { animation: true });
+        }
+    }, [selectedOrderId]);
+
     return (
         <div
             ref={containerRef}
             style={{
                 height: '100%',
-                minHeight: 300,
-                background: '#fafafa',
+                minHeight: 200,
+                background: '#fff',
             }}
         />
     );
 };
+
