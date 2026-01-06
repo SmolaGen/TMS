@@ -1,9 +1,10 @@
 import React from 'react';
-import { Layout, Input, Avatar, Dropdown, Space } from 'antd';
+import { Layout, Input, Avatar, Dropdown, Space, Button } from 'antd';
 import {
     SearchOutlined,
     UserOutlined,
     LogoutOutlined,
+    MenuOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useTelegramAuth } from '../../hooks/useTelegramAuth';
@@ -18,13 +19,19 @@ interface HeaderBarProps {
     onThemeChange: (mode: ThemeMode) => void;
     themeMode: ThemeMode;
     isDark: boolean;
+    isMobile?: boolean;
+    onMenuClick?: () => void;
+    siderWidth?: number;
 }
 
 export const HeaderBar: React.FC<HeaderBarProps> = ({
     collapsed,
     onThemeChange,
     themeMode,
-    isDark
+    isDark,
+    isMobile = false,
+    onMenuClick,
+    siderWidth = 200,
 }) => {
     const { user, logout } = useTelegramAuth();
 
@@ -48,31 +55,48 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
 
     return (
         <Header style={{
-            padding: '0 24px',
-            background: '#fff',
+            padding: isMobile ? '0 12px' : '0 24px',
+            background: 'var(--tms-bg-container)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-            marginLeft: collapsed ? 80 : 200,
+            marginLeft: isMobile ? 0 : (collapsed ? 80 : siderWidth),
             transition: 'margin-left 0.2s',
             zIndex: 1000,
+            gap: 12,
         }}>
-            {/* Поиск */}
-            <Input
-                placeholder="Поиск заказов, водителей..."
-                prefix={<SearchOutlined />}
-                style={{ maxWidth: 400 }}
-                allowClear
-            />
+            {/* Левая часть */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+                {/* Кнопка меню для мобильных */}
+                {isMobile && (
+                    <Button
+                        type="text"
+                        icon={<MenuOutlined />}
+                        onClick={onMenuClick}
+                        style={{ fontSize: 18 }}
+                    />
+                )}
+
+                {/* Поиск - скрывается на мобильных */}
+                {!isMobile && (
+                    <Input
+                        placeholder="Поиск заказов, водителей..."
+                        prefix={<SearchOutlined />}
+                        style={{ maxWidth: 400 }}
+                        className="tms-search-desktop"
+                        allowClear
+                    />
+                )}
+            </div>
 
             {/* Правая часть */}
-            <Space size="large">
+            <Space size={isMobile ? 'small' : 'large'}>
                 <ThemeToggle
                     mode={themeMode}
                     onModeChange={onThemeChange}
                     isDark={isDark}
-                    showDropdown
+                    showDropdown={!isMobile}
                 />
 
                 <AlertCenter />
@@ -84,7 +108,9 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
                             icon={<UserOutlined />}
                             src={user?.photo_url}
                         />
-                        <span>{user?.first_name || 'Пользователь'}</span>
+                        {!isMobile && (
+                            <span>{user?.first_name || 'Пользователь'}</span>
+                        )}
                     </Space>
                 </Dropdown>
             </Space>
