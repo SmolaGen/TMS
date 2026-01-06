@@ -55,6 +55,7 @@ class Settings(BaseSettings):
     TELEGRAM_BOT_TOKEN: str = "8237141688:AAHGU9MTuw42AEaQVZpM4UHT9SoxkE2dC9U"
     TELEGRAM_WEBHOOK_URL: str = "https://myappnf.ru/bot/webhook"
     WEBAPP_URL: str = "https://myappnf.ru/webapp"
+    ADMIN_USERNAME: str = "alsmolentsev"
 
     # Idempotency
     IDEMPOTENCY_TTL_SECONDS: int = 86400  # 24 часа

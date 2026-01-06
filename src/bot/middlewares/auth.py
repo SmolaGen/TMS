@@ -3,11 +3,18 @@ from aiogram import BaseMiddleware
 from aiogram.types import Message, TelegramObject
 
 from src.database.uow import SQLAlchemyUnitOfWork
+from src.database.models import Driver, UserRole
+from src.config import settings
+from src.core.logging import get_logger
+
+logger = get_logger(__name__)
 
 class AuthMiddleware(BaseMiddleware):
     """
-    Проверяет, зарегистрирован ли telegram_id отправителя в таблице drivers.
-    Прерывает обработку если водитель не найден или не активен.
+    Проверяет авторизацию пользователя.
+    - Если пользователь новый, создает запись со статусом PENDING.
+    - Если пользователь PENDING или неактивен, блокирует доступ (кроме админа).
+    - Админ (alsmolentsev) всегда имеет доступ.
     """
     
     async def __call__(
@@ -18,36 +25,65 @@ class AuthMiddleware(BaseMiddleware):
     ) -> Any:
         # Получаем telegram_id из события
         if not hasattr(event, 'from_user') or event.from_user is None:
-            return  # Системное сообщение без отправителя
+            return await handler(event, data)
         
-        telegram_id = event.from_user.id
+        user = event.from_user
+        telegram_id = user.id
+        username = user.username
         
-        # Проверка в БД
+        # 1. Проверка на админа (по username из конфига)
+        is_admin = username == settings.ADMIN_USERNAME
+        
+        # 2. Поиск или создание пользователя в БД
         async with SQLAlchemyUnitOfWork() as uow:
-            driver = await uow.drivers.get_by_attribute(
-                "telegram_id", telegram_id
-            )
-        
-        if driver is None:
-            # Водитель не зарегистрирован
-            if isinstance(event, Message):
-                await event.answer(
-                    "⛔ Доступ запрещён.\n"
-                    "Вы не зарегистрированы как водитель в системе."
-                )
-            return  # Прерываем обработку
+            db_user = await uow.drivers.get_by_attribute("telegram_id", telegram_id)
             
-        if not getattr(driver, "is_active", True):
-             # Водитель деактивирован
-            if isinstance(event, Message):
-                await event.answer(
-                    "⛔ Доступ ограничен.\n"
-                    "Ваша учетная запись водителя неактивна."
+            if db_user is None:
+                # Регистрируем нового пользователя
+                new_user = Driver(
+                    telegram_id=telegram_id,
+                    name=user.full_name or username or str(telegram_id),
+                    role=UserRole.ADMIN if is_admin else UserRole.PENDING,
+                    is_active=is_admin # Админ активен сразу
                 )
-            return  # Прерываем обработку
+                uow.drivers.add(new_user)
+                await uow.commit() # Сохраняем, чтобы получить ID и т.д.
+                db_user = new_user
+                
+                logger.info("new_user_registered", telegram_id=telegram_id, username=username, role=db_user.role)
+                
+                # Если это не админ, уведомляем админа о новой заявке
+                if not is_admin:
+                    from src.bot.handlers.admin import notify_admin_new_user
+                    # Мы не можем вызвать notify_admin_new_user напрямую без bot, 
+                    # но bot есть в data или его можно получить из middleware
+                    bot = data.get("bot")
+                    if bot:
+                        await notify_admin_new_user(bot, {
+                            "id": telegram_id,
+                            "username": username,
+                            "first_name": user.first_name
+                        })
+
+        # 3. Проверка прав доступа
+        if not is_admin:
+            if db_user.role == UserRole.PENDING:
+                if isinstance(event, Message):
+                    await event.answer(
+                        "⏳ **Ваша заявка находится на рассмотрении.**\n"
+                        "Администратор скоро назначит вам роль (водитель или диспетчер). "
+                        "Вы получите уведомление об одобрении."
+                    )
+                return
+            
+            if not db_user.is_active:
+                if isinstance(event, Message):
+                    await event.answer("⛔ Ваш аккаунт заблокирован администратором.")
+                return
         
-        # Добавляем driver в data для использования в хендлерах
-        data["driver"] = driver
-        data["driver_id"] = driver.id
+        # Добавляем данные в context
+        data["driver"] = db_user
+        data["driver_id"] = db_user.id
+        data["is_admin"] = is_admin
         
         return await handler(event, data)
