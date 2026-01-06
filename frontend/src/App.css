@@ -576,3 +576,25 @@ body.dark-theme .ant-table-tbody>tr>td {
 body.dark-theme .ant-table-tbody>tr:hover>td {
   background: rgba(255, 255, 255, 0.04) !important;
 }
+
+/* Sidebar Glassmorphism Fix */
+.sidebar-glass,
+.sidebar-glass.ant-layout-sider {
+  background: var(--tms-glass-bg) !important;
+}
+
+body.dark-theme .sidebar-glass,
+body.dark-theme .sidebar-glass.ant-layout-sider,
+body.dark-theme .ant-layout-sider {
+  background: rgba(20, 30, 50, 0.95) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Map Container Background */
+.leaflet-container {
+  background: #1e293b !important;
+}
+
+body:not(.dark-theme) .leaflet-container {
+  background: #e2e8f0 !important;
+}

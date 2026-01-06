@@ -220,7 +220,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             width={260}
             collapsedWidth={88}
             trigger={null}
-            theme="light"
             style={{
                 height: 'calc(100vh - 32px)',
                 position: 'fixed',
@@ -232,10 +231,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 zIndex: 1001,
                 boxShadow: 'var(--tms-shadow-glass)',
                 border: 'var(--tms-glass-border)',
-                background: 'var(--tms-glass-bg)',
                 backdropFilter: 'blur(20px)',
             }}
-            className="glass-panel"
+            className="glass-panel sidebar-glass"
         >
             {renderMenu()}
         </Sider>
