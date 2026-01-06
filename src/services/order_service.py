@@ -96,10 +96,14 @@ class OrderService:
                 # Обработка Exclusion Constraint: no_driver_time_overlap
                 error_msg = str(e).lower()
                 if "no_driver_time_overlap" in error_msg:
+                    # Используем локальные переменные, так как объект order может быть недоступен (expired)
                     logger.warning("order_overlap_detected", driver_id=target_driver_id, time_range=time_range)
+                    # Форматируем время из локальных переменных
+                    t_start_str = time_start.strftime('%H:%M')
+                    t_end_str = time_end.strftime('%H:%M')
                     raise HTTPException(
                         status_code=409, 
-                        detail=f"Водитель #{target_driver_id} уже занят в указанный интервал времени ({time_start.strftime('%H:%M')} - {time_end.strftime('%H:%M')})"
+                        detail={"error": "time_overlap", "message": f"Водитель #{target_driver_id} уже занят в указанный интервал времени ({t_start_str} - {t_end_str})"}
                     )
                 raise HTTPException(status_code=500, detail="Ошибка базы данных при создании заказа")
             
@@ -134,6 +138,9 @@ class OrderService:
             new_range = (dto.new_time_start, dto.new_time_end)
             order.time_range = new_range
             
+            # Кэшируем ID водителя до коммита, чтобы использовать в exception handler
+            driver_id = order.driver_id
+
             try:
                 await self.uow.commit()
                 logger.info("order_moved", order_id=order_id, new_range=new_range)
@@ -141,9 +148,9 @@ class OrderService:
             except IntegrityError as e:
                 error_msg = str(e).lower()
                 if "no_driver_time_overlap" in error_msg:
-                    logger.warning("order_overlap_on_move", order_id=order_id, driver_id=order.driver_id)
+                    logger.warning("order_overlap_on_move", order_id=order_id, driver_id=driver_id)
                     raise HTTPException(
                         status_code=409,
-                        detail={"error": "time_overlap", "message": f"Водитель #{order.driver_id} занят в новый интервал времени"}
+                        detail={"error": "time_overlap", "message": f"Водитель #{driver_id} занят в новый интервал времени"}
                     )
                 raise HTTPException(status_code=500, detail="Ошибка базы данных при перемещении заказа")

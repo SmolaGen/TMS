@@ -13,6 +13,7 @@ from src.database.models import Driver, DriverStatus
 def mock_uow():
     uow = MagicMock(spec=AbstractUnitOfWork)
     uow.drivers = MagicMock()
+    uow.session = AsyncMock() # Explicitly add session attribute
     # Mock context manager
     uow.__aenter__ = AsyncMock(return_value=uow)
     uow.__aexit__ = AsyncMock(return_value=None)
@@ -116,7 +117,7 @@ async def test_get_driver_stats(driver_service, mock_uow):
     
     # Mock individual scalar queries
     # Sequence of calls: total, completed, cancelled, active, revenue, distance
-    mock_uow._session.scalar = AsyncMock(side_effect=[
+    mock_uow.session.scalar = AsyncMock(side_effect=[
         10,  # total
         8,   # completed
         1,   # cancelled
