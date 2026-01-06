@@ -1,10 +1,12 @@
 import React from 'react';
-import { Layout, Input, Avatar, Dropdown, Space, Button } from 'antd';
+import { Layout, Input, Avatar, Dropdown, Space, Button, Badge } from 'antd';
 import {
     SearchOutlined,
     UserOutlined,
     LogoutOutlined,
     MenuOutlined,
+    BellOutlined,
+    SettingOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useTelegramAuth } from '../../hooks/useTelegramAuth';
@@ -25,13 +27,11 @@ interface HeaderBarProps {
 }
 
 export const HeaderBar: React.FC<HeaderBarProps> = ({
-    collapsed,
     onThemeChange,
     themeMode,
     isDark,
     isMobile = false,
     onMenuClick,
-    siderWidth = 200,
 }) => {
     const { user, logout } = useTelegramAuth();
 
@@ -40,6 +40,11 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             key: 'profile',
             icon: <UserOutlined />,
             label: 'Профиль',
+        },
+        {
+            key: 'settings',
+            icon: <SettingOutlined />,
+            label: 'Настройки',
         },
         {
             type: 'divider',
@@ -55,65 +60,136 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
 
     return (
         <Header style={{
-            padding: isMobile ? '0 12px' : '0 24px',
-            background: 'var(--tms-bg-container)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-            marginLeft: isMobile ? 0 : (collapsed ? 80 : siderWidth),
-            transition: 'margin-left 0.2s',
+            padding: 0,
+            background: 'transparent',
+            height: 'auto',
+            lineHeight: 'normal',
             zIndex: 1000,
-            gap: 12,
+            marginBottom: 16,
+            position: 'sticky',
+            top: 16,
         }}>
-            {/* Левая часть */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
-                {/* Кнопка меню для мобильных */}
-                {isMobile && (
-                    <Button
-                        type="text"
-                        icon={<MenuOutlined />}
-                        onClick={onMenuClick}
-                        style={{ fontSize: 18 }}
-                    />
-                )}
+            <div style={{
+                margin: isMobile ? '0 8px' : '16px 16px 0 16px',
+                padding: isMobile ? '8px 12px' : '12px 24px',
+                background: 'var(--tms-glass-bg)',
+                backdropFilter: 'var(--tms-glass-blur)',
+                border: 'var(--tms-glass-border)',
+                borderRadius: 20,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                boxShadow: 'var(--tms-shadow-glass)',
+                height: isMobile ? 64 : 72,
+                transition: 'all 0.3s ease',
+            }} className="glass-panel">
 
-                {/* Поиск - скрывается на мобильных */}
-                {!isMobile && (
-                    <Input
-                        placeholder="Поиск заказов, водителей..."
-                        prefix={<SearchOutlined />}
-                        style={{ maxWidth: 400 }}
-                        className="tms-search-desktop"
-                        allowClear
-                    />
-                )}
-            </div>
-
-            {/* Правая часть */}
-            <Space size={isMobile ? 'small' : 'large'}>
-                <ThemeToggle
-                    mode={themeMode}
-                    onModeChange={onThemeChange}
-                    isDark={isDark}
-                    showDropdown={!isMobile}
-                />
-
-                <AlertCenter />
-
-                <Dropdown menu={{ items: profileMenuItems }} placement="bottomRight">
-                    <Space style={{ cursor: 'pointer' }}>
-                        <Avatar
-                            size="small"
-                            icon={<UserOutlined />}
-                            src={user?.photo_url}
+                {/* Левая часть */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1 }}>
+                    {/* Кнопка меню для мобильных */}
+                    {isMobile && (
+                        <Button
+                            type="text"
+                            icon={<MenuOutlined />}
+                            onClick={onMenuClick}
+                            style={{ fontSize: 18 }}
                         />
-                        {!isMobile && (
-                            <span>{user?.first_name || 'Пользователь'}</span>
-                        )}
-                    </Space>
-                </Dropdown>
-            </Space>
+                    )}
+
+                    {/* Поиск - скрывается на мобильных */}
+                    {!isMobile && (
+                        <div style={{
+                            position: 'relative',
+                            width: '100%',
+                            maxWidth: 400,
+                            transition: 'all 0.3s ease'
+                        }}>
+                            <Input
+                                placeholder="Поиск заказов, водителей..."
+                                prefix={<SearchOutlined style={{ color: 'var(--tms-text-tertiary)' }} />}
+                                style={{
+                                    borderRadius: 12,
+                                    background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
+                                    border: '1px solid transparent',
+                                    padding: '8px 12px',
+                                    fontSize: 14,
+                                }}
+                                className="tms-search-input"
+                                allowClear
+                                onFocus={(e) => {
+                                    e.target.style.background = isDark ? 'rgba(0,0,0,0.2)' : '#fff';
+                                    e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.05)';
+                                    e.target.style.border = '1px solid var(--tms-primary)';
+                                }}
+                                onBlur={(e) => {
+                                    e.target.style.background = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)';
+                                    e.target.style.boxShadow = 'none';
+                                    e.target.style.border = '1px solid transparent';
+                                }}
+                            />
+                        </div>
+                    )}
+                </div>
+
+                {/* Правая часть */}
+                <Space size={isMobile ? 'small' : 'middle'} align="center">
+                    <ThemeToggle
+                        mode={themeMode}
+                        onModeChange={onThemeChange}
+                        isDark={isDark}
+                        showDropdown={!isMobile}
+                    />
+
+                    <div style={{ width: 1, height: 24, background: 'var(--tms-border-split)' }} />
+
+                    <Badge count={2} dot offset={[-4, 4]} color="var(--tms-primary)">
+                        <Button
+                            type="text"
+                            icon={<BellOutlined />}
+                            shape="circle"
+                            style={{ color: 'var(--tms-text-secondary)' }}
+                        />
+                    </Badge>
+
+                    <AlertCenter />
+
+                    <div style={{ width: 1, height: 24, background: 'var(--tms-border-split)' }} />
+
+                    <Dropdown menu={{ items: profileMenuItems }} placement="bottomRight" trigger={['click']}>
+                        <div style={{
+                            cursor: 'pointer',
+                            padding: '4px 8px',
+                            borderRadius: 12,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            transition: 'background 0.2s',
+                        }}
+                            className="hover:bg-black/5 dark:hover:bg-white/5"
+                        >
+                            <Avatar
+                                size="default"
+                                icon={<UserOutlined />}
+                                src={user?.photo_url}
+                                style={{
+                                    background: 'var(--tms-gradient-primary)',
+                                    boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)'
+                                }}
+                            />
+                            {!isMobile && (
+                                <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+                                    <span style={{ fontWeight: 600, fontSize: 14 }}>
+                                        {user?.first_name || 'Диспетчер'}
+                                    </span>
+                                    <span style={{ fontSize: 11, color: 'var(--tms-text-tertiary)' }}>
+                                        {user?.role === 'admin' ? 'Администратор' : 'В сети'}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    </Dropdown>
+                </Space>
+            </div>
         </Header>
     );
 };

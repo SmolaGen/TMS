@@ -68,6 +68,25 @@
   --tms-z-overlay: 900;
   --tms-z-header: 100;
   --tms-z-map-controls: 500;
+
+  /* === Glassmorphism System === */
+  --tms-glass-bg: rgba(255, 255, 255, 0.7);
+  --tms-glass-bg-dark: rgba(30, 30, 30, 0.75);
+  --tms-glass-blur: blur(20px);
+  --tms-glass-border: 1px solid rgba(255, 255, 255, 0.4);
+  --tms-glass-border-dark: 1px solid rgba(255, 255, 255, 0.08);
+
+  /* === Advanced Shadows === */
+  --tms-shadow-glass: 0 12px 40px -8px rgba(0, 0, 0, 0.12);
+  --tms-shadow-float: 0 20px 48px -12px rgba(0, 0, 0, 0.15);
+  --tms-shadow-glow-primary: 0 0 24px rgba(22, 119, 255, 0.25);
+
+  /* === Modern Gradients === */
+  --tms-gradient-primary: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  --tms-gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  --tms-gradient-warning: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  --tms-gradient-purple: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  --tms-gradient-mesh: radial-gradient(at 0% 0%, hsla(253, 16%, 7%, 1) 0, transparent 50%), radial-gradient(at 50% 0%, hsla(225, 39%, 30%, 1) 0, transparent 50%), radial-gradient(at 100% 0%, hsla(339, 49%, 30%, 1) 0, transparent 50%);
 }
 
 /* ============================================
@@ -132,12 +151,21 @@ body {
   font-family: var(--tms-font-family);
   font-size: var(--tms-font-size-base);
   color: var(--tms-text-primary);
-  background: var(--tms-bg-layout);
+  background: #f8fafc;
+  /* Светлый нейтральный фон */
   transition: background-color var(--tms-transition-normal), color var(--tms-transition-normal);
   margin: 0;
   padding: 0;
   height: 100vh;
   width: 100%;
+}
+
+body.dark-theme {
+  background: #0f172a;
+  /* Глубокий темный фон */
+  background-image:
+    radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.03) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(99, 102, 241, 0.03) 0px, transparent 50%);
 }
 
 * {
@@ -250,7 +278,16 @@ body.dark-theme .vis-panel.vis-left,
 body.dark-theme .vis-panel.vis-right,
 body.dark-theme .vis-panel.vis-top,
 body.dark-theme .vis-panel.vis-bottom {
-  background: var(--tms-bg-container) !important;
+  background: transparent !important;
+}
+
+body.dark-theme .vis-labelset .vis-label {
+  background: transparent !important;
+  color: var(--tms-text-primary) !important;
+}
+
+body.dark-theme .vis-labelset .vis-label .vis-inner {
+  color: var(--tms-text-primary) !important;
 }
 
 /* Hover для алертов */
@@ -347,6 +384,59 @@ body.dark-theme .vis-panel.vis-bottom {
 }
 
 /* ============================================
+   Redesign Utilities
+   ============================================ */
+
+/* Glass Cards */
+.glass-card {
+  background: var(--tms-glass-bg);
+  backdrop-filter: var(--tms-glass-blur);
+  -webkit-backdrop-filter: var(--tms-glass-blur);
+  border: var(--tms-glass-border);
+  box-shadow: var(--tms-shadow-glass);
+  border-radius: 20px;
+}
+
+body.dark-theme .glass-card {
+  background: var(--tms-glass-bg-dark);
+  border: var(--tms-glass-border-dark);
+}
+
+/* Glass Panels (Controls, Legends) */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+}
+
+body.dark-theme .glass-panel {
+  background: rgba(20, 30, 50, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Animations & Effects */
+.hover-lift {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--tms-shadow-float);
+}
+
+.gradient-text {
+  background: var(--tms-gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ============================================
    Mobile Responsive Styles
    ============================================ */
 
@@ -439,4 +529,50 @@ body.dark-theme .vis-panel.vis-bottom {
   .ant-space {
     gap: 8px !important;
   }
+}
+
+/* ============================================
+   Dark Theme Component Overrides
+   ============================================ */
+
+/* Search Input in Header */
+body.dark-theme .tms-search-input,
+body.dark-theme .tms-search-input .ant-input {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: var(--tms-text-primary) !important;
+  border-color: transparent !important;
+}
+
+body.dark-theme .tms-search-input:focus,
+body.dark-theme .tms-search-input:focus-within {
+  background: rgba(0, 0, 0, 0.3) !important;
+  border-color: var(--tms-primary) !important;
+}
+
+body.dark-theme .tms-search-input .ant-input::placeholder {
+  color: var(--tms-text-tertiary) !important;
+}
+
+/* Ant Design Card overrides for dark theme */
+body.dark-theme .ant-card {
+  background: var(--tms-bg-container);
+  border-color: var(--tms-border-base);
+}
+
+/* Ant Design Table */
+body.dark-theme .ant-table {
+  background: transparent !important;
+}
+
+body.dark-theme .ant-table-thead>tr>th {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+body.dark-theme .ant-table-tbody>tr>td {
+  background: transparent !important;
+  border-color: var(--tms-border-split) !important;
+}
+
+body.dark-theme .ant-table-tbody>tr:hover>td {
+  background: rgba(255, 255, 255, 0.04) !important;
 }

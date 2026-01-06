@@ -1,42 +1,68 @@
 import React from 'react';
-import { Card, Space, Badge } from 'antd';
+import { Space } from 'antd';
 
 interface LegendItem {
     status: string;
     label: string;
     color: string;
+    pulse?: boolean;
 }
 
 const legendItems: LegendItem[] = [
-    { status: 'available', label: 'Свободен', color: '#52c41a' },
-    { status: 'busy', label: 'Занят', color: '#faad14' },
-    { status: 'in_progress', label: 'На заказе', color: '#1890ff' },
-    { status: 'offline', label: 'Офлайн', color: '#d9d9d9' },
+    { status: 'available', label: 'Свободен', color: '#10b981', pulse: true },
+    { status: 'busy', label: 'Занят', color: '#f59e0b' },
+    { status: 'in_progress', label: 'На заказе', color: '#3b82f6' },
+    { status: 'offline', label: 'Офлайн', color: '#9ca3af' },
 ];
 
 export const MapLegend: React.FC = () => {
     return (
-        <Card
-            size="small"
+        <div
+            className="glass-panel"
             style={{
                 position: 'absolute',
-                bottom: 20,
-                left: 10,
+                bottom: 24,
+                left: 24,
                 zIndex: 1000,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                padding: '8px 16px',
+                borderRadius: 30, // Pill shape
+                display: 'flex',
+                alignItems: 'center',
             }}
         >
-            <Space direction="vertical" size="small">
+            <Space size="large">
                 {legendItems.map((item) => (
-                    <Space key={item.status}>
-                        <Badge
-                            color={item.color}
-                            style={{ width: 10, height: 10 }}
-                        />
-                        <span style={{ fontSize: 12 }}>{item.label}</span>
+                    <Space key={item.status} size="small" align="center">
+                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                            <div style={{
+                                width: 10,
+                                height: 10,
+                                borderRadius: '50%',
+                                backgroundColor: item.color,
+                                boxShadow: `0 0 8px ${item.color}80`,
+                            }} />
+                            {item.pulse && (
+                                <div style={{
+                                    position: 'absolute',
+                                    width: 10,
+                                    height: 10,
+                                    borderRadius: '50%',
+                                    backgroundColor: item.color,
+                                    opacity: 0.5,
+                                    animation: 'markerPulse 2s infinite'
+                                }} />
+                            )}
+                        </div>
+                        <span style={{
+                            fontSize: 12,
+                            fontWeight: 600,
+                            color: 'var(--tms-text-secondary)'
+                        }}>
+                            {item.label}
+                        </span>
                     </Space>
                 ))}
             </Space>
-        </Card>
+        </div>
     );
 };

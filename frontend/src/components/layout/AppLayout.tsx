@@ -39,11 +39,12 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const isMobile = useIsMobile();
 
-    // На мобильных сайдбар полностью скрыт, используем Drawer
-    const siderWidth = isMobile ? 0 : (collapsed ? 80 : 200);
+    // На мобильных сайдбар полностью скрыт
+    // На десктопе 260px (expanded) или 88px (collapsed) + 16px отступ слева
+    const siderWidth = isMobile ? 0 : (collapsed ? 104 : 276); // 88+16 or 260+16
 
     return (
-        <Layout style={{ minHeight: '100vh' }}>
+        <Layout style={{ minHeight: '100vh', background: 'transparent' }}>
             {/* Десктоп: обычный Sidebar */}
             {!isMobile && (
                 <Sidebar
@@ -58,9 +59,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                     placement="left"
                     open={mobileMenuOpen}
                     onClose={() => setMobileMenuOpen(false)}
-                    width={250}
+                    width={280}
                     styles={{
-                        body: { padding: 0, background: '#001529' },
+                        body: { padding: 0 },
                         header: { display: 'none' }
                     }}
                 >
@@ -74,7 +75,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 
             <Layout style={{
                 marginLeft: siderWidth,
-                transition: 'margin-left 0.2s'
+                transition: 'margin-left 0.3s cubic-bezier(0.2, 0, 0, 1)',
+                background: 'transparent',
+                display: 'flex',
+                flexDirection: 'column',
             }}>
                 <HeaderBar
                     collapsed={collapsed}
@@ -86,21 +90,26 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                     siderWidth={siderWidth}
                 />
                 <Content style={{
-                    margin: isMobile ? '8px' : '16px',
-                    padding: isMobile ? '12px' : '16px',
-                    background: 'var(--tms-bg-container)',
-                    borderRadius: 8,
-                    overflow: 'auto',
+                    margin: isMobile ? '0 8px' : '0 16px 16px 16px',
+                    // Удаляем белый фон и паддинги, чтобы контент мог использовать glass-карточки
+                    background: 'transparent',
+                    borderRadius: 20,
+                    overflow: 'visible', // разрешаем теням выходить за границы
                     minHeight: 280,
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column'
                 }}>
                     {children}
                 </Content>
                 <Footer style={{
                     textAlign: 'center',
                     padding: isMobile ? '8px' : '12px',
-                    fontSize: isMobile ? 12 : 14,
+                    fontSize: 12,
+                    color: 'var(--tms-text-tertiary)',
+                    background: 'transparent'
                 }}>
-                    TMS ©2026 | версия 1.0
+                    TMS ©2026 | New Face Logistics
                 </Footer>
             </Layout>
         </Layout>

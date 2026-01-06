@@ -29,10 +29,8 @@ export const DriversFilters: React.FC<DriversFiltersProps> = ({
     onReset,
 }) => {
     return (
-        <div style={{
+        <div className="glass-card" style={{
             padding: '12px 16px',
-            background: '#fafafa',
-            borderRadius: 8,
         }}>
             <Space wrap size="middle">
                 {/* Поиск */}

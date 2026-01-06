@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Statistic, Skeleton } from 'antd';
+import { Statistic, Skeleton } from 'antd';
 import {
     ShoppingCartOutlined,
     CarOutlined,
@@ -9,18 +9,6 @@ import {
 } from '@ant-design/icons';
 import { useKPIStats } from '../../hooks/useKPIStats';
 
-const iconStyle = (color: string, isMobile: boolean): React.CSSProperties => ({
-    fontSize: isMobile ? 18 : 24,
-    color,
-    padding: isMobile ? 8 : 12,
-    borderRadius: 10,
-    backgroundColor: `${color}15`,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-});
-
-// Хук для определения мобильного устройства
 const useIsMobile = () => {
     const [isMobile, setIsMobile] = React.useState(
         typeof window !== 'undefined' ? window.innerWidth <= 768 : false
@@ -49,13 +37,14 @@ export const KPIWidgets: React.FC = () => {
                 marginBottom: isMobile ? 8 : 16,
             }}>
                 {[1, 2, 3, 4, 5].map((i) => (
-                    <Card key={i} size="small" style={{
+                    <div key={i} className="glass-card" style={{
                         minWidth: isMobile ? 120 : 180,
-                        borderRadius: 12,
+                        padding: 16,
                         flexShrink: 0,
+                        height: 100,
                     }}>
-                        <Skeleton active paragraph={{ rows: 0 }} title={{ width: '100%' }} />
-                    </Card>
+                        <Skeleton active paragraph={{ rows: 1 }} title={{ width: '50%' }} />
+                    </div>
                 ))}
             </div>
         );
@@ -72,22 +61,25 @@ export const KPIWidgets: React.FC = () => {
             title: 'Активных',
             fullTitle: 'Активных заказов',
             value: stats.activeOrders,
-            icon: <ShoppingCartOutlined style={iconStyle('#1890ff', isMobile)} />,
-            color: '#1890ff',
+            icon: <ShoppingCartOutlined />,
+            gradient: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+            color: '#3b82f6',
         },
         {
             title: 'Свободных',
             fullTitle: 'Свободных водителей',
             value: stats.freeDrivers,
-            icon: <CarOutlined style={iconStyle('#52c41a', isMobile)} />,
-            color: '#52c41a',
+            icon: <CarOutlined />,
+            gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            color: '#10b981',
         },
         {
             title: 'Выполнено',
             fullTitle: 'Выполнено сегодня',
             value: stats.completedToday,
-            icon: <CheckCircleOutlined style={iconStyle('#722ed1', isMobile)} />,
-            color: '#722ed1',
+            icon: <CheckCircleOutlined />,
+            gradient: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+            color: '#8b5cf6',
         },
         {
             title: 'Оценка',
@@ -95,81 +87,97 @@ export const KPIWidgets: React.FC = () => {
             value: stats.averageRating,
             precision: 1,
             suffix: '⭐',
-            icon: <StarOutlined style={iconStyle('#faad14', isMobile)} />,
-            color: '#faad14',
+            icon: <StarOutlined />,
+            gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+            color: '#f59e0b',
         },
         {
             title: 'Ожидание',
             fullTitle: 'Среднее ожидание',
             value: stats.averageWaitTime,
             suffix: 'мин',
-            icon: <ClockCircleOutlined style={iconStyle('#eb2f96', isMobile)} />,
-            color: '#eb2f96',
+            icon: <ClockCircleOutlined />,
+            gradient: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
+            color: '#ec4899',
         },
     ];
 
     return (
         <div style={{
             display: 'flex',
-            gap: isMobile ? 8 : 16,
+            gap: isMobile ? 8 : 20,
             overflowX: 'auto',
-            paddingBottom: 8,
-            marginBottom: isMobile ? 8 : 16,
+            paddingBottom: 12,
+            marginBottom: isMobile ? 8 : 8,
             WebkitOverflowScrolling: 'touch',
+            paddingLeft: 4,
+            paddingRight: 4,
         }}>
             {kpiItems.map((item, index) => (
-                <Card
+                <div
                     key={index}
-                    size="small"
+                    className="glass-card kpi-card hover-lift"
                     style={{
-                        minWidth: isMobile ? 100 : 180,
-                        borderRadius: 12,
+                        minWidth: isMobile ? 110 : 200,
+                        padding: isMobile ? 12 : 16,
                         flexShrink: 0,
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                        border: 'none',
-                    }}
-                    className="kpi-card"
-                    hoverable
-                >
-                    <div style={{
                         display: 'flex',
+                        flexDirection: isMobile ? 'column' : 'row',
                         alignItems: 'center',
                         gap: isMobile ? 8 : 16,
-                        flexDirection: isMobile ? 'column' : 'row',
+                        animationDelay: `${index * 0.1}s`,
+                        cursor: 'default',
+                    }}
+                >
+                    <div style={{
+                        width: isMobile ? 40 : 48,
+                        height: isMobile ? 40 : 48,
+                        borderRadius: 14,
+                        background: item.gradient,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#fff',
+                        fontSize: isMobile ? 20 : 24,
+                        boxShadow: `0 8px 16px -4px ${item.color}50`,
+                        flexShrink: 0,
                     }}>
                         {item.icon}
+                    </div>
+
+                    <div style={{ flex: 1, textAlign: isMobile ? 'center' : 'left' }}>
+                        <div style={{
+                            fontSize: isMobile ? 11 : 13,
+                            color: 'var(--tms-text-secondary)',
+                            whiteSpace: 'nowrap',
+                            fontWeight: 500,
+                            marginBottom: 2
+                        }}>
+                            {isMobile ? item.title : item.fullTitle}
+                        </div>
                         <Statistic
-                            title={
-                                <span style={{
-                                    color: 'var(--tms-text-secondary)',
-                                    fontSize: isMobile ? 11 : 13,
-                                    whiteSpace: 'nowrap',
-                                }}>
-                                    {isMobile ? item.title : item.fullTitle}
-                                </span>
-                            }
                             value={item.value}
                             precision={item.precision}
                             suffix={
                                 <span style={{
                                     fontSize: isMobile ? 12 : 14,
-                                    color: 'var(--tms-text-secondary)',
+                                    color: 'var(--tms-text-tertiary)',
                                     marginLeft: 2,
+                                    fontWeight: 500
                                 }}>
                                     {item.suffix}
                                 </span>
                             }
-                            styles={{
-                                content: {
-                                    color: item.color,
-                                    fontSize: isMobile ? 18 : 22,
-                                    fontWeight: 700,
-                                    lineHeight: isMobile ? '22px' : '28px',
-                                }
+                            valueStyle={{
+                                color: 'var(--tms-text-primary)',
+                                fontSize: isMobile ? 20 : 26,
+                                fontWeight: 700,
+                                lineHeight: 1.1,
+                                letterSpacing: '-0.5px'
                             }}
                         />
                     </div>
-                </Card>
+                </div>
             ))}
         </div>
     );

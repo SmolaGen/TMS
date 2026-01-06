@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Card, Spin, Row, Col, Statistic } from 'antd';
+import { Spin, Row, Col, Statistic } from 'antd';
 import {
     TeamOutlined,
     CheckCircleOutlined,
@@ -74,43 +74,43 @@ export const DriversPage: React.FC = () => {
             <div style={{ marginBottom: 16 }}>
                 <Row gutter={16}>
                     <Col span={6}>
-                        <Card size="small">
+                        <div className="glass-card" style={{ padding: '12px' }}>
                             <Statistic
                                 title="Всего водителей"
                                 value={stats.total}
                                 prefix={<TeamOutlined />}
                             />
-                        </Card>
+                        </div>
                     </Col>
                     <Col span={6}>
-                        <Card size="small">
+                        <div className="glass-card" style={{ padding: '12px' }}>
                             <Statistic
                                 title="Доступны"
                                 value={stats.available}
                                 valueStyle={{ color: '#52c41a' }}
                                 prefix={<CheckCircleOutlined />}
                             />
-                        </Card>
+                        </div>
                     </Col>
                     <Col span={6}>
-                        <Card size="small">
+                        <div className="glass-card" style={{ padding: '12px' }}>
                             <Statistic
                                 title="Заняты"
                                 value={stats.busy}
                                 valueStyle={{ color: '#faad14' }}
                                 prefix={<ClockCircleOutlined />}
                             />
-                        </Card>
+                        </div>
                     </Col>
                     <Col span={6}>
-                        <Card size="small">
+                        <div className="glass-card" style={{ padding: '12px' }}>
                             <Statistic
                                 title="Оффлайн"
                                 value={stats.offline}
                                 valueStyle={{ color: '#8c8c8c' }}
                                 prefix={<StopOutlined />}
                             />
-                        </Card>
+                        </div>
                     </Col>
                 </Row>
             </div>
@@ -134,17 +134,21 @@ export const DriversPage: React.FC = () => {
             <div style={{ flex: 1, overflow: 'auto' }}>
                 <Spin spinning={isLoading}>
                     {viewMode === 'table' ? (
-                        <DriversTable
-                            drivers={filteredDrivers}
-                            loading={isLoading}
-                            onSelect={(id) => setSelectedDriverId(id)}
-                        />
+                        <div className="glass-card">
+                            <DriversTable
+                                drivers={filteredDrivers}
+                                loading={isLoading}
+                                onSelect={(id) => setSelectedDriverId(id)}
+                            />
+                        </div>
                     ) : (
-                        <DriversGrid
-                            drivers={filteredDrivers}
-                            loading={isLoading}
-                            onSelect={(id) => setSelectedDriverId(id)}
-                        />
+                        <div className="glass-card">
+                            <DriversGrid
+                                drivers={filteredDrivers}
+                                loading={isLoading}
+                                onSelect={(id) => setSelectedDriverId(id)}
+                            />
+                        </div>
                     )}
                 </Spin>
             </div>
