@@ -8,7 +8,7 @@ const { RangePicker } = DatePicker;
 
 export interface OrderFiltersState {
     status: string[];
-    driverIds: (number | string)[];
+    driverIds: number[];
     dateRange: [Dayjs | null, Dayjs | null] | null;
     search: string;
     priority: string[];
@@ -21,19 +21,19 @@ interface OrderFiltersProps {
 }
 
 const statusOptions = [
-    { value: 'pending', label: '⏳ Ожидает', color: '#faad14' },
-    { value: 'assigned', label: '✓ Назначен', color: '#1890ff' },
-    { value: 'driver_arrived', label: '📍 Прибыл', color: '#1890ff' },
-    { value: 'in_progress', label: '🚗 В пути', color: '#52c41a' },
-    { value: 'completed', label: '✅ Завершён', color: '#52c41a' },
-    { value: 'cancelled', label: '❌ Отменён', color: '#ff4d4f' },
+    { value: 'pending', label: '⏳ Ожидает' },
+    { value: 'assigned', label: '👤 Назначен' },
+    { value: 'driver_arrived', label: '📍 Прибыл' },
+    { value: 'in_progress', label: '🚕 В пути' },
+    { value: 'completed', label: '✅ Завершен' },
+    { value: 'cancelled', label: '❌ Отменен' },
 ];
 
 const priorityOptions = [
-    { value: 'urgent', label: '🔥 Срочный' },
     { value: 'high', label: '🔴 Высокий' },
     { value: 'normal', label: '🟡 Обычный' },
     { value: 'low', label: '🟢 Низкий' },
+    { value: 'urgent', label: '⚡ Срочный' },
 ];
 
 export const OrderFilters: React.FC<OrderFiltersProps> = ({
@@ -44,15 +44,16 @@ export const OrderFilters: React.FC<OrderFiltersProps> = ({
     const { data: drivers = [] } = useDrivers();
 
     const driverOptions = drivers.map((d) => ({
-        value: d.id === 'unassigned' ? 'unassigned' : Number(d.id),
-        label: d.name || d.content,
+        value: d.id,
+        label: d.name,
     }));
 
     return (
         <div style={{
             padding: '12px 16px',
-            background: '#fafafa',
+            background: '#fff',
             borderRadius: 8,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
             marginBottom: 16,
         }}>
             <Space wrap size="middle">
@@ -62,7 +63,7 @@ export const OrderFilters: React.FC<OrderFiltersProps> = ({
                     prefix={<SearchOutlined />}
                     value={filters.search}
                     onChange={(e) => onChange({ search: e.target.value })}
-                    style={{ width: 200 }}
+                    style={{ width: 220 }}
                     allowClear
                 />
 
@@ -73,9 +74,9 @@ export const OrderFilters: React.FC<OrderFiltersProps> = ({
                     value={filters.status}
                     onChange={(value) => onChange({ status: value })}
                     options={statusOptions}
-                    style={{ minWidth: 200 }}
+                    style={{ minWidth: 180 }}
                     allowClear
-                    maxTagCount={2}
+                    maxTagCount="responsive"
                 />
 
                 {/* Водитель */}
@@ -87,7 +88,7 @@ export const OrderFilters: React.FC<OrderFiltersProps> = ({
                     options={driverOptions}
                     style={{ minWidth: 180 }}
                     allowClear
-                    maxTagCount={1}
+                    maxTagCount="responsive"
                     showSearch
                     filterOption={(input, option) =>
                         (option?.label ?? '').toLowerCase().includes(input.toLowerCase())

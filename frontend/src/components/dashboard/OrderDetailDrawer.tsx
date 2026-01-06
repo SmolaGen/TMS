@@ -64,8 +64,8 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({ orderId, v
                         onChange={(value) => handleAction('assign', { driverId: value })}
                         disabled={isUpdating}
                     >
-                        {drivers.filter(d => d.id !== 'unassigned').map(d => (
-                            <Select.Option key={d.id} value={Number(d.id)}>{d.content}</Select.Option>
+                        {drivers.map(d => (
+                            <Select.Option key={d.id} value={d.id}>{d.name}</Select.Option>
                         ))}
                     </Select>
                 </div>

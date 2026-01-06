@@ -4,7 +4,7 @@ import L from 'leaflet';
 import { DriverStatus } from '../../types/api';
 import type { DriverLocation } from '../../types/api';
 
-// Иконки по статусу - используем divIcon для простоты
+// Иконки по статусу - используем SVG иконку автомобиля
 const createIcon = (status: DriverStatus): L.DivIcon => {
     const colors: Record<DriverStatus, string> = {
         [DriverStatus.AVAILABLE]: '#52c41a',  // зелёный
@@ -12,20 +12,22 @@ const createIcon = (status: DriverStatus): L.DivIcon => {
         [DriverStatus.OFFLINE]: '#ff4d4f',    // красный
     };
 
+    const color = colors[status] || colors[DriverStatus.OFFLINE];
+
     return L.divIcon({
         className: 'driver-marker',
         html: `
-      <div style="
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        background-color: ${colors[status]};
-        border: 3px solid white;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-      "></div>
+      <div style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="10" fill="white" />
+          <path d="M18.92 11.01C18.72 10.42 18.16 10 17.5 10H6.5C5.84 10 5.28 10.42 5.08 11.01L3 17V24H5V22H19V24H21V17L18.92 11.01ZM6.5 11H17.5L18.5 14H5.5L6.5 11ZM5 19V16H19V19H5Z" fill="${color}"/>
+          <circle cx="7" cy="17.5" r="1.5" fill="${color}"/>
+          <circle cx="17" cy="17.5" r="1.5" fill="${color}"/>
+        </svg>
+      </div>
     `,
-        iconSize: [24, 24],
-        iconAnchor: [12, 12],
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
     });
 };
 
