@@ -6,7 +6,7 @@ from redis.asyncio import Redis
 from src.config import settings
 from src.bot.middlewares.auth import AuthMiddleware
 from src.bot.middlewares.idempotency import IdempotencyMiddleware
-from src.bot.handlers import location, orders
+from src.bot.handlers import location, orders, admin
 
 async def create_bot() -> tuple[Bot, Dispatcher]:
     """Создание и конфигурация бота."""
@@ -25,10 +25,13 @@ async def create_bot() -> tuple[Bot, Dispatcher]:
     
     # Inner middleware - авторизация (для сообщений и edited_message)
     dp.message.middleware(AuthMiddleware())
+    # Для callback_query тоже нужна авторизация
+    dp.callback_query.middleware(AuthMiddleware())
     dp.edited_message.middleware(AuthMiddleware())
     
     # Регистрация роутеров
     dp.include_routers(
+        admin.router,
         location.router,
         orders.router,
     )

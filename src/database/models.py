@@ -56,6 +56,14 @@ class OrderPriority(str, PyEnum):
     URGENT = "urgent"
 
 
+class UserRole(str, PyEnum):
+    """Роли пользователей."""
+    DRIVER = "driver"          # Водитель
+    DISPATCHER = "dispatcher"  # Диспетчер
+    ADMIN = "admin"            # Администратор
+    PENDING = "pending"        # Ожидает одобрения
+
+
 class Driver(Base):
     """
     Модель водителя.
@@ -84,6 +92,13 @@ class Driver(Base):
         default=DriverStatus.OFFLINE,
         server_default=text("'offline'"),
         comment="Текущий статус"
+    )
+    role: Mapped[UserRole] = mapped_column(
+        Enum(UserRole, name="user_role",
+             values_callable=lambda x: [e.value for e in x]),
+        default=UserRole.PENDING,
+        server_default=text("'pending'"),
+        comment="Роль пользователя в системе"
     )
     created_at: Mapped[datetime] = mapped_column(
         default=datetime.utcnow,
