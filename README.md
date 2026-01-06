@@ -88,22 +88,38 @@ tms/
 ├── Dockerfile              # Образ backend
 ├── .env.example            # Пример переменных окружения
 ├── requirements.txt        # Python зависимости
-├── src/
+├── src/                   # Backend (Python/FastAPI)
 │   ├── __init__.py
 │   ├── config.py           # Конфигурация приложения
 │   ├── main.py             # FastAPI приложение
-│   └── database/
-│       ├── __init__.py
-│       ├── connection.py   # Async-подключение к БД
-│       └── models.py       # SQLAlchemy модели
-├── alembic/
+│   ├── api/               # API эндпоинты
+│   ├── bot/               # Telegram бот
+│   ├── core/              # Core модули (logging, middleware)
+│   ├── database/           # Модели и подключения
+│   ├── schemas/           # Pydantic схемы
+│   ├── services/           # Бизнес-логика
+│   └── workers/           # Воркеры (ingest_worker)
+├── frontend/              # Frontend (React/TypeScript)
+│   └── src/
+│       ├── components/      # React компоненты
+│       ├── pages/          # Страницы
+│       ├── api/            # API клиент
+│       ├── hooks/          # Custom hooks
+│       └── stores/         # Zustand stores
+├── openspec/              # OpenSpec спецификации
+│   ├── project.md         # Контекст проекта
+│   ├── AGENTS.md          # Инструкции для AI агентов
+│   ├── specs/             # Текущие спецификации
+│   ├── changes/           # Предложения изменений
+│   └── archive/           # Архивированные изменения
+├── docs/                  # Документация
+├── alembic/               # Миграции БД
 │   ├── alembic.ini
 │   ├── env.py
 │   └── versions/           # Миграции
-├── tests/
-│   ├── conftest.py
-│   └── test_*.py
-└── osrm-data/              # Данные OSRM (не в git)
+├── tests/                 # Тесты
+├── nginx/                 # Nginx конфигурация
+└── osrm-data/             # Данные OSRM (не в git)
 ```
 
 ## API Endpoints
@@ -128,6 +144,26 @@ docker-compose logs -f backend
 docker-compose exec postgis psql -U tms -d tms_db
 ```
 
+## OpenSpec
+
+Система использует OpenSpec для spec-driven развития. Все изменения проходят через proposal process:
+
+```bash
+# Посмотреть список активных изменений
+openspec list
+
+# Посмотреть список спецификаций
+openspec spec list --long
+
+# Валидировать изменение
+openspec validate <change-id> --strict
+
+# Заархивировать изменение после деплоя
+openspec archive <change-id> --yes
+```
+
+Полная документация в `openspec/AGENTS.md` и `openspec/project.md`.
+
 ## Exclusion Constraint
 
 Система использует PostgreSQL Exclusion Constraint для гарантии, что один водитель не может иметь пересекающиеся по времени заказы:
@@ -143,6 +179,7 @@ EXCLUDE USING gist (
 
 - **Prometheus**: Метрики доступны по пути `/metrics`.
 - **Sentry**: Логирование ошибок в production (требует `SENTRY_DSN`).
+- **Health Check**: Проверка работоспособности по пути `/health`.
 - **CI/CD**: GitHub Actions настроен для тестирования, линтинга и сборки Docker образа.
 
 ## Frontend (Phase 1-6)

@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Order Geometry Support
 Система SHALL корректно обрабатывать геометрию маршрутов заказов с использованием PostGIS и GeoAlchemy2.
