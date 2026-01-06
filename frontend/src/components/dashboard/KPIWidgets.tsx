@@ -103,10 +103,10 @@ export const KPIWidgets: React.FC = () => {
                         }}>
                             {item.icon}
                             <Statistic
-                                title={<span style={{ color: '#8c8c8c', fontSize: 13 }}>{item.title}</span>}
+                                title={<span style={{ color: 'var(--tms-text-secondary)', fontSize: 13 }}>{item.title}</span>}
                                 value={item.value}
                                 precision={item.precision}
-                                suffix={<span style={{ fontSize: 14, color: '#8c8c8c', marginLeft: 4 }}>{item.suffix}</span>}
+                                suffix={<span style={{ fontSize: 14, color: 'var(--tms-text-secondary)', marginLeft: 4 }}>{item.suffix}</span>}
                                 valueStyle={{
                                     color: item.color,
                                     fontSize: 22,
