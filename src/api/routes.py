@@ -78,9 +78,20 @@ async def create_order(
 ):
     """
     Создать новый заказ. 
-    Автоматически привязывается к текущему водителю.
+    Диспетчеры и админы могут назначать на любого водителя.
+    Водители могут создавать заказы только для себя.
     """
-    return await service.create_order(data, driver_id=current_driver.id)
+    from src.database.models import UserRole
+    
+    # Диспетчеры и админы могут назначать на любого водителя
+    if current_driver.role in (UserRole.ADMIN, UserRole.DISPATCHER):
+        # Используем driver_id из запроса (может быть None для неназначенных)
+        target_driver_id = data.driver_id
+    else:
+        # Водители создают заказы только для себя
+        target_driver_id = current_driver.id
+    
+    return await service.create_order(data, driver_id=target_driver_id)
 
 @router.get("/orders", response_model=List[OrderResponse])
 async def list_orders(
