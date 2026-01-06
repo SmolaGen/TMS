@@ -82,7 +82,7 @@ class DriverService:
             start_date = datetime.utcnow() - timedelta(days=days)
             
             # Подсчёт заказов через session
-            session = self.uow._session
+            session = self.uow.session
             
             # Всего заказов
             total_orders = await session.scalar(

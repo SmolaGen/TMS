@@ -29,7 +29,7 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from src.config import settings
-from src.database.models import Base, Driver, DriverStatus
+from src.database.models import Base, Driver, Order, DriverLocationHistory, DriverStatus
 
 
 # Используем тестовую базу данных
@@ -44,14 +44,15 @@ def event_loop():
     loop.close()
 
 
+from sqlalchemy.pool import NullPool
+
 @pytest_asyncio.fixture(scope="session")
 async def engine():
     """Create async engine for tests."""
     engine = create_async_engine(
         TEST_DATABASE_URL,
         echo=False,
-        pool_size=5,
-        max_overflow=10,
+        poolclass=NullPool,
     )
     yield engine
     await engine.dispose()
@@ -105,21 +106,14 @@ async def setup_database(engine):
 @pytest_asyncio.fixture
 async def session(engine, setup_database) -> AsyncGenerator[AsyncSession, None]:
     """
-    Create async session for each test.
-    
-    Каждый тест получает чистую транзакцию, которая откатывается после теста.
+    Создает сессию для каждого теста с откатом транзакции.
     """
-    session_factory = async_sessionmaker(
-        engine,
-        class_=AsyncSession,
-        expire_on_commit=False,
-        autoflush=False,
-        autocommit=False,
-    )
-    
-    async with session_factory() as session:
-        yield session
-        await session.rollback()
+    async with engine.connect() as conn:
+        trans = await conn.begin()
+        async with AsyncSession(bind=conn, expire_on_commit=False) as session:
+            yield session
+        
+        await trans.rollback()
 
 
 @pytest_asyncio.fixture
@@ -130,9 +124,10 @@ async def test_driver(session: AsyncSession) -> Driver:
         name="Test Driver",
         phone="+79001234567",
         status=DriverStatus.AVAILABLE,
+        is_active=True
     )
     session.add(driver)
-    await session.commit()
+    await session.flush()
     await session.refresh(driver)
     return driver
 
@@ -157,3 +152,62 @@ def make_time_range(start_hour: int, end_hour: int, days_offset: int = 0) -> str
     end = base_date.replace(hour=end_hour)
     
     return f"[{start.isoformat()},{end.isoformat()})"
+from httpx import AsyncClient, ASGITransport
+from src.main import app
+from src.database.uow import SQLAlchemyUnitOfWork
+from src.api.dependencies import get_uow, get_current_driver
+
+# Import OrderRepository and DriverRepository for TestUnitOfWork
+from src.database.repository import DriverRepository, OrderRepository
+from src.database.models import Order as OrderModel
+
+@pytest_asyncio.fixture
+async def client(session: AsyncSession, test_driver: Driver) -> AsyncGenerator[AsyncClient, None]:
+    """Create async client for tests."""
+    
+    class TestUnitOfWork(SQLAlchemyUnitOfWork):
+        async def __aenter__(self):
+            self.session = session  # Use the one from fixture
+            # Запускаем SAVEPOINT, чтобы ошибки (например, IntegrityError)
+            # не ломали основную транзакцию теста
+            self._savepoint = await self.session.begin_nested()
+            self.drivers = DriverRepository(self.session, Driver)
+            self.orders = OrderRepository(self.session, OrderModel)
+            return self
+
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
+            if exc_type:
+                # Если было исключение, откатываем savepoint
+                if self._savepoint.is_active:
+                    await self._savepoint.rollback()
+            else:
+                # Если все ок, коммитим savepoint
+                if self._savepoint.is_active:
+                    await self._savepoint.commit()
+        
+        async def commit(self):
+            try:
+                await self.session.flush()
+            except Exception:
+                # Если flush упал (например constraints), откатываем savepoint
+                if self._savepoint.is_active:
+                    await self._savepoint.rollback()
+                raise
+        
+        async def rollback(self):
+            if self._savepoint.is_active:
+                await self._savepoint.rollback()
+        
+    async def get_test_uow():
+        return TestUnitOfWork()
+        
+    async def mock_get_current_driver():
+        return test_driver
+
+    app.dependency_overrides[get_uow] = get_test_uow
+    app.dependency_overrides[get_current_driver] = mock_get_current_driver
+    
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        yield ac
+    
+    app.dependency_overrides.clear()

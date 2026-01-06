@@ -172,7 +172,18 @@ async def start_trip(
 ):
     """Начать поездку."""
     await service.start_trip(order_id)
+    await service.start_trip(order_id)
     return await order_service.get_order(order_id)
+
+@router.get("/orders/active", response_model=List[OrderResponse])
+async def get_active_orders(
+    start_date: datetime,
+    end_date: datetime,
+    current_driver: Driver = Depends(get_current_driver),
+    service: OrderService = Depends(get_order_service)
+):
+    """Получить активные заказы за период."""
+    return await service.get_orders_list(start_date=start_date, end_date=end_date)
 
 @router.get("/orders/{order_id}", response_model=OrderResponse)
 async def get_order(

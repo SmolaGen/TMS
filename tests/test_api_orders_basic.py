@@ -24,7 +24,8 @@ async def test_order_lifecycle_basic(client: AsyncClient, test_driver: Driver):
     assert response.status_code == status.HTTP_201_CREATED
     order = response.json()
     order_id = order["id"]
-    assert order["status"] == "pending"
+    assert order["status"] == "assigned"
+    # assert order["status"] == "pending"  <-- если передали driver_id, сразу assigned
     
     # 2. Получение заказа
     response = await client.get(f"/api/v1/orders/{order_id}")
@@ -40,6 +41,10 @@ async def test_order_lifecycle_basic(client: AsyncClient, test_driver: Driver):
 @pytest.mark.asyncio
 async def test_get_active_orders(client: AsyncClient, test_driver: Driver):
     """Тест получения активных заказов."""
-    response = await client.get("/api/v1/orders/active")
+    today = datetime.now()
+    start_str = (today - timedelta(days=1)).isoformat()
+    end_str = (today + timedelta(days=1)).isoformat()
+    
+    response = await client.get(f"/api/v1/orders/active?start_date={start_str}&end_date={end_str}")
     assert response.status_code == status.HTTP_200_OK
     assert isinstance(response.json(), list)
