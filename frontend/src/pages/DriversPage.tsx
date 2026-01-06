@@ -29,17 +29,19 @@ export const DriversPage: React.FC = () => {
 
     const { data: drivers = [], isLoading } = useDriversList();
 
+    const safeDrivers = Array.isArray(drivers) ? drivers : [];
+
     // Подсчёт статистики
     const stats = useMemo(() => {
-        const available = drivers.filter(d => d.status === DriverStatus.AVAILABLE).length;
-        const busy = drivers.filter(d => d.status === DriverStatus.BUSY).length;
-        const offline = drivers.filter(d => d.status === DriverStatus.OFFLINE).length;
-        return { total: drivers.length, available, busy, offline };
-    }, [drivers]);
+        const available = safeDrivers.filter(d => d.status === DriverStatus.AVAILABLE).length;
+        const busy = safeDrivers.filter(d => d.status === DriverStatus.BUSY).length;
+        const offline = safeDrivers.filter(d => d.status === DriverStatus.OFFLINE).length;
+        return { total: safeDrivers.length, available, busy, offline };
+    }, [safeDrivers]);
 
     // Фильтрация водителей
     const filteredDrivers = useMemo(() => {
-        return drivers.filter((driver) => {
+        return safeDrivers.filter((driver) => {
             // Фильтр по статусу
             if (filters.status.length > 0 && !filters.status.includes(driver.status)) {
                 return false;
@@ -60,7 +62,7 @@ export const DriversPage: React.FC = () => {
             }
             return true;
         });
-    }, [drivers, filters]);
+    }, [safeDrivers, filters]);
 
     const handleFiltersChange = (newFilters: Partial<DriversFiltersState>) => {
         setFilters((prev) => ({ ...prev, ...newFilters }));
