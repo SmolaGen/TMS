@@ -62,7 +62,7 @@ export const Dashboard: React.FC = () => {
     };
 
     return (
-        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#f0f2f5', position: 'relative' }}>
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--tms-bg-layout)', position: 'relative' }}>
             {/* KPI Панель */}
             <div style={{ padding: '16px 16px 0' }}>
                 <KPIWidgets />
@@ -81,7 +81,7 @@ export const Dashboard: React.FC = () => {
             }}>
                 <Space
                     style={{
-                        background: 'rgba(255, 255, 255, 0.9)',
+                        background: 'var(--tms-bg-elevated)',
                         padding: '4px 12px',
                         borderRadius: 20,
                         boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
@@ -143,7 +143,7 @@ export const Dashboard: React.FC = () => {
                 {/* Таймлайн - 45% высоты */}
                 <div style={{
                     flex: '1 1 auto',
-                    background: '#fff',
+                    background: 'var(--tms-bg-container)',
                     borderRadius: 12,
                     padding: '8px 16px',
                     boxShadow: '0 2px 8px rgba(0,0,0,0.06)',

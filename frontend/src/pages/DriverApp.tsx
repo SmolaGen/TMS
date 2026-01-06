@@ -30,9 +30,9 @@ export const DriverApp: React.FC = () => {
     }, [isTracking, startTracking]);
 
     return (
-        <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
+        <Layout style={{ minHeight: '100vh', background: 'var(--tms-bg-layout)' }}>
             <Header style={{
-                background: '#fff',
+                background: 'var(--tms-bg-container)',
                 padding: '0 20px',
                 display: 'flex',
                 alignItems: 'center',

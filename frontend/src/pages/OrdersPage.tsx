@@ -104,7 +104,7 @@ export const OrdersPage: React.FC = () => {
     const isLoading = isOrdersLoading || isDriversLoading;
 
     return (
-        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#f0f2f5', padding: '0 24px 24px' }}>
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--tms-bg-layout)', padding: '0 24px 24px' }}>
             <div style={{
                 padding: '16px 0',
                 display: 'flex',
@@ -168,7 +168,7 @@ export const OrdersPage: React.FC = () => {
                             </div>
                             <div style={{
                                 flex: '1 1 auto',
-                                background: '#fff',
+                                background: 'var(--tms-bg-container)',
                                 borderRadius: 12,
                                 overflow: 'hidden',
                                 boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
