@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from typing import Optional, List
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
+from geoalchemy2.elements import WKTElement
 
 from src.database.uow import AbstractUnitOfWork
 from src.database.models import Order, OrderStatus
@@ -67,17 +68,14 @@ class OrderService:
         
         # 3. Сохранение в БД через UoW
         async with self.uow:
-            # Превращаем координаты в WKT для PostGIS
-            pickup_wkt = f"SRID=4326;POINT({dto.pickup_lon} {dto.pickup_lat})"
-            dropoff_wkt = f"SRID=4326;POINT({dto.dropoff_lon} {dto.dropoff_lat})"
             
             order = Order(
                 driver_id=target_driver_id,
                 status=OrderStatus.ASSIGNED if target_driver_id else OrderStatus.PENDING,
                 priority=dto.priority,
                 time_range=time_range,
-                pickup_location=pickup_wkt,
-                dropoff_location=dropoff_wkt,
+                pickup_location=WKTElement(f"POINT({dto.pickup_lon} {dto.pickup_lat})", srid=4326),
+                dropoff_location=WKTElement(f"POINT({dto.dropoff_lon} {dto.dropoff_lat})", srid=4326),
                 pickup_address=dto.pickup_address,
                 dropoff_address=dto.dropoff_address,
                 customer_phone=dto.customer_phone,

@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Spin, Button, Divider } from 'antd';
 import { useTelegramAuth } from '../hooks/useTelegramAuth';
 import { apiClient } from '../api/client';
+import { DevAuthSelector, isDevMode, type DevUser } from './DevAuthSelector';
 
 interface AuthGuardProps {
     children: React.ReactNode;
@@ -53,7 +54,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
                 Object.keys(authData).sort().forEach(key => {
                     dataCheckArr.push(`${key}=${authData[key]}`);
                 });
-                
+
                 // Hash добавляется в конец, но не участвует в data_check_string
                 dataCheckArr.push(`hash=${user.hash}`);
 
@@ -110,6 +111,15 @@ export function AuthGuard({ children }: AuthGuardProps) {
     }
 
     if (!isAuthenticated || error) {
+        // В dev-режиме показываем выбор роли вместо Telegram Login
+        if (isDevMode()) {
+            const handleDevSelect = (_user: DevUser) => {
+                // Перезагружаем страницу после выбора роли
+                window.location.reload();
+            };
+            return <DevAuthSelector onSelect={handleDevSelect} />;
+        }
+
         return (
             <div style={{
                 display: 'flex',
