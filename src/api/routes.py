@@ -272,6 +272,21 @@ async def update_driver(
         raise HTTPException(status_code=404, detail="Driver not found")
     return driver
 
+from src.schemas.driver import DriverStatsResponse
+
+@router.get("/drivers/{driver_id}/stats", response_model=DriverStatsResponse)
+async def get_driver_stats(
+    driver_id: int,
+    days: int = 30,  # Количество дней для статистики
+    current_driver: Driver = Depends(get_current_driver),
+    service: DriverService = Depends(get_driver_service)
+):
+    """Получить статистику водителя за период."""
+    stats = await service.get_driver_stats(driver_id, days)
+    if not stats:
+        raise HTTPException(status_code=404, detail="Driver not found")
+    return stats
+
 # --- Geocoding ---
 
 @router.get("/geocoding/search", response_model=List[GeocodingResult])

@@ -143,3 +143,16 @@ export interface GeocodingResult {
   address_full?: string;
   osm_id?: number;
 }
+
+// Статистика водителя
+export interface DriverStats {
+  driver_id: number;
+  period_days: number;
+  total_orders: number;
+  completed_orders: number;
+  cancelled_orders: number;
+  active_orders: number;
+  completion_rate: number;
+  total_revenue: number;
+  total_distance_km: number;
+}
