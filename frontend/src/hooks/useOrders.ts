@@ -31,14 +31,24 @@ interface VisTimelineItem {
 const toTimelineOrder = (order: OrderResponse): TimelineOrder | null => {
     if (!order.time_start || !order.time_end) return null;
 
+    const statusClassMap: Record<string, string> = {
+        pending: 'timeline-item-pending',
+        assigned: 'timeline-item-accepted',
+        driver_arrived: 'timeline-item-accepted',
+        in_progress: 'timeline-item-progress',
+        completed: 'timeline-item-completed',
+        cancelled: 'timeline-item-cancelled',
+    };
+
     return {
         id: String(order.id),
         group: order.driver_id ? String(order.driver_id) : 'unassigned',
         content: `Заказ #${order.id}`,
         start: new Date(order.time_start),
         end: new Date(order.time_end),
-        className: `order-${order.priority}`,
+        className: `order-${order.priority} ${statusClassMap[order.status] || ''}`,
         editable: order.status !== 'completed' && order.status !== 'cancelled',
+        title: `${order.pickup_address || '...'} ➔ ${order.dropoff_address || '...'} (${order.status})`,
     };
 };
 

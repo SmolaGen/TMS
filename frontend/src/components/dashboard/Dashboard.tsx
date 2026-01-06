@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Badge, Button } from 'antd';
+import { Space, Button } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { LiveMap } from './LiveMap';
 import { TimelineView } from './TimelineView';
@@ -7,8 +7,8 @@ import { CreateOrderModal } from './CreateOrderModal';
 import { OrderDetailDrawer } from './OrderDetailDrawer';
 import { useWebSocketSync } from '../../hooks/useWebSocketSync';
 import { useDrivers } from '../../hooks/useDrivers';
-import { useCreateOrder } from '../../hooks/useOrders';
-
+import { useCreateOrder, useOrdersRaw } from '../../hooks/useOrders';
+import { KPIWidgets } from './KPIWidgets';
 
 export const Dashboard: React.FC = () => {
     const { isConnected } = useWebSocketSync();
@@ -18,6 +18,7 @@ export const Dashboard: React.FC = () => {
     // Реальные данные через хуки
     const { data: drivers = [] } = useDrivers();
     const { mutate: createOrder, isPending: isCreating } = useCreateOrder();
+    const { data: orders = [] } = useOrdersRaw();
 
     const handleCreateOrder = (values: any) => {
         createOrder(values, {
@@ -28,38 +29,54 @@ export const Dashboard: React.FC = () => {
     };
 
     return (
-        <div style={{ height: 'calc(100vh - 160px)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-            {/* Статус подключения и кнопка создания заказа */}
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#f0f2f5', position: 'relative' }}>
+            {/* KPI Панель */}
+            <div style={{ padding: '16px 16px 0' }}>
+                <KPIWidgets />
+            </div>
+
+            {/* Статус подключения и кнопка */}
             <div style={{
                 position: 'absolute',
-                top: 0,
-                right: 0,
+                top: 100, // Смещаем ниже из-за KPI
+                right: 32,
                 zIndex: 1000,
                 display: 'flex',
-                gap: '12px',
-                alignItems: 'center'
+                flexDirection: 'column',
+                gap: 12,
+                alignItems: 'flex-end',
             }}>
-                <div style={{
-                    background: 'white',
-                    padding: '8px 16px',
-                    borderRadius: 8,
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                }}>
-                    <Badge
-                        status={isConnected ? 'success' : 'processing'}
-                        text={isConnected ? 'Online' : 'Подключение...'}
-                    />
-                </div>
-
+                <Space
+                    style={{
+                        background: 'rgba(255, 255, 255, 0.9)',
+                        padding: '4px 12px',
+                        borderRadius: 20,
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                        fontSize: 12,
+                        fontWeight: 500
+                    }}
+                >
+                    <span style={{
+                        display: 'inline-block',
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        backgroundColor: isConnected ? '#52c41a' : '#faad14',
+                    }} />
+                    {isConnected ? 'Online' : 'Подключение...'}
+                </Space>
                 <Button
                     type="primary"
                     icon={<PlusOutlined />}
-                    onClick={() => setIsModalOpen(true)}
                     size="large"
+                    shape="round"
+                    onClick={() => setIsModalOpen(true)}
                     style={{
-                        height: '40px',
-                        borderRadius: '8px',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                        boxShadow: '0 4px 12px rgba(24, 144, 255, 0.35)',
+                        height: 48,
+                        padding: '0 24px',
+                        fontSize: 16,
+                        fontWeight: 600
                     }}
                 >
                     Новый заказ
@@ -72,20 +89,30 @@ export const Dashboard: React.FC = () => {
                 onClose={() => setSelectedOrderId(null)}
             />
 
-            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                {/* Карта - 60% высоты */}
-                <div style={{ flex: '0 0 60%', position: 'relative' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '0 16px 16px', gap: 16 }}>
+                {/* Карта - 55% высоты */}
+                <div style={{
+                    flex: '0 0 55%',
+                    position: 'relative',
+                    borderRadius: 12,
+                    overflow: 'hidden',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+                }}>
                     <LiveMap
                         onDriverSelect={(id) => console.log('Selected driver:', id)}
                         selectedOrderId={selectedOrderId}
+                        orders={orders}
                     />
                 </div>
 
-                {/* Таймлайн - 40% высоты */}
+                {/* Таймлайн - 45% высоты */}
                 <div style={{
-                    flex: '0 0 40%',
-                    borderTop: '2px solid #e8e8e8',
-                    overflow: 'hidden',
+                    flex: '1 1 auto',
+                    background: '#fff',
+                    borderRadius: 12,
+                    padding: '8px 16px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                    overflow: 'hidden'
                 }}>
                     <TimelineView
                         drivers={drivers}

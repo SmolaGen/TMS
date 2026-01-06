@@ -27,6 +27,7 @@ export enum OrderPriority {
 export interface OrderResponse {
   id: number;
   driver_id: number | null;
+  driver_name?: string | null;
   status: OrderStatus;
   priority: OrderPriority;
   pickup_lat: number | null;
@@ -62,12 +63,14 @@ export interface TimelineOrder {
   end: Date;
   className?: string;
   editable?: boolean;
+  title?: string;
 }
 
 // Водитель для Timeline (группа)
 export interface TimelineDriver {
   id: string;
-  content: string;      // ФИО
+  content: string;      // ФИО (для vis-timeline)
+  name?: string;        // Для фильтров и других списков
 }
 
 // Локация водителя
