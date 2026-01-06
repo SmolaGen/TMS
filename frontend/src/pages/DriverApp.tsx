@@ -19,8 +19,8 @@ export const DriverApp: React.FC = () => {
     const { latitude, longitude, error, isTracking, startTracking, stopTracking } = useGeoTracking(user?.id);
     const { data: orders = [] } = useOrdersRaw();
 
-    // Фильтруем заказы для текущего водителя
-    const myOrders = orders.filter(o => o.driver_id === user?.id);
+    // Фильтруем заказы для текущего водителя по внутреннему ID (не Telegram ID!)
+    const myOrders = orders.filter(o => o.driver_id === user?.driver_id);
 
     useEffect(() => {
         // Автоматически запускаем трекинг при входе
