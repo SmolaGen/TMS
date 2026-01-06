@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '../api/client';
 
 interface TelegramUser {
-    id: number;
+    id: number;           // Telegram ID
+    driver_id?: number;   // Internal database driver ID
     first_name: string;
     last_name?: string;
     username?: string;
@@ -20,7 +21,8 @@ interface AuthState {
 
 const TOKEN_KEY = 'tms_auth_token';
 interface JwtPayload {
-    sub: string;
+    sub: string;        // Telegram ID
+    driver_id: number;  // Internal database driver ID
     role: string;
     exp: number;
 }
@@ -42,7 +44,8 @@ function isTokenValid(token: string): boolean {
         const payload: JwtPayload = JSON.parse(jsonPayload);
         const now = Math.floor(Date.now() / 1000);
 
-        return payload.exp > now;
+        // Токен валиден, если он не истек И в нем есть роль (для RBAC)
+        return payload.exp > now && !!payload.role;
     } catch (e) {
         console.error('[Auth] Error decoding token:', e);
         return false;
@@ -68,14 +71,16 @@ export function useTelegramAuth() {
         // 1. Сначала проверяем сохраненный токен в localStorage
         const savedToken = localStorage.getItem(TOKEN_KEY);
         if (savedToken && isTokenValid(savedToken)) {
-            // Извлекаем ID пользователя из JWT (поле 'sub')
+            // Извлекаем данные пользователя из JWT
             let userId: number | undefined;
+            let driverId: number | undefined;
             let role: string | undefined;
             try {
                 const base64Url = savedToken.split('.')[1];
                 const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
                 const payload: JwtPayload = JSON.parse(atob(base64));
-                userId = parseInt(payload.sub);
+                userId = parseInt(payload.sub);   // Telegram ID
+                driverId = payload.driver_id;     // Internal DB ID
                 role = payload.role;
             } catch (e) {
                 console.error('[Auth] Failed to parse user data from token');
@@ -84,11 +89,11 @@ export function useTelegramAuth() {
             setState({
                 isLoading: false,
                 isAuthenticated: true,
-                user: userId ? { id: userId, first_name: 'User', role } : null,
+                user: userId ? { id: userId, driver_id: driverId, first_name: 'User', role } : null,
                 error: null,
                 token: savedToken,
             });
-            console.log('[Auth] Valid token found, restored user:', { userId, role });
+            console.log('[Auth] Valid token found, restored user:', { userId, driverId, role });
             return;
         }
 
