@@ -590,6 +590,14 @@ body.dark-theme .ant-layout-sider {
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
+/* Header Glass Fix */
+body.dark-theme .header-glass-panel {
+  background: rgba(20, 30, 50, 0.95) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  border-left: none !important;
+  border-top: none !important;
+}
+
 /* Map Container Background */
 .leaflet-container {
   background: #1e293b !important;

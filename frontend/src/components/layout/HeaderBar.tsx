@@ -67,22 +67,26 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             zIndex: 1000,
             marginBottom: 16,
             position: 'sticky',
-            top: 16,
+            top: 0, // Прижимаем к верху при скролле
         }}>
             <div style={{
-                margin: isMobile ? '0 8px' : '16px 16px 0 16px',
+                margin: isMobile ? '0' : '0 16px 0 0', // Убрали верхний марджин, оставили справа и снизу 0 (паддинг у контента)
                 padding: isMobile ? '8px 12px' : '12px 24px',
-                background: 'var(--tms-glass-bg)',
+                // Фон: используем переменную стекла, но с оверрайдом для темной темы
+                background: isDark ? 'rgba(20, 30, 50, 0.95)' : 'var(--tms-glass-bg)',
                 backdropFilter: 'var(--tms-glass-blur)',
-                border: 'var(--tms-glass-border)',
-                borderRadius: 20,
+                borderBottom: 'var(--tms-glass-border)',
+                borderRight: 'var(--tms-glass-border)',
+                borderLeft: 'none', // Слева стыкуемся
+                borderTop: 'none', // Сверху стыкуемся
+                borderRadius: '0 0 20px 20px', // Закругляем только низ
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 boxShadow: 'var(--tms-shadow-glass)',
                 height: isMobile ? 64 : 72,
                 transition: 'all 0.3s ease',
-            }} className="glass-panel">
+            }} className="glass-panel header-glass-panel">
 
                 {/* Левая часть */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1 }}>
