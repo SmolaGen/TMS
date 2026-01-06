@@ -43,10 +43,11 @@ class OrderStateMachine(StateMachine):
 
     # === CALLBACKS ===
 
-    def on_enter_assigned(self, driver_id: int):
+    def on_enter_assigned(self, driver_id: Optional[int] = None):
         self.order.status = OrderStatus.ASSIGNED
-        self.order.driver_id = driver_id
-        logger.info("order_assigned", order_id=self.order.id, driver_id=driver_id)
+        if driver_id is not None:
+            self.order.driver_id = driver_id
+        logger.info("order_assigned_callback", order_id=self.order.id, driver_id=self.order.driver_id)
 
     def on_enter_pending(self):
         self.order.status = OrderStatus.PENDING

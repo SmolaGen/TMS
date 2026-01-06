@@ -61,7 +61,7 @@ class Settings(BaseSettings):
 
     # Security
     APP_DOMAIN: str = "myappnf.ru"
-    CORS_ORIGINS: str = "https://myappnf.ru,https://www.myappnf.ru"
+    CORS_ORIGINS: str = "https://myappnf.ru,https://www.myappnf.ru,https://tg-scan.ru,https://newface25.ru,http://localhost:5173"
     
     # Rate Limiting (SlowAPI)
     RATE_LIMIT_DEFAULT: str = "100/minute"

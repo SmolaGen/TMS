@@ -1,36 +1,56 @@
 from uuid import uuid4
 import structlog
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request
-from starlette.responses import Response
+from starlette.types import ASGIApp, Scope, Receive, Send
 
-class CorrelationIdMiddleware(BaseHTTPMiddleware):
+class CorrelationIdMiddleware:
     """
-    Middleware для добавления Correlation ID к каждому запросу.
-    Позволяет отслеживать цепочку логов для конкретного HTTP-запроса.
+    ASGI Middleware для добавления Correlation ID к каждому запросу (HTTP и WebSocket).
+    Позволяет отслеживать цепочку логов для конкретного соединения или запроса.
     """
     
-    HEADER_NAME = "X-Correlation-ID"
-    
-    async def dispatch(self, request: Request, call_next) -> Response:
-        # Берем ID из заголовка или генерируем новый
-        correlation_id = request.headers.get(
-            self.HEADER_NAME, 
-            str(uuid4())
-        )
+    def __init__(self, app: ASGIApp):
+        self.app = app
+        self.header_name = "X-Correlation-ID"
+        self.header_key = self.header_name.lower().encode("latin-1")
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] not in ("http", "websocket"):
+            await self.app(scope, receive, send)
+            return
+
+        # Извлекаем Correlation ID из заголовков
+        correlation_id = None
+        for key, value in scope.get("headers", []):
+            if key == self.header_key:
+                correlation_id = value.decode("latin-1")
+                break
         
+        if not correlation_id:
+            correlation_id = str(uuid4())
+
         # Привязываем ID к контексту structlog
-        token = structlog.contextvars.bind_contextvars(
-            correlation_id=correlation_id,
-            method=request.method,
-            path=request.url.path,
-        )
+        structlog.contextvars.bind_contextvars(correlation_id=correlation_id)
         
+        if scope["type"] == "http":
+            structlog.contextvars.bind_contextvars(
+                method=scope["method"],
+                path=scope["path"],
+            )
+
+        async def send_wrapper(message):
+            if message["type"] == "http.response.start":
+                # Добавляем ID в заголовки HTTP ответа
+                headers = list(message.get("headers", []))
+                headers.append((self.header_key, correlation_id.encode("latin-1")))
+                message["headers"] = headers
+            await send(message)
+
         try:
-            response = await call_next(request)
-            # Добавляем ID в заголовки ответа
-            response.headers[self.HEADER_NAME] = correlation_id
-            return response
+            if scope["type"] == "http":
+                await self.app(scope, receive, send_wrapper)
+            else:
+                # Для WebSocket просто пробрасываем
+                await self.app(scope, receive, send)
         finally:
-            # Очищаем контекст после завершения запроса
+            # Очищаем контекст после завершения
             structlog.contextvars.unbind_contextvars("correlation_id", "method", "path")
