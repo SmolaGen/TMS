@@ -11,19 +11,25 @@ from src.core.logging import get_logger
 logger = get_logger(__name__)
 router = Router(name="admin")
 
-def is_admin(username: str) -> bool:
-    return username == settings.ADMIN_USERNAME
+from typing import Optional
+
+def is_admin(user_id: int, username: Optional[str] = None) -> bool:
+    if user_id == settings.ADMIN_TELEGRAM_ID:
+        return True
+    if not username or not settings.ADMIN_USERNAME:
+        return False
+    return username.lower() == settings.ADMIN_USERNAME.lower()
 
 def get_admin_main_kb():
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text="⏳ Ожидающие одобрения", callback_query_data="admin:pending"))
-    builder.row(InlineKeyboardButton(text="👥 Все пользователи", callback_query_data="admin:users:all"))
-    builder.row(InlineKeyboardButton(text="🚫 Заблокированные", callback_query_data="admin:users:blocked"))
+    builder.row(InlineKeyboardButton(text="⏳ Ожидающие одобрения", callback_data="admin:pending"))
+    builder.row(InlineKeyboardButton(text="👥 Все пользователи", callback_data="admin:users:all"))
+    builder.row(InlineKeyboardButton(text="🚫 Заблокированные", callback_data="admin:users:blocked"))
     return builder.as_markup()
 
 @router.message(Command("admin"))
 async def cmd_admin(message: Message):
-    if not message.from_user or not is_admin(message.from_user.username):
+    if not message.from_user or not is_admin(message.from_user.id, message.from_user.username):
         return
     
     await message.answer(
@@ -33,7 +39,7 @@ async def cmd_admin(message: Message):
 
 @router.callback_query(F.data == "admin:pending")
 async def show_pending_users(callback: CallbackQuery):
-    if not callback.from_user or not is_admin(callback.from_user.username):
+    if not callback.from_user or not is_admin(callback.from_user.id, callback.from_user.username):
         await callback.answer("У вас нет прав!", show_alert=True)
         return
 
@@ -47,9 +53,9 @@ async def show_pending_users(callback: CallbackQuery):
     builder = InlineKeyboardBuilder()
     for user in users:
         name = user.name or f"ID: {user.telegram_id}"
-        builder.row(InlineKeyboardButton(text=f"👤 {name}", callback_query_data=f"admin:user:{user.id}"))
+        builder.row(InlineKeyboardButton(text=f"👤 {name}", callback_data=f"admin:user:{user.id}"))
     
-    builder.row(InlineKeyboardButton(text="🔙 Назад", callback_query_data="admin:main"))
+    builder.row(InlineKeyboardButton(text="🔙 Назад", callback_data="admin:main"))
     await callback.message.edit_text("Пользователи, ожидающие одобрения:", reply_markup=builder.as_markup())
 
 @router.callback_query(F.data.startswith("admin:user:"))
@@ -75,16 +81,16 @@ async def show_user_card(callback: CallbackQuery):
     builder = InlineKeyboardBuilder()
     if user.role == UserRole.PENDING:
         builder.row(
-            InlineKeyboardButton(text="🚗 Водитель", callback_query_data=f"admin:set_role:{user_id}:{UserRole.DRIVER.value}"),
-            InlineKeyboardButton(text="🎧 Диспетчер", callback_query_data=f"admin:set_role:{user_id}:{UserRole.DISPATCHER.value}")
+            InlineKeyboardButton(text="🚗 Водитель", callback_data=f"admin:set_role:{user_id}:{UserRole.DRIVER.value}"),
+            InlineKeyboardButton(text="🎧 Диспетчер", callback_data=f"admin:set_role:{user_id}:{UserRole.DISPATCHER.value}")
         )
     
     if user.is_active:
-        builder.row(InlineKeyboardButton(text="🚫 Заблокировать", callback_query_data=f"admin:toggle_block:{user_id}"))
+        builder.row(InlineKeyboardButton(text="🚫 Заблокировать", callback_data=f"admin:toggle_block:{user_id}"))
     else:
-        builder.row(InlineKeyboardButton(text="✅ Разблокировать", callback_query_data=f"admin:toggle_block:{user_id}"))
+        builder.row(InlineKeyboardButton(text="✅ Разблокировать", callback_data=f"admin:toggle_block:{user_id}"))
     
-    builder.row(InlineKeyboardButton(text="🔙 Назад", callback_query_data="admin:pending"))
+    builder.row(InlineKeyboardButton(text="🔙 Назад", callback_data="admin:pending"))
     
     await callback.message.edit_text(text, reply_markup=builder.as_markup())
 
@@ -138,19 +144,7 @@ async def back_to_main(callback: CallbackQuery):
 
 async def notify_admin_new_user(bot: Bot, user_data: dict):
     """Отправляет уведомление админу о новом пользователе."""
-    admin_id = None
-    # Нам нужно найти telegram_id админа. 
-    # В идеале он должен быть в конфиге как ID, а не только username.
-    # Но пока попробуем найти его в БД или использовать username если бот может начать диалог (нет, не может).
-    # Предположим, админ уже взаимодействовал с ботом и мы можем найти его по username в БД.
-    
-    async with SQLAlchemyUnitOfWork() as uow:
-        admin = await uow.drivers.get_by_attribute("name", settings.ADMIN_USERNAME) # Временно ищем по имени
-        if not admin:
-             # Если не нашли, логгируем. В продакшене лучше иметь ADMIN_ID в .env
-             logger.warning("Admin not found in DB to send notification")
-             return
-        admin_id = admin.telegram_id
+    admin_id = settings.ADMIN_TELEGRAM_ID
 
     text = (
         f"🔔 **Новая заявка на регистрацию!**\n\n"
@@ -160,7 +154,7 @@ async def notify_admin_new_user(bot: Bot, user_data: dict):
     )
     
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text="🔎 Посмотреть", callback_query_data=f"admin:pending"))
+    builder.row(InlineKeyboardButton(text="🔎 Посмотреть", callback_data=f"admin:pending"))
     
     try:
         await bot.send_message(admin_id, text, reply_markup=builder.as_markup())
