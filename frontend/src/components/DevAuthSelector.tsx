@@ -120,7 +120,7 @@ export const DevAuthSelector: React.FC<DevAuthSelectorProps> = ({ onSelect }) =>
                     </Text>
                 </div>
 
-                <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                     {DEV_USERS.map((user) => (
                         <Button
                             key={user.id}

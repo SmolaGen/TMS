@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Layout, Card, Button, Typography, Space, Badge, List, Tag } from 'antd';
+import { Layout, Card, Button, Typography, Space, Badge, Tag } from 'antd';
 import {
     EnvironmentOutlined,
     SyncOutlined,
@@ -49,7 +49,7 @@ export const DriverApp: React.FC = () => {
             </Header>
 
             <Content style={{ padding: '20px' }}>
-                <Space direction="vertical" size="large" style={{ width: '100%' }}>
+                <Space orientation="vertical" size="large" style={{ width: '100%' }}>
                     {/* Статус GPS */}
                     <Card size="small" style={{ borderRadius: '12px' }}>
                         <Space align="center">
@@ -80,17 +80,20 @@ export const DriverApp: React.FC = () => {
 
                     {/* Список заказов */}
                     <Title level={5}>Мои заказы ({myOrders.length})</Title>
-                    <List
-                        dataSource={myOrders}
-                        locale={{ emptyText: 'Нет назначенных заказов' }}
-                        renderItem={(order) => (
-                            <List.Item style={{ padding: 0, border: 'none', marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {myOrders.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '24px', color: '#8c8c8c' }}>
+                                Нет назначенных заказов
+                            </div>
+                        ) : (
+                            myOrders.map((order) => (
                                 <Card
+                                    key={order.id}
                                     size="small"
                                     style={{ width: '100%', borderRadius: '12px' }}
                                     hoverable
                                 >
-                                    <Space direction="vertical" style={{ width: '100%' }}>
+                                    <Space orientation="vertical" style={{ width: '100%' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                             <Text strong>Заказ #{order.id}</Text>
                                             <Tag color={
@@ -116,9 +119,9 @@ export const DriverApp: React.FC = () => {
                                         </div>
                                     </Space>
                                 </Card>
-                            </List.Item>
+                            ))
                         )}
-                    />
+                    </div>
                 </Space>
             </Content>
         </Layout>

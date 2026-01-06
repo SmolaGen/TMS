@@ -105,7 +105,9 @@ export function AuthGuard({ children }: AuthGuardProps) {
                 height: '100vh',
                 background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             }}>
-                <Spin size="large" tip="Авторизация..." />
+                <Spin size="large" tip="Авторизация...">
+                    <div style={{ width: 100, height: 40 }} />
+                </Spin>
             </div>
         );
     }

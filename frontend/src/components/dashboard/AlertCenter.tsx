@@ -1,5 +1,5 @@
 import React from 'react';
-import { Badge, Dropdown, List, Typography, Empty, Tag, Button } from 'antd';
+import { Badge, Dropdown, Typography, Empty, Tag, Button } from 'antd';
 import {
     BellOutlined,
     WarningOutlined,
@@ -64,50 +64,51 @@ export const AlertCenter: React.FC = () => {
                     image={Empty.PRESENTED_IMAGE_SIMPLE}
                 />
             ) : (
-                <List
-                    dataSource={alerts}
-                    renderItem={(alert: Alert) => (
-                        <List.Item
+                <div style={{ maxHeight: 400, overflow: 'auto' }}>
+                    {alerts.map((alert: Alert) => (
+                        <div
+                            key={alert.id}
                             className="alert-item"
                             style={{
                                 padding: '12px 16px',
                                 cursor: 'pointer',
+                                borderBottom: '1px solid #f0f0f0',
+                                display: 'flex',
+                                alignItems: 'flex-start',
+                                gap: '12px'
                             }}
                         >
-                            <List.Item.Meta
-                                avatar={alertIconMap[alert.type]}
-                                title={
-                                    <div style={{
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
-                                        marginBottom: 4
-                                    }}>
-                                        <span style={{ fontWeight: 600 }}>{alert.title}</span>
-                                        <Tag color={alertColorMap[alert.type]} style={{ marginRight: 0 }}>
-                                            {alert.type === 'error' ? 'Срочно' :
-                                                alert.type === 'warning' ? 'Внимание' : 'Инфо'}
-                                        </Tag>
-                                    </div>
-                                }
-                                description={
-                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                        <Typography.Text type="secondary" style={{ color: '#595959' }}>
-                                            {alert.description}
-                                        </Typography.Text>
-                                        <Typography.Text
-                                            type="secondary"
-                                            style={{ fontSize: 11, marginTop: 4, color: '#bfbfbf' }}
-                                        >
-                                            {dayjs(alert.timestamp).fromNow()}
-                                        </Typography.Text>
-                                    </div>
-                                }
-                            />
-                        </List.Item>
-                    )}
-                    style={{ maxHeight: 400, overflow: 'auto' }}
-                />
+                            <div style={{ paddingTop: 4 }}>
+                                {alertIconMap[alert.type]}
+                            </div>
+                            <div style={{ flex: 1 }}>
+                                <div style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    marginBottom: 4
+                                }}>
+                                    <span style={{ fontWeight: 600 }}>{alert.title}</span>
+                                    <Tag color={alertColorMap[alert.type]} style={{ marginRight: 0 }}>
+                                        {alert.type === 'error' ? 'Срочно' :
+                                            alert.type === 'warning' ? 'Внимание' : 'Инфо'}
+                                    </Tag>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                    <Typography.Text type="secondary" style={{ color: '#595959', display: 'block' }}>
+                                        {alert.description}
+                                    </Typography.Text>
+                                    <Typography.Text
+                                        type="secondary"
+                                        style={{ fontSize: 11, marginTop: 4, color: '#bfbfbf' }}
+                                    >
+                                        {dayjs(alert.timestamp).fromNow()}
+                                    </Typography.Text>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             )}
             <div style={{
                 padding: '10px 16px',
@@ -123,7 +124,7 @@ export const AlertCenter: React.FC = () => {
 
     return (
         <Dropdown
-            dropdownRender={() => alertList}
+            popupRender={() => alertList}
             trigger={['click']}
             placement="bottomRight"
             arrow={{ pointAtCenter: true }}
