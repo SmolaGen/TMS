@@ -3,11 +3,11 @@
   --sidebar-width: 200px;
   --sidebar-collapsed-width: 80px;
   --header-height: 64px;
-  
+
   /* Тени */
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
-  
+
   /* Переходы */
   --transition-fast: 0.2s ease;
 }
@@ -18,7 +18,9 @@
   box-sizing: border-box;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100vh;
   width: 100%;
   margin: 0;
@@ -52,6 +54,43 @@ html, body, #root {
   border-color: #ff4d4f;
 }
 
+/* Timeline статусы */
+.vis-item.timeline-item-pending {
+  background-color: #fff7e6 !important;
+  border-color: #ffc53d !important;
+}
+
+.vis-item.timeline-item-accepted {
+  background-color: #e6f7ff !important;
+  border-color: #1890ff !important;
+}
+
+.vis-item.timeline-item-progress {
+  background-color: #f6ffed !important;
+  border-color: #52c41a !important;
+}
+
+.vis-item.timeline-item-completed {
+  background-color: #f5f5f5 !important;
+  border-color: #d9d9d9 !important;
+  opacity: 0.7;
+}
+
+.vis-item.timeline-item-cancelled {
+  background-color: #fff1f0 !important;
+  border-color: #ff4d4f !important;
+  text-decoration: line-through;
+}
+
+/* Таблица: подсветка строк без водителя */
+.order-row-warning {
+  background-color: #fffbe6 !important;
+}
+
+.order-row-warning:hover>td {
+  background-color: #fff1b8 !important;
+}
+
 /* Timeline группы */
 .vis-label {
   font-weight: 500;
@@ -65,4 +104,30 @@ html, body, #root {
 
 .vis-panel.vis-left {
   border-right: 1px solid #e8e8e8 !important;
+}
+
+/* Hover для алертов */
+.alert-item {
+  transition: background-color 0.2s;
+}
+
+.alert-item:hover {
+  background-color: #f5f5f5 !important;
+}
+
+/* Анимация появления KPI */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.kpi-card {
+  animation: fadeInUp 0.3s ease-out;
 }

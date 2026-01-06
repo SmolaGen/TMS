@@ -10,10 +10,11 @@ export const useDrivers = () => {
             const drivers: TimelineDriver[] = data.map((d) => ({
                 id: String(d.id),
                 content: d.name,
+                name: d.name,
             }));
 
             // Добавляем техническую группу для неназначенных заказов
-            return [...drivers, { id: 'unassigned', content: 'Не назначен' }];
+            return [...drivers, { id: 'unassigned', content: 'Не назначен', name: 'Не назначен' }];
         },
         staleTime: 60_000,
     });

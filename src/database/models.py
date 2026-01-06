@@ -235,6 +235,10 @@ class Order(Base):
     )
 
     @property
+    def driver_name(self) -> Optional[str]:
+        return self.driver.name if self.driver else None
+
+    @property
     def time_start(self) -> Optional[datetime]:
         return self.time_range.lower if self.time_range else None
 

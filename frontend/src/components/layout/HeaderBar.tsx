@@ -1,13 +1,13 @@
 import React from 'react';
-import { Layout, Input, Badge, Avatar, Dropdown, Space } from 'antd';
+import { Layout, Input, Avatar, Dropdown, Space } from 'antd';
 import {
     SearchOutlined,
-    BellOutlined,
     UserOutlined,
     LogoutOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useTelegramAuth } from '../../hooks/useTelegramAuth';
+import { AlertCenter } from '../dashboard/AlertCenter';
 
 const { Header } = Layout;
 
@@ -58,9 +58,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({ collapsed }) => {
 
             {/* Правая часть */}
             <Space size="large">
-                <Badge count={0} size="small">
-                    <BellOutlined style={{ fontSize: 20, cursor: 'pointer' }} />
-                </Badge>
+                <AlertCenter />
 
                 <Dropdown menu={{ items: profileMenuItems }} placement="bottomRight">
                     <Space style={{ cursor: 'pointer' }}>

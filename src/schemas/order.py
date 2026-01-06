@@ -28,6 +28,7 @@ class OrderResponse(BaseModel):
     """Схема ответа с данными заказа."""
     id: int
     driver_id: Optional[int]
+    driver_name: Optional[str] = None
     status: OrderStatus
     priority: OrderPriority
     pickup_lat: Optional[float] = None
