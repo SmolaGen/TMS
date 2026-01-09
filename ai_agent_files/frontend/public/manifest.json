@@ -1,0 +1,17 @@
+{
+    "name": "TMS - Transport Management System",
+    "short_name": "TMS",
+    "description": "Real-time driver tracking and transport management system",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#141414",
+    "theme_color": "#1677ff",
+    "icons": [
+        {
+            "src": "/vite.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        }
+    ]
+}
