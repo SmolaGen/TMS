@@ -1,0 +1,54 @@
+# websocket-sync Specification
+
+## Purpose
+TBD - created by archiving change add-missing-specs. Update Purpose after archive.
+## Requirements
+### Requirement: WebSocket Connection
+Система SHALL предоставлять WebSocket эндпоинт для real-time синхронизации через защищенное соединение.
+
+#### Scenario: Установка WebSocket соединения через SSL
+- **WHEN** клиент подключается к `wss://myappnf.ru/ws` через WebSocket
+- **THEN** соединение устанавливается через SSL/TLS
+- **AND** Nginx корректно проксирует WebSocket соединение с заголовками Upgrade
+- **AND** соединение поддерживается активным
+- **AND** клиент получает уведомления о событиях в реальном времени
+
+#### Scenario: Автоматическое переподключение
+- **WHEN** WebSocket соединение разрывается
+- **THEN** клиент автоматически пытается переподключиться с экспоненциальной задержкой
+- **AND** максимальное количество попыток ограничено (10 попыток)
+
+### Requirement: Real-time Order Updates
+Система SHALL отправлять уведомления об изменениях заказов через WebSocket.
+
+#### Scenario: Уведомление о создании заказа
+- **WHEN** создается новый заказ
+- **THEN** отправляется сообщение типа ORDER_CREATED через WebSocket
+- **AND** клиент обновляет кэш заказов
+
+#### Scenario: Уведомление об обновлении заказа
+- **WHEN** заказ изменяется (статус, время, назначение водителя)
+- **THEN** отправляется сообщение типа ORDER_UPDATED через WebSocket
+- **AND** клиент инвалидирует кэш и обновляет данные
+
+#### Scenario: Уведомление об удалении заказа
+- **WHEN** заказ удаляется
+- **THEN** отправляется сообщение типа ORDER_DELETED через WebSocket
+- **AND** клиент удаляет заказ из кэша
+
+### Requirement: Real-time Driver Location Updates
+Система SHALL отправлять обновления локаций водителей через WebSocket.
+
+#### Scenario: Уведомление об обновлении локации
+- **WHEN** водитель обновляет свою локацию
+- **THEN** отправляется сообщение типа DRIVER_LOCATION через WebSocket
+- **AND** клиент мгновенно обновляет позицию водителя на карте без запроса к API
+
+### Requirement: WebSocket Message Format
+Система SHALL использовать стандартизированный формат сообщений WebSocket.
+
+#### Scenario: Структура сообщения
+- **WHEN** отправляется сообщение через WebSocket
+- **THEN** сообщение содержит поля type (тип события) и payload (данные)
+- **AND** сообщение сериализуется в JSON
+
