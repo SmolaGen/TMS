@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Button, Tooltip, Badge, Tabs } from 'antd';
+import { Button, Tooltip, Badge, Tabs, DatePicker, Card, Space } from 'antd';
 import moment from 'moment';
 import { PlusOutlined } from '@ant-design/icons';
 import { LiveMap } from './LiveMap';
@@ -34,11 +34,15 @@ export const Dashboard: React.FC = () => {
     const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
     const [selectedDriverId, setSelectedDriverId] = useState<number | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [dateRange, setDateRange] = useState<[Date, Date]>([
+        moment().startOf('day').toDate(),
+        moment().endOf('day').toDate()
+    ]);
     const isMobile = useIsMobile();
 
     const { data: drivers = [] } = useDrivers();
     const { mutate: createOrder, isPending: isCreating } = useCreateOrder();
-    const { data: orders = [] } = useOrdersRaw();
+    const { data: orders = [] } = useOrdersRaw(dateRange);
 
     useKeyboardShortcuts([
         {
@@ -84,8 +88,27 @@ export const Dashboard: React.FC = () => {
             position: 'relative',
             gap: isMobile ? 12 : 24,
         }}>
+            {/* Панель управления датой */}
+            <Card size="small" style={{ marginBottom: 0 }}>
+                <Space>
+                    <span>Дата:</span>
+                    <DatePicker
+                        defaultValue={moment()}
+                        onChange={(val) => {
+                            if (val) {
+                                setDateRange([
+                                    val.startOf('day').toDate(),
+                                    val.endOf('day').toDate()
+                                ]);
+                            }
+                        }}
+                        allowClear={false}
+                    />
+                </Space>
+            </Card>
+
             {/* Статистика */}
-            <DashboardStats />
+            <DashboardStats dateRange={dateRange} />
 
 
             {/* Основной контент */}
@@ -197,7 +220,7 @@ export const Dashboard: React.FC = () => {
                                         }}
                                     />
                                     <UnassignedOrdersPanel
-                                        targetDate={moment().format('YYYY-MM-DD')}
+                                        targetDate={moment(dateRange[0]).format('YYYY-MM-DD')}
                                         onAssignClick={(orderId) => setSelectedOrderId(orderId)}
                                     />
                                 </div>
