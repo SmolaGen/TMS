@@ -72,6 +72,79 @@ class OrderRepository(SQLAlchemyRepository[T]):
         if end_date:
             # func.upper(Order.time_range) <= end_date
             query = query.where(func.upper(self.model.time_range) <= end_date)
-        
+
+        result = await self.session.execute(query)
+        return result.scalars().all()
+
+    async def get_unassigned_orders_on_date(self, target_date, priority_filter=None):
+        """Получить нераспределенные заказы на указанную дату."""
+        from datetime import datetime, time
+        from sqlalchemy import and_, or_
+        from src.database.models import OrderStatus, OrderPriority
+
+        start_of_day = datetime.combine(target_date, time.min)
+        end_of_day = datetime.combine(target_date, time.max)
+
+        query = select(self.model).where(
+            and_(
+                self.model.status == OrderStatus.PENDING,
+                self.model.driver_id.is_(None),
+                self.model.time_range.isnot(None),
+                self.model.time_range.contained_by((start_of_day, end_of_day))
+            )
+        )
+
+        if priority_filter:
+            query = query.where(self.model.priority == priority_filter)
+
+        result = await self.session.execute(query)
+        return result.scalars().all()
+
+    async def get_driver_orders_on_date(self, driver_id: int, target_date):
+        """Получить заказы водителя на указанную дату."""
+        from datetime import datetime, time
+        from sqlalchemy import and_, or_
+        from src.database.models import OrderStatus
+
+        start_of_day = datetime.combine(target_date, time.min)
+        end_of_day = datetime.combine(target_date, time.max)
+
+        query = select(self.model).where(
+            and_(
+                self.model.driver_id == driver_id,
+                or_(
+                    self.model.status.in_([OrderStatus.ASSIGNED, OrderStatus.IN_PROGRESS]),
+                    and_(self.model.status == OrderStatus.PENDING, self.model.driver_id.isnot(None))
+                ),
+                self.model.time_range.isnot(None),
+                self.model.time_range.overlaps((start_of_day, end_of_day))
+            )
+        )
+
+        result = await self.session.execute(query)
+        return result.scalars().all()
+
+    async def get_orders_by_date_range(self, start_date, end_date, driver_id=None, status=None):
+        """Получить заказы в диапазоне дат с опциональными фильтрами."""
+        from sqlalchemy import and_
+        query = select(self.model).where(
+            self.model.time_range.isnot(None)
+        )
+
+        if start_date and end_date:
+            from sqlalchemy import func
+            query = query.where(
+                and_(
+                    func.upper(self.model.time_range) >= start_date,
+                    func.lower(self.model.time_range) <= end_date
+                )
+            )
+
+        if driver_id is not None:
+            query = query.where(self.model.driver_id == driver_id)
+
+        if status:
+            query = query.where(self.model.status == status)
+
         result = await self.session.execute(query)
         return result.scalars().all()
