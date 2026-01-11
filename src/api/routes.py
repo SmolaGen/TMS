@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.exc import IntegrityError
-from datetime import datetime
+from datetime import datetime, date
 from typing import List, Optional
 
 from src.schemas.order import OrderCreate, OrderResponse, OrderMoveRequest, LocationUpdate
@@ -15,7 +15,8 @@ from src.api.dependencies import (
     get_geocoding_service,
     get_order_workflow_service,
     get_auth_service,
-    get_current_driver
+    get_current_driver,
+    get_batch_assignment_service
 )
 from src.services.order_workflow import OrderWorkflowService
 from src.services.geocoding import GeocodingService
@@ -23,6 +24,14 @@ from src.schemas.geocoding import GeocodingResult
 from src.schemas.auth import TelegramAuthRequest, TokenResponse
 from src.database.models import OrderStatus, OrderPriority, Driver
 from src.services.auth_service import AuthService
+from src.services.batch_assignment import BatchAssignmentService
+from src.schemas.batch_assignment import (
+    BatchAssignmentRequest,
+    BatchAssignmentResult,
+    BatchPreviewResponse,
+    UnassignedOrdersResponse,
+    DriverScheduleResponse
+)
 from src.core.logging import get_logger
 from src.config import settings
 
@@ -365,4 +374,214 @@ async def get_route(
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Сервис маршрутизации временно недоступен"
+        )
+
+
+# --- Batch Assignment ---
+
+@router.post("/orders/batch-assign", response_model=BatchAssignmentResult)
+async def batch_assign_orders(
+    request: BatchAssignmentRequest,
+    current_driver: Driver = Depends(get_current_driver),
+    service: BatchAssignmentService = Depends(get_batch_assignment_service)
+):
+    """
+    Запустить автоматическое batch-распределение заказов на указанную дату.
+
+    Доступно только диспетчерам и администраторам.
+    """
+    from src.database.models import UserRole
+
+    # Проверка прав доступа
+    if current_driver.role not in (UserRole.ADMIN, UserRole.DISPATCHER):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Недостаточно прав для выполнения операции"
+        )
+
+    try:
+        result = await service.assign_orders_batch(request)
+        return result
+    except Exception as e:
+        logger.error(f"Batch assignment failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Ошибка при распределении заказов"
+        )
+
+
+@router.get("/orders/batch-preview/{target_date}", response_model=BatchPreviewResponse)
+async def preview_batch_assignment(
+    target_date: date,
+    priority_filter: Optional[OrderPriority] = None,
+    driver_ids: Optional[str] = None,  # comma-separated
+    max_orders_per_driver: int = 10,
+    current_driver: Driver = Depends(get_current_driver),
+    service: BatchAssignmentService = Depends(get_batch_assignment_service)
+):
+    """
+    Предпросмотр распределения заказов без фактического назначения.
+
+    Доступно только диспетчерам и администраторам.
+    """
+    from src.database.models import UserRole
+
+    # Проверка прав доступа
+    if current_driver.role not in (UserRole.ADMIN, UserRole.DISPATCHER):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Недостаточно прав для выполнения операции"
+        )
+
+    try:
+        # Парсинг driver_ids из строки
+        parsed_driver_ids = None
+        if driver_ids:
+            try:
+                parsed_driver_ids = [int(x.strip()) for x in driver_ids.split(',')]
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Неверный формат driver_ids"
+                )
+
+        request = BatchAssignmentRequest(
+            target_date=target_date,
+            priority_filter=priority_filter,
+            driver_ids=parsed_driver_ids,
+            max_orders_per_driver=max_orders_per_driver
+        )
+
+        result = await service.preview_assignments(request)
+        return BatchPreviewResponse(result=result)
+    except Exception as e:
+        logger.error(f"Batch preview failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Ошибка при предпросмотре распределения"
+        )
+
+
+@router.get("/orders/unassigned/{target_date}", response_model=UnassignedOrdersResponse)
+async def get_unassigned_orders(
+    target_date: date,
+    current_driver: Driver = Depends(get_current_driver),
+    order_service: OrderService = Depends(get_order_service)
+):
+    """
+    Получить список нераспределенных заказов на указанную дату.
+
+    Доступно диспетчерам и администраторам.
+    """
+    from src.database.models import UserRole
+    from datetime import datetime, time
+
+    # Проверка прав доступа
+    if current_driver.role not in (UserRole.ADMIN, UserRole.DISPATCHER):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Недостаточно прав для выполнения операции"
+        )
+
+    try:
+        # Получить заказы через OrderRepository
+        from src.database.repository import OrderRepository
+        from src.database.connection import async_session_factory
+        from sqlalchemy.ext.asyncio import AsyncSession
+
+        async with AsyncSession(async_session_factory) as session:
+            repo = OrderRepository(session)
+            orders = await repo.get_unassigned_orders_on_date(target_date)
+
+            # Преобразовать в словарь для ответа
+            orders_data = []
+            for order in orders:
+                orders_data.append({
+                    "id": order.id,
+                    "pickup_address": order.pickup_address,
+                    "dropoff_address": order.dropoff_address,
+                    "priority": order.priority.value,
+                    "time_start": order.time_range.lower.isoformat() if order.time_range else None,
+                    "time_end": order.time_range.upper.isoformat() if order.time_range else None,
+                    "distance_meters": order.distance_meters,
+                    "duration_seconds": order.duration_seconds
+                })
+
+            return UnassignedOrdersResponse(
+                orders=orders_data,
+                total_count=len(orders_data),
+                target_date=target_date
+            )
+    except Exception as e:
+        logger.error(f"Failed to get unassigned orders: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Ошибка при получении списка заказов"
+        )
+
+
+@router.get("/drivers/{driver_id}/schedule/{target_date}", response_model=DriverScheduleResponse)
+async def get_driver_schedule(
+    driver_id: int,
+    target_date: date,
+    current_driver: Driver = Depends(get_current_driver),
+    driver_service: DriverService = Depends(get_driver_service)
+):
+    """
+    Получить расписание водителя на указанную дату.
+
+    Доступно диспетчерам, администраторам и самому водителю.
+    """
+    from src.database.models import UserRole
+
+    # Проверка прав доступа
+    if current_driver.role not in (UserRole.ADMIN, UserRole.DISPATCHER) and current_driver.id != driver_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Недостаточно прав для просмотра расписания"
+        )
+
+    try:
+        # Получить информацию о водителе
+        driver = await driver_service.get_driver(driver_id)
+        if not driver:
+            raise HTTPException(status_code=404, detail="Водитель не найден")
+
+        # Получить заказы водителя на дату
+        from src.database.repository import OrderRepository
+        from src.database.connection import async_session_factory
+        from sqlalchemy.ext.asyncio import AsyncSession
+
+        async with AsyncSession(async_session_factory) as session:
+            repo = OrderRepository(session)
+            orders = await repo.get_driver_orders_on_date(driver_id, target_date)
+
+            # Преобразовать заказы в элементы расписания
+            schedule_items = []
+            for order in orders:
+                schedule_items.append({
+                    "order_id": order.id,
+                    "time_start": order.time_range.lower.isoformat() if order.time_range else None,
+                    "time_end": order.time_range.upper.isoformat() if order.time_range else None,
+                    "pickup_address": order.pickup_address,
+                    "dropoff_address": order.dropoff_address,
+                    "status": order.status.value,
+                    "priority": order.priority.value
+                })
+
+            return DriverScheduleResponse(
+                driver_id=driver_id,
+                driver_name=driver.name,
+                target_date=target_date,
+                schedule=schedule_items,
+                total_orders=len(schedule_items),
+                available_slots=max(0, 10 - len(schedule_items))  # Примерное количество слотов
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get driver schedule: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Ошибка при получении расписания водителя"
         )

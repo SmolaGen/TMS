@@ -11,6 +11,7 @@ from src.services.routing import RoutingService
 from src.services.auth_service import AuthService
 from src.services.geocoding import GeocodingService
 from src.services.order_workflow import OrderWorkflowService
+from src.services.batch_assignment import BatchAssignmentService
 from src.config import settings
 
 import jwt
@@ -119,3 +120,16 @@ def get_order_workflow_service(
 ) -> OrderWorkflowService:
     """Провайдер сервиса управления жизненным циклом заказов."""
     return OrderWorkflowService(uow)
+
+async def get_batch_assignment_service(
+    order_service: OrderService = Depends(get_order_service)
+) -> BatchAssignmentService:
+    """Провайдер сервиса batch-распределения заказов."""
+    from src.database.connection import async_session_factory
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    session = AsyncSession(async_session_factory)
+    try:
+        yield BatchAssignmentService(session, order_service)
+    finally:
+        await session.close()

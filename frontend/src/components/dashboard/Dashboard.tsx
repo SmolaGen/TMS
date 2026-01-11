@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Button, Tooltip, Badge } from 'antd';
+import { Button, Tooltip, Badge, Tabs } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { LiveMap } from './LiveMap';
 import { TimelineView } from './TimelineView';
 import { CreateOrderModal } from './CreateOrderModal';
 import { OrderDetailDrawer } from './OrderDetailDrawer';
+import { BatchAssignmentPanel } from './BatchAssignmentPanel';
 import { useWebSocketSync } from '../../hooks/useWebSocketSync';
 import { useDrivers } from '../../hooks/useDrivers';
 import { useCreateOrder, useOrdersRaw } from '../../hooks/useOrders';
@@ -91,80 +92,111 @@ export const Dashboard: React.FC = () => {
                 overflow: 'hidden',
                 position: 'relative',
             }}>
-                {/* Карта */}
-                <div
-                    className="glass-card"
-                    style={{
-                        flex: isMobile ? '0 0 250px' : '0 0 55%',
-                        minHeight: isMobile ? 250 : 350,
-                        position: 'relative',
-                        overflow: 'hidden',
-                        padding: 0, // Map needs no padding
-                        border: 'var(--tms-glass-border)',
-                    }}
-                >
-                    <LiveMap
-                        onDriverSelect={setSelectedDriverId}
-                        selectedOrderId={selectedOrderId}
-                        selectedDriverId={selectedDriverId}
-                        orders={orders}
-                    />
+                <Tabs
+                    defaultActiveKey="operations"
+                    type="card"
+                    size="small"
+                    style={{ marginBottom: 0 }}
+                    items={[
+                        {
+                            key: 'operations',
+                            label: 'Операции',
+                            children: (
+                                <>
+                                    {/* Карта */}
+                                    <div
+                                        className="glass-card"
+                                        style={{
+                                            flex: isMobile ? '0 0 250px' : '0 0 55%',
+                                            minHeight: isMobile ? 250 : 350,
+                                            position: 'relative',
+                                            overflow: 'hidden',
+                                            padding: 0, // Map needs no padding
+                                            border: 'var(--tms-glass-border)',
+                                            marginBottom: isMobile ? 12 : 24,
+                                        }}
+                                    >
+                                        <LiveMap
+                                            onDriverSelect={setSelectedDriverId}
+                                            selectedOrderId={selectedOrderId}
+                                            selectedDriverId={selectedDriverId}
+                                            orders={orders}
+                                        />
 
-                    {/* Status Indicator inside Map */}
-                    <div style={{
-                        position: 'absolute',
-                        top: 16,
-                        left: 16, // Left side now because controls are right
-                        zIndex: 1000,
-                    }}>
-                        <Tooltip title={isConnected ? "Подключено к серверу" : "Нет соединения"}>
-                            <div className="glass-panel" style={{
-                                padding: '6px 12px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8,
-                                borderRadius: 20,
-                            }}>
-                                <div style={{
-                                    width: 8,
-                                    height: 8,
-                                    borderRadius: '50%',
-                                    background: isConnected ? '#10b981' : '#f59e0b',
-                                    boxShadow: isConnected ? '0 0 8px #10b981' : 'none',
-                                    animation: isConnected ? 'markerPulse 2s infinite' : 'none'
-                                }} />
-                                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--tms-text-secondary)' }}>
-                                    {isConnected ? 'LIVE' : 'OFFLINE'}
-                                </span>
-                            </div>
-                        </Tooltip>
-                    </div>
-                </div>
+                                        {/* Status Indicator inside Map */}
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: 16,
+                                            left: 16, // Left side now because controls are right
+                                            zIndex: 1000,
+                                        }}>
+                                            <Tooltip title={isConnected ? "Подключено к серверу" : "Нет соединения"}>
+                                                <div className="glass-panel" style={{
+                                                    padding: '6px 12px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 8,
+                                                    borderRadius: 20,
+                                                }}>
+                                                    <div style={{
+                                                        width: 8,
+                                                        height: 8,
+                                                        borderRadius: '50%',
+                                                        background: isConnected ? '#10b981' : '#f59e0b',
+                                                        boxShadow: isConnected ? '0 0 8px #10b981' : 'none',
+                                                        animation: isConnected ? 'markerPulse 2s infinite' : 'none'
+                                                    }} />
+                                                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--tms-text-secondary)' }}>
+                                                        {isConnected ? 'LIVE' : 'OFFLINE'}
+                                                    </span>
+                                                </div>
+                                            </Tooltip>
+                                        </div>
+                                    </div>
 
-                {/* Таймлайн */}
-                <div
-                    className="glass-card"
-                    style={{
-                        flex: '1 1 auto',
-                        minHeight: isMobile ? 180 : 250,
-                        padding: isMobile ? '8px' : '16px',
-                        overflow: 'hidden',
-                        display: 'flex',
-                        flexDirection: 'column'
-                    }}
-                >
-                    <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontWeight: 700, fontSize: 16 }}>График заказов</span>
-                        <Badge count={orders.length} style={{ backgroundColor: '#2563eb' }} />
-                    </div>
-                    <div style={{ flex: 1, position: 'relative' }}>
-                        <TimelineView
-                            drivers={timelineDrivers}
-                            onOrderSelect={setSelectedOrderId}
-                            selectedOrderId={selectedOrderId}
-                        />
-                    </div>
-                </div>
+                                    {/* Таймлайн */}
+                                    <div
+                                        className="glass-card"
+                                        style={{
+                                            flex: '1 1 auto',
+                                            minHeight: isMobile ? 180 : 250,
+                                            padding: isMobile ? '8px' : '16px',
+                                            overflow: 'hidden',
+                                            display: 'flex',
+                                            flexDirection: 'column'
+                                        }}
+                                    >
+                                        <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ fontWeight: 700, fontSize: 16 }}>График заказов</span>
+                                            <Badge count={orders.length} style={{ backgroundColor: '#2563eb' }} />
+                                        </div>
+                                        <div style={{ flex: 1, position: 'relative' }}>
+                                            <TimelineView
+                                                drivers={timelineDrivers}
+                                                onOrderSelect={setSelectedOrderId}
+                                                selectedOrderId={selectedOrderId}
+                                            />
+                                        </div>
+                                    </div>
+                                </>
+                            ),
+                        },
+                        {
+                            key: 'batch-assignment',
+                            label: 'Распределение заказов',
+                            children: (
+                                <div style={{ padding: isMobile ? '8px' : '16px' }}>
+                                    <BatchAssignmentPanel
+                                        onAssignmentComplete={(result) => {
+                                            console.log('Batch assignment completed:', result);
+                                            // Можно добавить обновление данных или уведомления
+                                        }}
+                                    />
+                                </div>
+                            ),
+                        },
+                    ]}
+                />
             </div>
 
             {/* Floating Action Button */}
