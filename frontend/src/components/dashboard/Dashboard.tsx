@@ -1,11 +1,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Button, Tooltip, Badge, Tabs } from 'antd';
+import moment from 'moment';
 import { PlusOutlined } from '@ant-design/icons';
 import { LiveMap } from './LiveMap';
 import { TimelineView } from './TimelineView';
 import { CreateOrderModal } from './CreateOrderModal';
 import { OrderDetailDrawer } from './OrderDetailDrawer';
 import { BatchAssignmentPanel } from './BatchAssignmentPanel';
+import { DashboardStats } from './DashboardStats';
+import { UnassignedOrdersPanel } from './UnassignedOrdersPanel';
 import { useWebSocketSync } from '../../hooks/useWebSocketSync';
 import { useDrivers } from '../../hooks/useDrivers';
 import { useCreateOrder, useOrdersRaw } from '../../hooks/useOrders';
@@ -81,6 +84,8 @@ export const Dashboard: React.FC = () => {
             position: 'relative',
             gap: isMobile ? 12 : 24,
         }}>
+            {/* Статистика */}
+            <DashboardStats />
 
 
             {/* Основной контент */}
@@ -185,12 +190,15 @@ export const Dashboard: React.FC = () => {
                             key: 'batch-assignment',
                             label: 'Распределение заказов',
                             children: (
-                                <div style={{ padding: isMobile ? '8px' : '16px' }}>
+                                <div style={{ padding: isMobile ? '8px' : '16px', display: 'flex', flexDirection: 'column', gap: 24 }}>
                                     <BatchAssignmentPanel
                                         onAssignmentComplete={(result) => {
                                             console.log('Batch assignment completed:', result);
-                                            // Можно добавить обновление данных или уведомления
                                         }}
+                                    />
+                                    <UnassignedOrdersPanel
+                                        targetDate={moment().format('YYYY-MM-DD')}
+                                        onAssignClick={(orderId) => setSelectedOrderId(orderId)}
                                     />
                                 </div>
                             ),

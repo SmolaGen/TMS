@@ -126,6 +126,30 @@ class Driver(Base):
         return f"<Driver(id={self.id}, name='{self.name}', status={self.status.value})>"
 
 
+class Contractor(Base):
+    """
+    Модель подрядчика (внешней системы).
+    """
+    __tablename__ = "contractors"
+    
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    api_key: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    webhook_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    is_active: Mapped[bool] = mapped_column(default=True, server_default=text("true"))
+    
+    created_at: Mapped[datetime] = mapped_column(
+        default=datetime.utcnow,
+        server_default=text("CURRENT_TIMESTAMP")
+    )
+    
+    # Relationships
+    orders: Mapped[List["Order"]] = relationship("Order", back_populates="contractor")
+
+    def __repr__(self) -> str:
+        return f"<Contractor(id={self.id}, name='{self.name}')>"
+
+
 class Order(Base):
     """
     Модель заказа.
@@ -142,6 +166,18 @@ class Order(Base):
         nullable=True,
         index=True,
         comment="FK на водителя"
+    )
+    contractor_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("contractors.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+        comment="FK на подрядчика"
+    )
+    external_id: Mapped[Optional[str]] = mapped_column(
+        String(255),
+        nullable=True,
+        index=True,
+        comment="ID заказа во внешней системе"
     )
     status: Mapped[OrderStatus] = mapped_column(
         Enum(OrderStatus, name="order_status",
@@ -232,6 +268,11 @@ class Order(Base):
         "Driver",
         back_populates="orders",
         lazy="joined"
+    )
+    contractor: Mapped[Optional["Contractor"]] = relationship(
+        "Contractor",
+        back_populates="orders",
+        lazy="selectin"
     )
 
     @property

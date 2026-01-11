@@ -6,8 +6,10 @@ from src.database.models import OrderStatus, OrderPriority
 class OrderCreate(BaseModel):
     """Схема создания заказа."""
     driver_id: Optional[int] = Field(None, description="ID водителя (может быть пустым)")
+    contractor_id: Optional[int] = Field(None, description="ID подрядчика")
+    external_id: Optional[str] = Field(None, description="ID заказа во внешней системе")
     time_start: datetime = Field(..., description="Начало интервала выполнения")
-    time_end: datetime = Field(..., description="Конец интервала выполнения")
+    time_end: Optional[datetime] = Field(None, description="Конец интервала выполнения (если пусто - рассчитается по маршруту)")
     pickup_lat: float = Field(..., ge=-90, le=90)
     pickup_lon: float = Field(..., ge=-180, le=180)
     dropoff_lat: float = Field(..., ge=-90, le=90)
@@ -29,6 +31,8 @@ class OrderResponse(BaseModel):
     id: int
     driver_id: Optional[int]
     driver_name: Optional[str] = None
+    contractor_id: Optional[int] = None
+    external_id: Optional[str] = None
     status: OrderStatus
     priority: OrderPriority
     pickup_lat: Optional[float] = None
