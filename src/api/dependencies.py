@@ -12,6 +12,9 @@ from src.services.auth_service import AuthService
 from src.services.geocoding import GeocodingService
 from src.services.order_workflow import OrderWorkflowService
 from src.services.batch_assignment import BatchAssignmentService
+from src.services.notification_service import NotificationService
+from src.services.urgent_assignment import UrgentAssignmentService
+from src.services.excel_import import ExcelImportService
 from src.config import settings
 
 import jwt
@@ -42,16 +45,37 @@ def get_driver_service(uow: SQLAlchemyUnitOfWork = Depends(get_uow)) -> DriverSe
     """Провайдер сервиса водителей."""
     return DriverService(uow)
 
+async def get_urgent_assignment_service(
+    location_manager: LocationManager = Depends(get_location_manager)
+) -> UrgentAssignmentService:
+    """Провайдер сервиса срочного назначения."""
+    from src.database.connection import async_session_factory
+    from sqlalchemy.ext.asyncio import AsyncSession
+    
+    session = AsyncSession(async_session_factory)
+    try:
+        yield UrgentAssignmentService(session, location_manager)
+    finally:
+        await session.close()
+
 def get_routing_service() -> RoutingService:
     """Провайдер сервиса маршрутизации."""
     return RoutingService()
 
 def get_order_service(
     uow: SQLAlchemyUnitOfWork = Depends(get_uow),
-    routing: RoutingService = Depends(get_routing_service)
+    routing: RoutingService = Depends(get_routing_service),
+    urgent_service: UrgentAssignmentService = Depends(get_urgent_assignment_service),
+    notification_service: NotificationService = Depends(get_notification_service)
 ) -> OrderService:
     """Провайдер сервиса заказов."""
-    return OrderService(uow, routing)
+    return OrderService(uow, routing, urgent_service, notification_service)
+
+def get_excel_import_service(
+    order_service: OrderService = Depends(get_order_service)
+) -> ExcelImportService:
+    """Провайдер сервиса импорта Excel."""
+    return ExcelImportService(order_service)
 
 def get_auth_service() -> AuthService:
     """Провайдер сервиса аутентификации."""
@@ -121,8 +145,23 @@ def get_order_workflow_service(
     """Провайдер сервиса управления жизненным циклом заказов."""
     return OrderWorkflowService(uow)
 
+async def get_notification_service(
+    request: Request,
+) -> NotificationService:
+    """Провайдер сервиса уведомлений."""
+    from src.database.connection import async_session_factory
+    from sqlalchemy.ext.asyncio import AsyncSession
+    
+    bot = getattr(request.app.state, "bot", None)
+    session = AsyncSession(async_session_factory)
+    try:
+        yield NotificationService(bot, session)
+    finally:
+        await session.close()
+
 async def get_batch_assignment_service(
-    order_service: OrderService = Depends(get_order_service)
+    order_service: OrderService = Depends(get_order_service),
+    notification_service: NotificationService = Depends(get_notification_service)
 ) -> BatchAssignmentService:
     """Провайдер сервиса batch-распределения заказов."""
     from src.database.connection import async_session_factory
@@ -130,6 +169,6 @@ async def get_batch_assignment_service(
 
     session = AsyncSession(async_session_factory)
     try:
-        yield BatchAssignmentService(session, order_service)
+        yield BatchAssignmentService(session, order_service, notification_service)
     finally:
         await session.close()

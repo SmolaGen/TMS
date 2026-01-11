@@ -9,6 +9,8 @@ from src.database.models import Order, OrderStatus
 from src.schemas.order import OrderCreate, OrderResponse, OrderMoveRequest
 from src.services.routing import RoutingService, OSRMUnavailableError, RouteNotFoundError
 from src.services.order_workflow import OrderStateMachine
+from src.services.urgent_assignment import UrgentAssignmentService
+from src.services.notification_service import NotificationService
 from src.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -23,10 +25,14 @@ class OrderService:
     def __init__(
         self,
         uow: AbstractUnitOfWork,
-        routing_service: RoutingService
+        routing_service: RoutingService,
+        urgent_service: Optional[UrgentAssignmentService] = None,
+        notification_service: Optional[NotificationService] = None
     ):
         self.uow = uow
         self.routing_service = routing_service
+        self.urgent_service = urgent_service
+        self.notification_service = notification_service
 
     def _get_sm(self, order: Order) -> OrderStateMachine:
         """Создаёт экземпляр машины состояний для заказа."""
@@ -71,6 +77,8 @@ class OrderService:
             
             order = Order(
                 driver_id=target_driver_id,
+                contractor_id=dto.contractor_id,
+                external_id=dto.external_id,
                 status=OrderStatus.ASSIGNED if target_driver_id else OrderStatus.PENDING,
                 priority=dto.priority,
                 time_range=time_range,
@@ -92,6 +100,35 @@ class OrderService:
             try:
                 await self.uow.commit()
                 logger.info("order_created", order_id=order.id, price=float(order.price))
+                
+                # 4. Авто-назначение для срочных заказов (URGENT)
+                from src.database.models import OrderPriority, OrderStatus
+                if order.priority == OrderPriority.URGENT and not order.driver_id and self.urgent_service:
+                    driver_id = await self.urgent_service.assign_urgent_order(order)
+                    if driver_id:
+                        async with self.uow:
+                            # Получаем свежий объект заказа в новой сессии UOW если нужно 
+                            # или используем текущий если сессия еще открыта (она закрылась после await uow.commit()?)
+                            # AbstractUnitOfWork обычно закрывает сессию в __aexit__.
+                            pass
+                        
+                        # Поскольку commit закрыл сессию, нам нужно открыть новую для назначения
+                        from src.services.order_workflow import OrderWorkflowService
+                        workflow = OrderWorkflowService(self.uow)
+                        await workflow.assign_driver(order.id, driver_id)
+                        
+                        # Обновляем объект для ответа
+                        async with self.uow:
+                            order = await self.uow.orders.get(order.id)
+                        
+                        # Уведомляем водителя
+                        if self.notification_service:
+                            await self.notification_service.notify_order_assigned(driver_id, order)
+                
+                # Или если водитель был назначен сразу вручную
+                elif order.driver_id and self.notification_service:
+                    await self.notification_service.notify_order_assigned(order.driver_id, order)
+
             except IntegrityError as e:
                 # Обработка Exclusion Constraint: no_driver_time_overlap
                 error_msg = str(e).lower()

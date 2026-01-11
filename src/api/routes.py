@@ -8,6 +8,7 @@ from src.schemas.driver import DriverCreate, DriverResponse, DriverUpdate
 from src.services.order_service import OrderService
 from src.services.driver_service import DriverService
 from src.services.location_manager import LocationManager, DriverLocation
+from src.services.excel_import import ExcelImportService
 from src.api.dependencies import (
     get_order_service, 
     get_location_manager, 
@@ -16,8 +17,10 @@ from src.api.dependencies import (
     get_order_workflow_service,
     get_auth_service,
     get_current_driver,
-    get_batch_assignment_service
+    get_batch_assignment_service,
+    get_excel_import_service
 )
+from fastapi import File, UploadFile
 from src.services.order_workflow import OrderWorkflowService
 from src.services.geocoding import GeocodingService
 from src.schemas.geocoding import GeocodingResult
@@ -34,6 +37,7 @@ from src.schemas.batch_assignment import (
 )
 from src.core.logging import get_logger
 from src.config import settings
+from src.api.contractors import router as contractor_router
 
 # Import limiter from main app (will be set via app.state)
 from slowapi import Limiter
@@ -41,6 +45,7 @@ from slowapi.util import get_remote_address
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/v1", tags=["TMS API"])
+router.include_router(contractor_router)
 
 # Локальный limiter для использования в декораторах
 # Локальный limiter для использования в декораторах
@@ -111,6 +116,23 @@ async def list_orders(
 ):
     """Получить список заказов с опциональной фильтрацией по времени."""
     return await service.get_orders_list(start_date=start, end_date=end)
+
+@router.post("/orders/import/excel")
+async def import_orders_excel(
+    file: UploadFile = File(...),
+    excel_service: ExcelImportService = Depends(get_excel_import_service),
+    geocoding_service: GeocodingService = Depends(get_geocoding_service)
+):
+    """
+    Импорт заказов из Excel.
+    """
+    try:
+        orders_data = await excel_service.parse_excel(file)
+        result = await excel_service.import_orders(orders_data, geocoding_service)
+        return result
+    except Exception as e:
+        logger.exception("excel_import_failed")
+        raise HTTPException(status_code=400, detail=f"Ошибка импорта: {str(e)}")
 
 @router.patch("/orders/{order_id}/move", response_model=OrderResponse)
 async def move_order(

@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.database.models import Order, Driver, OrderStatus, OrderPriority, UserRole
 from src.database.repository import OrderRepository
 from src.services.order_service import OrderService
+from src.services.notification_service import NotificationService
 from src.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -81,9 +82,10 @@ class BatchAssignmentService:
     Использует жадный алгоритм с учетом приоритетов заказов и доступности водителей.
     """
 
-    def __init__(self, session: AsyncSession, order_service: OrderService):
+    def __init__(self, session: AsyncSession, order_service: OrderService, notification_service: Optional['NotificationService'] = None):
         self.session = session
         self.order_service = order_service
+        self.notification_service = notification_service
         self.order_repo = OrderRepository(session, Order)
 
     async def assign_orders_batch(self, request: BatchAssignmentRequest) -> BatchAssignmentResult:
@@ -129,6 +131,10 @@ class BatchAssignmentService:
                     result.add_success(order.id, driver_id)
                     # Обновить счетчик заказов водителя
                     available_drivers[driver_id]['current_orders'] += 1
+                    
+                    # Отправить уведомление водителю
+                    if self.notification_service:
+                        await self.notification_service.notify_order_assigned(driver_id, order)
                 else:
                     result.add_failure(order.id, AssignmentResult.TIME_CONFLICT.value)
             else:

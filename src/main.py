@@ -20,6 +20,7 @@ from src.core.logging import get_logger, configure_logging
 from src.core.middleware import CorrelationIdMiddleware
 from src.api.routes import router as api_router
 from aiogram.types import Update
+from src.workers.scheduler import TMSProjectScheduler
 
 # Prometheus metrics
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
@@ -82,6 +83,12 @@ async def lifespan(app: FastAPI):
         if settings.TELEGRAM_WEBHOOK_URL and "your-bot-token" not in settings.TELEGRAM_BOT_TOKEN:
             await setup_webhook(bot)
             logger.info("bot_webhook_set", url=settings.TELEGRAM_WEBHOOK_URL)
+        
+        # Запуск планировщика
+        if bot:
+            scheduler = TMSProjectScheduler(bot)
+            await scheduler.start()
+            app.state.scheduler = scheduler
     except Exception as e:
         logger.warning("bot_init_failed", error=str(e))
         app.state.bot = None
