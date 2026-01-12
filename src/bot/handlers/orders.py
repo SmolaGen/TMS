@@ -76,7 +76,9 @@ async def cb_order_status(callback: CallbackQuery):
     async with SQLAlchemyUnitOfWork() as uow:
         workflow = OrderWorkflowService(uow)
         try:
-            if action == "arrived":
+            if action == "departed":
+                await workflow.mark_departed(order_id)
+            elif action == "arrived":
                 await workflow.mark_arrived(order_id)
             elif action == "started":
                 await workflow.start_trip(order_id)
@@ -96,7 +98,11 @@ async def cmd_current(message: Message, driver_id: int):
     async with SQLAlchemyUnitOfWork() as uow:
         # Ищем заказ в статусе IN_PROGRESS или DRIVER_ARRIVED
         orders = await uow.orders.get_all(driver_id=driver_id)
-        current = next((o for o in orders if o.status in [OrderStatus.IN_PROGRESS, OrderStatus.DRIVER_ARRIVED]), None)
+        current = next((o for o in orders if o.status in [
+            OrderStatus.EN_ROUTE_PICKUP,
+            OrderStatus.DRIVER_ARRIVED, 
+            OrderStatus.IN_PROGRESS
+        ]), None)
         
         if not current:
             # Если нет активного, берем ближайший ASSIGNED

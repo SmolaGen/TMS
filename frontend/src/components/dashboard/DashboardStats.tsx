@@ -20,7 +20,11 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ dateRange }) => 
     const stats = useMemo(() => {
         const total = orders.length;
         const completed = orders.filter((o: OrderResponse) => o.status === OrderStatus.COMPLETED).length;
-        const inProgress = orders.filter((o: OrderResponse) => o.status === OrderStatus.IN_PROGRESS || o.status === OrderStatus.DRIVER_ARRIVED).length;
+        const inProgress = orders.filter((o: OrderResponse) =>
+            o.status === OrderStatus.IN_PROGRESS ||
+            o.status === OrderStatus.DRIVER_ARRIVED ||
+            o.status === OrderStatus.EN_ROUTE_PICKUP
+        ).length;
         const cancelled = orders.filter((o: OrderResponse) => o.status === OrderStatus.CANCELLED).length;
         const pending = orders.filter((o: OrderResponse) => o.status === OrderStatus.PENDING || o.status === OrderStatus.ASSIGNED).length;
 

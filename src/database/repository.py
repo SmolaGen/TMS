@@ -113,7 +113,13 @@ class OrderRepository(SQLAlchemyRepository[T]):
             and_(
                 self.model.driver_id == driver_id,
                 or_(
-                    self.model.status.in_([OrderStatus.ASSIGNED, OrderStatus.IN_PROGRESS]),
+                    self.model.status.in_([
+                        OrderStatus.ASSIGNED, 
+                        OrderStatus.EN_ROUTE_PICKUP,
+                        OrderStatus.DRIVER_ARRIVED,
+                        OrderStatus.IN_PROGRESS,
+                        OrderStatus.COMPLETED
+                    ]),
                     and_(self.model.status == OrderStatus.PENDING, self.model.driver_id.isnot(None))
                 ),
                 self.model.time_range.isnot(None),

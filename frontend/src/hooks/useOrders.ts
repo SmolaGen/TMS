@@ -10,7 +10,8 @@ import {
     completeOrder,
     markArrived,
     startTrip,
-    assignOrder
+    assignOrder,
+    importOrdersExcel
 } from '../api/orders';
 import { isDevMode } from '../components/DevAuthSelector';
 import { MOCK_ORDERS } from '../api/mockData';
@@ -161,6 +162,7 @@ export const useMoveOrder = () => {
                 payload: {
                     new_time_start: item.start.toISOString(),
                     new_time_end: item.end?.toISOString() || item.start.toISOString(),
+                    new_driver_id: item.group === 'unassigned' ? null : Number(item.group),
                 },
             });
         },
@@ -242,6 +244,27 @@ export const useUpdateOrderStatus = () => {
             notification.error({
                 message: 'Ошибка при обновлении статуса',
                 description: error.response?.data?.detail || 'Не удалось выполнить действие',
+            });
+        },
+    });
+};
+
+export const useImportOrders = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: importOrdersExcel,
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ['orders'] });
+            notification.success({
+                message: 'Импорт завершен',
+                description: `Создано: ${data.created}, Ошибок: ${data.failed}`,
+            });
+        },
+        onError: (error: any) => {
+            notification.error({
+                message: 'Ошибка импорта',
+                description: error.response?.data?.detail || 'Не удалось импортировать заказы',
             });
         },
     });

@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.models import Order, OrderStatus, DriverStatus
 from src.database.uow import AbstractUnitOfWork
+from src.services.webhook_service import WebhookService
 from src.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -17,6 +18,7 @@ class OrderStateMachine(StateMachine):
     # === STATES ===
     pending = State("Pending", value=OrderStatus.PENDING, initial=True)
     assigned = State("Assigned", value=OrderStatus.ASSIGNED)
+    en_route_pickup = State("En Route to Pickup", value=OrderStatus.EN_ROUTE_PICKUP)
     driver_arrived = State("Driver Arrived", value=OrderStatus.DRIVER_ARRIVED)
     in_progress = State("In Progress", value=OrderStatus.IN_PROGRESS)
     completed = State("Completed", value=OrderStatus.COMPLETED, final=True)
@@ -25,13 +27,15 @@ class OrderStateMachine(StateMachine):
     # === TRANSITIONS ===
     assign = pending.to(assigned)
     unassign = assigned.to(pending)
-    arrive = assigned.to(driver_arrived)
+    depart = assigned.to(en_route_pickup)
+    arrive = en_route_pickup.to(driver_arrived)
     start_trip = driver_arrived.to(in_progress)
     complete = in_progress.to(completed)
     
     cancel = (
         pending.to(cancelled) |
         assigned.to(cancelled) |
+        en_route_pickup.to(cancelled) |
         driver_arrived.to(cancelled) |
         in_progress.to(cancelled)
     )
@@ -57,6 +61,10 @@ class OrderStateMachine(StateMachine):
         self.order.status = OrderStatus.PENDING
         self.order.driver_id = None
         logger.info("order_unassigned", order_id=self.order.id)
+
+    def on_enter_en_route_pickup(self):
+        self.order.status = OrderStatus.EN_ROUTE_PICKUP
+        logger.info("order_en_route_pickup", order_id=self.order.id)
 
     def on_enter_driver_arrived(self):
         self.order.status = OrderStatus.DRIVER_ARRIVED
@@ -88,8 +96,9 @@ class OrderWorkflowService:
     """
     Сервис для выполнения бизнес-операций над заказами через State Machine.
     """
-    def __init__(self, uow: AbstractUnitOfWork):
+    def __init__(self, uow: AbstractUnitOfWork, webhook_service: Optional[WebhookService] = None):
         self.uow = uow
+        self.webhook_service = webhook_service
 
     async def _get_order_and_sm(self, order_id: int) -> tuple[Order, OrderStateMachine]:
         order = await self.uow.orders.get(order_id)
@@ -107,27 +116,45 @@ class OrderWorkflowService:
             sm.assign(driver_id=driver_id)
             driver.status = DriverStatus.BUSY
             await self.uow.commit()
+            if self.webhook_service:
+                await self.webhook_service.notify_status_change(order)
+
+    async def mark_departed(self, order_id: int):
+        async with self.uow:
+            order, sm = await self._get_order_and_sm(order_id)
+            sm.depart()
+            await self.uow.commit()
+            if self.webhook_service:
+                await self.webhook_service.notify_status_change(order)
 
     async def mark_arrived(self, order_id: int):
         async with self.uow:
             order, sm = await self._get_order_and_sm(order_id)
             sm.arrive()
             await self.uow.commit()
+            if self.webhook_service:
+                await self.webhook_service.notify_status_change(order)
 
     async def start_trip(self, order_id: int):
         async with self.uow:
             order, sm = await self._get_order_and_sm(order_id)
             sm.start_trip()
             await self.uow.commit()
+            if self.webhook_service:
+                await self.webhook_service.notify_status_change(order)
 
     async def complete_order(self, order_id: int):
         async with self.uow:
             order, sm = await self._get_order_and_sm(order_id)
             sm.complete()
             await self.uow.commit()
+            if self.webhook_service:
+                await self.webhook_service.notify_status_change(order)
 
     async def cancel_order(self, order_id: int, reason: Optional[str] = None):
         async with self.uow:
             order, sm = await self._get_order_and_sm(order_id)
             sm.cancel(reason=reason)
             await self.uow.commit()
+            if self.webhook_service:
+                await self.webhook_service.notify_status_change(order)

@@ -5,12 +5,13 @@ from sqlalchemy.exc import IntegrityError
 from geoalchemy2.elements import WKTElement
 
 from src.database.uow import AbstractUnitOfWork
-from src.database.models import Order, OrderStatus
+from src.database.models import Order, OrderStatus, OrderPriority
 from src.schemas.order import OrderCreate, OrderResponse, OrderMoveRequest
 from src.services.routing import RoutingService, OSRMUnavailableError, RouteNotFoundError
 from src.services.order_workflow import OrderStateMachine
 from src.services.urgent_assignment import UrgentAssignmentService
 from src.services.notification_service import NotificationService
+from src.services.webhook_service import WebhookService
 from src.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -27,12 +28,14 @@ class OrderService:
         uow: AbstractUnitOfWork,
         routing_service: RoutingService,
         urgent_service: Optional[UrgentAssignmentService] = None,
-        notification_service: Optional[NotificationService] = None
+        notification_service: Optional[NotificationService] = None,
+        webhook_service: Optional[WebhookService] = None
     ):
         self.uow = uow
         self.routing_service = routing_service
         self.urgent_service = urgent_service
         self.notification_service = notification_service
+        self.webhook_service = webhook_service
 
     def _get_sm(self, order: Order) -> OrderStateMachine:
         """Создаёт экземпляр машины состояний для заказа."""
@@ -102,7 +105,7 @@ class OrderService:
                 logger.info("order_created", order_id=order.id, price=float(order.price))
                 
                 # 4. Авто-назначение для срочных заказов (URGENT)
-                from src.database.models import OrderPriority, OrderStatus
+                # from src.database.models import OrderPriority, OrderStatus
                 if order.priority == OrderPriority.URGENT and not order.driver_id and self.urgent_service:
                     driver_id = await self.urgent_service.assign_urgent_order(order)
                     if driver_id:
@@ -128,6 +131,10 @@ class OrderService:
                 # Или если водитель был назначен сразу вручную
                 elif order.driver_id and self.notification_service:
                     await self.notification_service.notify_order_assigned(order.driver_id, order)
+                
+                # 5. Уведомляем подрядчика (вебхук)
+                if self.webhook_service:
+                    await self.webhook_service.notify_status_change(order)
 
             except IntegrityError as e:
                 # Обработка Exclusion Constraint: no_driver_time_overlap
@@ -162,32 +169,58 @@ class OrderService:
 
     async def move_order(self, order_id: int, dto: OrderMoveRequest) -> Optional[OrderResponse]:
         """
-        Изменяет время выполнения заказа (Drag-and-Drop).
+        Изменяет время выполнения и/или водителя заказа (Drag-and-Drop).
         """
-        logger.info("moving_order", order_id=order_id, new_start=dto.new_time_start)
+        logger.info("moving_order", order_id=order_id, new_start=dto.new_time_start, new_driver=dto.new_driver_id)
         
         async with self.uow:
             order = await self.uow.orders.get(order_id)
             if not order:
                 return None
             
-            # Обновляем интервал
+            # 1. Обновляем время
             new_range = (dto.new_time_start, dto.new_time_end)
             order.time_range = new_range
             
-            # Кэшируем ID водителя до коммита, чтобы использовать в exception handler
-            driver_id = order.driver_id
+            # 2. Обновляем водителя если нужно
+            old_driver_id = order.driver_id
+            new_driver_id = dto.new_driver_id
+            
+            # Если водитель изменился
+            driver_changed = False
+            if new_driver_id is not None and new_driver_id != old_driver_id:
+                order.driver_id = new_driver_id
+                # Если заказ был PENDING и назначили водителя
+                if order.status == OrderStatus.PENDING:
+                    order.status = OrderStatus.ASSIGNED
+                driver_changed = True
+            elif new_driver_id is None and old_driver_id is not None:
+                # Снятие с водителя (unassign)
+                order.driver_id = None
+                order.status = OrderStatus.PENDING
+                driver_changed = True
 
             try:
                 await self.uow.commit()
-                logger.info("order_moved", order_id=order_id, new_range=new_range)
+                logger.info("order_moved", order_id=order_id, new_range=new_range, new_driver=order.driver_id)
+                
+                # 3. Уведомляем нового водителя
+                if driver_changed and order.driver_id and self.notification_service:
+                    await self.notification_service.notify_order_assigned(order.driver_id, order)
+                
+                # 4. Уведомляем подрядчика
+                if self.webhook_service:
+                    await self.webhook_service.notify_status_change(order)
+
                 return OrderResponse.model_validate(order)
             except IntegrityError as e:
                 error_msg = str(e).lower()
                 if "no_driver_time_overlap" in error_msg:
-                    logger.warning("order_overlap_on_move", order_id=order_id, driver_id=driver_id)
+                    # Используем ID из DTO или из базы если не менялся
+                    target_driver = new_driver_id if new_driver_id is not None else old_driver_id
+                    logger.warning("order_overlap_on_move", order_id=order_id, driver_id=target_driver)
                     raise HTTPException(
                         status_code=409,
-                        detail={"error": "time_overlap", "message": f"Водитель #{driver_id} занят в новый интервал времени"}
+                        detail={"error": "time_overlap", "message": f"Водитель #{target_driver} занят в новый интервал времени"}
                     )
                 raise HTTPException(status_code=500, detail="Ошибка базы данных при перемещении заказа")

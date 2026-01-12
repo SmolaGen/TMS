@@ -22,9 +22,10 @@ class OrderCreate(BaseModel):
     customer_name: Optional[str] = None
 
 class OrderMoveRequest(BaseModel):
-    """Схема для Drag-and-Drop (изменение времени)."""
+    """Схема для Drag-and-Drop (изменение времени и водителя)."""
     new_time_start: datetime
     new_time_end: datetime
+    new_driver_id: Optional[int] = None
 
 class OrderResponse(BaseModel):
     """Схема ответа с данными заказа."""

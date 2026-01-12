@@ -13,6 +13,7 @@ def get_orders_list_kb(orders) -> InlineKeyboardMarkup:
         
         status_emoji = "⏳"
         if order.status == OrderStatus.ASSIGNED: status_emoji = "🚗"
+        elif order.status == OrderStatus.EN_ROUTE_PICKUP: status_emoji = "🚚"
         elif order.status == OrderStatus.IN_PROGRESS: status_emoji = "▶️"
         elif order.status == OrderStatus.COMPLETED: status_emoji = "✅"
         
@@ -26,7 +27,9 @@ def get_order_actions_kb(order_id: int, status: OrderStatus) -> InlineKeyboardMa
     builder = InlineKeyboardBuilder()
     
     if status == OrderStatus.ASSIGNED:
-        builder.row(InlineKeyboardButton(text="🚗 Выехал", callback_data=f"order_status:{order_id}:arrived"))
+        builder.row(InlineKeyboardButton(text="🚗 Выехал", callback_data=f"order_status:{order_id}:departed"))
+    elif status == OrderStatus.EN_ROUTE_PICKUP:
+        builder.row(InlineKeyboardButton(text="📍 Прибыл", callback_data=f"order_status:{order_id}:arrived"))
     elif status == OrderStatus.DRIVER_ARRIVED:
         builder.row(InlineKeyboardButton(text="▶️ Поехали", callback_data=f"order_status:{order_id}:started"))
     elif status == OrderStatus.IN_PROGRESS:

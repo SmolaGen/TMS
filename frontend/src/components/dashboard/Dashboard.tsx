@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Button, Tooltip, Badge, Tabs, DatePicker, Card, Space } from 'antd';
 import moment from 'moment';
-import { PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined, ImportOutlined } from '@ant-design/icons';
 import { LiveMap } from './LiveMap';
 import { TimelineView } from './TimelineView';
 import { CreateOrderModal } from './CreateOrderModal';
+import { ExcelImportModal } from '../orders/ExcelImportModal';
 import { OrderDetailDrawer } from './OrderDetailDrawer';
 import { BatchAssignmentPanel } from './BatchAssignmentPanel';
 import { DashboardStats } from './DashboardStats';
@@ -34,6 +35,7 @@ export const Dashboard: React.FC = () => {
     const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
     const [selectedDriverId, setSelectedDriverId] = useState<number | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
     const [dateRange, setDateRange] = useState<[Date, Date]>([
         moment().startOf('day').toDate(),
         moment().endOf('day').toDate()
@@ -104,6 +106,12 @@ export const Dashboard: React.FC = () => {
                         }}
                         allowClear={false}
                     />
+                    <Button
+                        icon={<ImportOutlined />}
+                        onClick={() => setIsExcelModalOpen(true)}
+                    >
+                        Импорт Excel
+                    </Button>
                 </Space>
             </Card>
 
@@ -266,6 +274,11 @@ export const Dashboard: React.FC = () => {
                 onCancel={() => setIsModalOpen(false)}
                 onCreate={handleCreateOrder}
                 loading={isCreating}
+            />
+
+            <ExcelImportModal
+                open={isExcelModalOpen}
+                onCancel={() => setIsExcelModalOpen(false)}
             />
         </div>
     );
