@@ -42,8 +42,9 @@ class OrderStatus(str, PyEnum):
     """Статусы заказа."""
     PENDING = "pending"          # Ожидает назначения водителя
     ASSIGNED = "assigned"        # Назначен водитель
+    EN_ROUTE_PICKUP = "en_route_pickup" # Водитель выехал к клиенту
     DRIVER_ARRIVED = "driver_arrived" # Водитель прибыл на место
-    IN_PROGRESS = "in_progress"  # Выполняется
+    IN_PROGRESS = "in_progress"  # Выполняется (груз на борту)
     COMPLETED = "completed"      # Завершён
     CANCELLED = "cancelled"      # Отменён
 

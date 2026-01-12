@@ -9,6 +9,7 @@ export enum DriverStatus {
 export enum OrderStatus {
   PENDING = 'pending',
   ASSIGNED = 'assigned',
+  EN_ROUTE_PICKUP = 'en_route_pickup',
   DRIVER_ARRIVED = 'driver_arrived',
   IN_PROGRESS = 'in_progress',
   COMPLETED = 'completed',
@@ -86,6 +87,7 @@ export interface DriverLocation {
 export interface OrderMoveRequest {
   new_time_start: string;
   new_time_end: string;
+  new_driver_id?: number | null;
 }
 
 // Ошибка 409 Conflict

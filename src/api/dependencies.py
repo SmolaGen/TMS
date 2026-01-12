@@ -1,4 +1,4 @@
-from fastapi import Depends
+from fastapi import Depends, Request
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,6 +15,7 @@ from src.services.batch_assignment import BatchAssignmentService
 from src.services.notification_service import NotificationService
 from src.services.urgent_assignment import UrgentAssignmentService
 from src.services.excel_import import ExcelImportService
+from src.services.webhook_service import WebhookService
 from src.config import settings
 
 import jwt
@@ -58,24 +59,19 @@ async def get_urgent_assignment_service(
     finally:
         await session.close()
 
-def get_routing_service() -> RoutingService:
-    """Провайдер сервиса маршрутизации."""
-    return RoutingService()
-
-def get_order_service(
-    uow: SQLAlchemyUnitOfWork = Depends(get_uow),
-    routing: RoutingService = Depends(get_routing_service),
-    urgent_service: UrgentAssignmentService = Depends(get_urgent_assignment_service),
-    notification_service: NotificationService = Depends(get_notification_service)
-) -> OrderService:
-    """Провайдер сервиса заказов."""
-    return OrderService(uow, routing, urgent_service, notification_service)
-
-def get_excel_import_service(
-    order_service: OrderService = Depends(get_order_service)
-) -> ExcelImportService:
-    """Провайдер сервиса импорта Excel."""
-    return ExcelImportService(order_service)
+async def get_notification_service(
+    request: Request,
+) -> NotificationService:
+    """Провайдер сервиса уведомлений."""
+    from src.database.connection import async_session_factory
+    from sqlalchemy.ext.asyncio import AsyncSession
+    
+    bot = getattr(request.app.state, "bot", None)
+    session = AsyncSession(async_session_factory)
+    try:
+        yield NotificationService(bot, session)
+    finally:
+        await session.close()
 
 def get_auth_service() -> AuthService:
     """Провайдер сервиса аутентификации."""
@@ -139,25 +135,41 @@ async def get_current_driver(
             )
         return driver
 
+def get_webhook_service() -> WebhookService:
+    """Провайдер сервиса вебхуков."""
+    return WebhookService()
+
+
 def get_order_workflow_service(
-    uow: SQLAlchemyUnitOfWork = Depends(get_uow)
+    uow: SQLAlchemyUnitOfWork = Depends(get_uow),
+    webhook_service: WebhookService = Depends(get_webhook_service)
 ) -> OrderWorkflowService:
     """Провайдер сервиса управления жизненным циклом заказов."""
-    return OrderWorkflowService(uow)
+    return OrderWorkflowService(uow, webhook_service)
 
-async def get_notification_service(
-    request: Request,
-) -> NotificationService:
-    """Провайдер сервиса уведомлений."""
-    from src.database.connection import async_session_factory
-    from sqlalchemy.ext.asyncio import AsyncSession
-    
-    bot = getattr(request.app.state, "bot", None)
-    session = AsyncSession(async_session_factory)
-    try:
-        yield NotificationService(bot, session)
-    finally:
-        await session.close()
+
+def get_routing_service() -> RoutingService:
+    """Провайдер сервиса маршрутизации."""
+    return RoutingService()
+
+
+def get_order_service(
+    uow: SQLAlchemyUnitOfWork = Depends(get_uow),
+    routing: RoutingService = Depends(get_routing_service),
+    urgent_service: UrgentAssignmentService = Depends(get_urgent_assignment_service),
+    notification_service: NotificationService = Depends(get_notification_service),
+    webhook_service: WebhookService = Depends(get_webhook_service)
+) -> OrderService:
+    """Провайдер сервиса заказов."""
+    return OrderService(uow, routing, urgent_service, notification_service, webhook_service)
+
+
+def get_excel_import_service(
+    order_service: OrderService = Depends(get_order_service)
+) -> ExcelImportService:
+    """Провайдер сервиса импорта Excel."""
+    return ExcelImportService(order_service)
+
 
 async def get_batch_assignment_service(
     order_service: OrderService = Depends(get_order_service),

@@ -111,3 +111,15 @@ async def get_order_status(
         raise HTTPException(status_code=404, detail="Order not found")
         
     return order
+
+@router.post("/webhook")
+async def register_webhook(
+    url: str,
+    contractor: Contractor = Depends(get_contractor),
+    session: AsyncSession = Depends(get_db)
+):
+    """Регистрация/обновление URL вебхука для подрядчика."""
+    contractor.webhook_url = url
+    await session.commit()
+    logger.info("contractor_webhook_updated", contractor_id=contractor.id, url=url)
+    return {"status": "success", "webhook_url": url}

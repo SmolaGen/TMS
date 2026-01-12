@@ -60,3 +60,14 @@ export const assignOrder = async (orderId: number | string, driverId: number): P
     const { data } = await apiClient.post<OrderResponse>(`/orders/${orderId}/assign/${driverId}`);
     return data;
 };
+
+export const importOrdersExcel = async (file: File): Promise<{ created: number; failed: number; errors: any[] }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const { data } = await apiClient.post('/orders/import/excel', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+    return data;
+};

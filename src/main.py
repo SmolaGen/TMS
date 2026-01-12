@@ -98,6 +98,8 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     logger.info("app_stopping")
+    if hasattr(app.state, "scheduler") and app.state.scheduler:
+        await app.state.scheduler.shutdown()
     await close_db()
     # await init_db()  # Используем alembic вместо автоматического создания
 

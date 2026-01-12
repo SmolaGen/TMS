@@ -79,3 +79,18 @@ class NotificationService:
             f"Нажмите /orders чтобы посмотреть расписание."
         )
         return await self.send_message(driver_id, text)
+
+    async def notify_order_reminder(self, driver_id: int, order: Order) -> bool:
+        """Напоминание за 15 минут до начала заказа."""
+        pickup = order.pickup_address or "Не указан"
+        time_str = ""
+        if order.time_range:
+            time_str = f" в {order.time_range.lower.strftime('%H:%M')}"
+            
+        text = (
+            f"<b>⏰ Напоминание!</b>\n\n"
+            f"Заказ <b>#{order.id}</b> начинается{time_str}.\n"
+            f"📍 <b>Подача:</b> {pickup}\n\n"
+            f"Пора выезжать! 🚗"
+        )
+        return await self.send_message(driver_id, text)
