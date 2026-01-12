@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from src.database.models import OrderPriority, OrderStatus
 
 class ContractorOrderCreate(BaseModel):
@@ -29,8 +29,7 @@ class ContractorOrderResponse(BaseModel):
     status: OrderStatus
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ContractorBatchResponse(BaseModel):
     """Схема ответа на пакетное создание."""

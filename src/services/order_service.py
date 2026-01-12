@@ -187,8 +187,10 @@ class OrderService:
             new_driver_id = None
             
             # Проверяем, был ли передан new_driver_id явно
-            # (Pydantic v2: model_fields_set, v1: __fields_set__)
-            fields_set = getattr(dto, "model_fields_set", getattr(dto, "__fields_set__", set()))
+            # Сначала пробуем Pydantic v2 API, затем fallback на v1
+            fields_set = getattr(dto, "model_fields_set", None)
+            if fields_set is None:
+                fields_set = getattr(dto, "__fields_set__", set())
             
             driver_changed = False
             if "new_driver_id" in fields_set:

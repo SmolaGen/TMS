@@ -39,6 +39,7 @@ logger = get_logger(__name__)
 STREAM_NAME = "driver:locations"
 CONSUMER_GROUP = "location_ingesters"
 CONSUMER_NAME = f"worker_{os.getpid()}"
+DLQ_STREAM_NAME = "dlq:location_errors"  # Dead Letter Queue для poison pills
 
 BATCH_SIZE = 2000           # Записей за один COPY
 BATCH_TIMEOUT_MS = 5000     # Максимальное ожидание батча (5 сек)
@@ -340,14 +341,8 @@ class IngestWorker:
                     failed_count += 1
                     
                     if record.retry_count >= MAX_RETRIES:
-                        # Poison pill detected — логируем и ACK чтобы не блокировать
-                        logger.error(
-                            "poison_pill_detected",
-                            entry_id=record.entry_id,
-                            driver_id=record.driver_id,
-                            error=str(e)
-                        )
-                        # TODO: В продакшене отправить в Dead Letter Queue
+                        # Poison pill detected — отправляем в DLQ и ACK
+                        await self._send_to_dlq(record, str(e))
                         await self.redis.xack(STREAM_NAME, CONSUMER_GROUP, record.entry_id)
                     else:
                         logger.warning(
@@ -364,6 +359,36 @@ class IngestWorker:
                 success=success_count,
                 failed=failed_count
             )
+    
+    async def _send_to_dlq(self, record: LocationRecord, error: str):
+        """
+        Отправляет poison pill в Dead Letter Queue для последующего анализа.
+        
+        DLQ stream содержит метаданные о проблемной записи.
+        """
+        try:
+            await self.redis.xadd(
+                DLQ_STREAM_NAME,
+                {
+                    "original_entry_id": record.entry_id,
+                    "driver_id": str(record.driver_id),
+                    "latitude": str(record.latitude),
+                    "longitude": str(record.longitude),
+                    "timestamp": record.timestamp.isoformat(),
+                    "error": error,
+                    "retry_count": str(record.retry_count),
+                    "dlq_timestamp": datetime.now(timezone.utc).isoformat()
+                },
+                maxlen=10000  # Храним последние 10K poison pills
+            )
+            logger.error(
+                "poison_pill_sent_to_dlq",
+                entry_id=record.entry_id,
+                driver_id=record.driver_id,
+                error=error
+            )
+        except Exception as e:
+            logger.exception("failed_to_send_to_dlq", original_error=error, dlq_error=str(e))
     
     def stop(self):
         """Graceful shutdown."""

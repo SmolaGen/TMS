@@ -141,8 +141,20 @@ async def move_order(
     current_driver: Driver = Depends(get_current_driver),
     service: OrderService = Depends(get_order_service)
 ):
-    """Изменить время своего заказа."""
-    # TODO: Проверить, принадлежит ли заказ водителю (если нужно)
+    """Изменить время заказа. Водители могут перемещать только свои заказы."""
+    from src.database.models import UserRole
+    
+    # Проверка прав доступа
+    order = await service.get_order(order_id)
+    
+    # Водители могут перемещать только свои заказы
+    if current_driver.role not in (UserRole.ADMIN, UserRole.DISPATCHER):
+        if order.driver_id != current_driver.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Вы можете перемещать только свои заказы"
+            )
+    
     result = await service.move_order(order_id, data)
     if not result:
         raise HTTPException(status_code=404, detail="Order not found")
