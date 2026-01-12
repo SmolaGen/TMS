@@ -184,21 +184,27 @@ class OrderService:
             
             # 2. Обновляем водителя если нужно
             old_driver_id = order.driver_id
-            new_driver_id = dto.new_driver_id
+            new_driver_id = None
             
-            # Если водитель изменился
+            # Проверяем, был ли передан new_driver_id явно
+            # (Pydantic v2: model_fields_set, v1: __fields_set__)
+            fields_set = getattr(dto, "model_fields_set", getattr(dto, "__fields_set__", set()))
+            
             driver_changed = False
-            if new_driver_id is not None and new_driver_id != old_driver_id:
-                order.driver_id = new_driver_id
-                # Если заказ был PENDING и назначили водителя
-                if order.status == OrderStatus.PENDING:
-                    order.status = OrderStatus.ASSIGNED
-                driver_changed = True
-            elif new_driver_id is None and old_driver_id is not None:
-                # Снятие с водителя (unassign)
-                order.driver_id = None
-                order.status = OrderStatus.PENDING
-                driver_changed = True
+            if "new_driver_id" in fields_set:
+                new_driver_id = dto.new_driver_id
+                
+                if new_driver_id != old_driver_id:
+                    order.driver_id = new_driver_id
+                    
+                    if new_driver_id is None:
+                         # Снятие с водителя
+                         order.status = OrderStatus.PENDING
+                    elif order.status == OrderStatus.PENDING:
+                         # Назначение на водителя
+                         order.status = OrderStatus.ASSIGNED
+                    
+                    driver_changed = True
 
             try:
                 await self.uow.commit()
