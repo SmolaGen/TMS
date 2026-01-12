@@ -53,8 +53,8 @@ class NotificationService:
         pickup = order.pickup_address or "Не указан"
         dropoff = order.dropoff_address or "Не указан"
         time_str = "Не указано"
-        if order.time_range:
-            time_str = f"{order.time_range.lower.strftime('%H:%M')} - {order.time_range.upper.strftime('%H:%M')}"
+        if order.time_start and order.time_end:
+            time_str = f"{order.time_start.strftime('%H:%M')} - {order.time_end.strftime('%H:%M')}"
 
         text = (
             f"<b>🚗 Новый заказ #{order.id}</b>\n\n"

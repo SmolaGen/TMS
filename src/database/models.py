@@ -282,11 +282,15 @@ class Order(Base):
 
     @property
     def time_start(self) -> Optional[datetime]:
-        return self.time_range.lower if self.time_range else None
+        if not self.time_range:
+            return None
+        return getattr(self.time_range, 'lower', self.time_range[0] if isinstance(self.time_range, (list, tuple)) else None)
 
     @property
     def time_end(self) -> Optional[datetime]:
-        return self.time_range.upper if self.time_range else None
+        if not self.time_range:
+            return None
+        return getattr(self.time_range, 'upper', self.time_range[1] if isinstance(self.time_range, (list, tuple)) else None)
 
     @property
     def pickup_lat(self) -> Optional[float]:

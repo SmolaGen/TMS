@@ -1,10 +1,9 @@
-
 import httpx
-import logging
 from typing import Optional
 from src.database.models import Order
+from src.core.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 class WebhookService:
     """Сервис для отправки вебхуков внешним подрядчикам."""
