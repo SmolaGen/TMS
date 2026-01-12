@@ -21,9 +21,11 @@ from sqlalchemy import (
     Text,
     Numeric,
     text,
+    and_,
 )
-from sqlalchemy.dialects.postgresql import TSTZRANGE
+from sqlalchemy.dialects.postgresql import TSTZRANGE, ExcludeConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.schema import Column
 
 
 class Base(DeclarativeBase):
@@ -310,6 +312,15 @@ class Order(Base):
     
     __table_args__ = (
         Index("ix_orders_status_priority", "status", "priority"),
+        ExcludeConstraint(
+            (Column("driver_id"), "="),
+            (Column("time_range"), "&&"),
+            name="no_driver_time_overlap",
+            where=and_(
+                Column("driver_id").isnot(None),
+                Column("status").notin_(["completed", "cancelled"])
+            )
+        ),
     )
 
 

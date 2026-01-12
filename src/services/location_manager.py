@@ -35,6 +35,7 @@ class LocationManager:
     KEY_PREFIX = "driver:loc"           # Hash: {driver_id} -> {lat, lon, ts}
     SET_ACTIVE = "drivers:active"       # Set: [driver_id, ...]
     STREAM_NAME = "driver:locations"    # Единый Stream для всех водителей
+    STREAM_PREFIX = "driver:stream"     # Для персональных стримов водителей
     STREAM_MAXLEN = 100000              # Защита от переполнения RAM (~100K записей)
     TTL = 300  # 5 минут
 
@@ -87,6 +88,15 @@ class LocationManager:
             stream_data,
             maxlen=self.STREAM_MAXLEN,
             approximate=True  # ~ в MAXLEN для производительности
+        )
+
+        # 4. Персональный Stream для SyncWorker (история в PG)
+        personal_stream = f"{self.STREAM_PREFIX}:{driver_id}"
+        await self.redis.xadd(
+            personal_stream,
+            stream_data,
+            maxlen=1000,  # Храним немного, воркер должен быстро вычитывать
+            approximate=True
         )
 
         logger.debug(
