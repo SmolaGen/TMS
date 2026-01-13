@@ -156,12 +156,13 @@ def get_routing_service() -> RoutingService:
 def get_order_service(
     uow: SQLAlchemyUnitOfWork = Depends(get_uow),
     routing: RoutingService = Depends(get_routing_service),
+    geocoding: GeocodingService = Depends(get_geocoding_service),
     urgent_service: UrgentAssignmentService = Depends(get_urgent_assignment_service),
     notification_service: NotificationService = Depends(get_notification_service),
     webhook_service: WebhookService = Depends(get_webhook_service)
 ) -> OrderService:
     """Провайдер сервиса заказов."""
-    return OrderService(uow, routing, urgent_service, notification_service, webhook_service)
+    return OrderService(uow, routing, geocoding, urgent_service, notification_service, webhook_service)
 
 
 def get_excel_import_service(
