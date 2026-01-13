@@ -30,6 +30,8 @@ pytest-asyncio>=0.23.0
 python-dotenv>=1.0.0
 structlog>=24.1.0
 python-statemachine>=2.4.0
+pandas>=2.2.0
+openpyxl>=3.1.2
 
 # Telegram Bot
 aiogram>=3.15.0
