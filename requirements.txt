@@ -33,6 +33,7 @@ python-statemachine>=2.4.0
 pandas>=2.2.0
 openpyxl>=3.1.2
 python-multipart>=0.0.7
+apscheduler>=3.10.0
 
 # Telegram Bot
 aiogram>=3.15.0
