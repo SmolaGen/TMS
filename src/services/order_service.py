@@ -229,11 +229,17 @@ class OrderService:
                 raise HTTPException(status_code=404, detail=f"Заказ #{order_id} не найден")
             return OrderResponse.model_validate(order)
 
-    async def get_orders_list(self, start_date: Optional[datetime] = None, end_date: Optional[datetime] = None) -> List[OrderResponse]:
+    async def get_orders_list(self, start_date: Optional[datetime] = None, end_date: Optional[datetime] = None, include_geometry: bool = False) -> List[OrderResponse]:
         """Получает список заказов с опциональной фильтрацией по времени."""
         async with self.uow:
             orders = await self.uow.orders.get_all(start_date=start_date, end_date=end_date)
-            return [OrderResponse.model_validate(o) for o in orders]
+            responses = []
+            for o in orders:
+                resp = OrderResponse.model_validate(o)
+                if not include_geometry:
+                    resp.route_geometry = None
+                responses.append(resp)
+            return responses
 
     async def move_order(self, order_id: int, dto: OrderMoveRequest) -> Optional[OrderResponse]:
         """
