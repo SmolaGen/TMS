@@ -120,15 +120,15 @@ async def list_orders(
 @router.post("/orders/import/excel")
 async def import_orders_excel(
     file: UploadFile = File(...),
-    excel_service: ExcelImportService = Depends(get_excel_import_service),
-    geocoding_service: GeocodingService = Depends(get_geocoding_service)
+    excel_service: ExcelImportService = Depends(get_excel_import_service)
 ):
     """
     Импорт заказов из Excel.
+    Геокодинг выполняется автоматически для каждого заказа.
     """
     try:
         orders_data = await excel_service.parse_excel(file)
-        result = await excel_service.import_orders(orders_data, geocoding_service)
+        result = await excel_service.import_orders(orders_data)
         return result
     except Exception as e:
         logger.exception("excel_import_failed")

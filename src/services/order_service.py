@@ -12,6 +12,7 @@ from src.services.order_workflow import OrderStateMachine
 from src.services.urgent_assignment import UrgentAssignmentService
 from src.services.notification_service import NotificationService
 from src.services.webhook_service import WebhookService
+from src.services.geocoding import GeocodingService
 from src.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -27,12 +28,14 @@ class OrderService:
         self,
         uow: AbstractUnitOfWork,
         routing_service: RoutingService,
+        geocoding_service: Optional[GeocodingService] = None,
         urgent_service: Optional[UrgentAssignmentService] = None,
         notification_service: Optional[NotificationService] = None,
         webhook_service: Optional[WebhookService] = None
     ):
         self.uow = uow
         self.routing_service = routing_service
+        self.geocoding_service = geocoding_service
         self.urgent_service = urgent_service
         self.notification_service = notification_service
         self.webhook_service = webhook_service
@@ -41,12 +44,77 @@ class OrderService:
         """Создаёт экземпляр машины состояний для заказа."""
         return OrderStateMachine(order)
 
+    async def _ensure_coordinates(self, dto: OrderCreate) -> OrderCreate:
+        """
+        Гарантирует наличие координат, выполняя геокодинг если нужно.
+        """
+        # Если все координаты уже есть - ничего не делаем
+        if all([dto.pickup_lat, dto.pickup_lon, dto.dropoff_lat, dto.dropoff_lon]):
+            return dto
+        
+        if not self.geocoding_service:
+            raise HTTPException(
+                status_code=422,
+                detail="Координаты не указаны, а сервис геокодинга недоступен"
+            )
+        
+        # Геокодинг погрузки
+        if not dto.pickup_lat or not dto.pickup_lon:
+            if not dto.pickup_address:
+                raise HTTPException(
+                    status_code=422,
+                    detail="Необходимо указать либо координаты, либо адрес погрузки"
+                )
+            
+            logger.info("geocoding_pickup", address=dto.pickup_address)
+            result = await self.geocoding_service.geocode(dto.pickup_address)
+            
+            if not result:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Не удалось найти адрес погрузки: {dto.pickup_address}"
+                )
+            
+            dto.pickup_lat = result.lat
+            dto.pickup_lon = result.lon
+            logger.info("geocoded_pickup", lat=result.lat, lon=result.lon)
+        
+        # Геокодинг выгрузки
+        if not dto.dropoff_lat or not dto.dropoff_lon:
+            if not dto.dropoff_address:
+                raise HTTPException(
+                    status_code=422,
+                    detail="Необходимо указать либо координаты, либо адрес выгрузки"
+                )
+            
+            logger.info("geocoding_dropoff", address=dto.dropoff_address)
+            result = await self.geocoding_service.geocode(dto.dropoff_address)
+            
+            if not result:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Не удалось найти адрес выгрузки: {dto.dropoff_address}"
+                )
+            
+            dto.dropoff_lat = result.lat
+            dto.dropoff_lon = result.lon
+            logger.info("geocoded_dropoff", lat=result.lat, lon=result.lon)
+        
+        return dto
+
     async def create_order(self, dto: OrderCreate, driver_id: Optional[int] = None) -> OrderResponse:
         """
         Создаёт новый заказ с автоматическим расчётом цены и времени.
+        Выполняет геокодинг, если координаты не указаны.
         """
+        # 0. Гарантируем наличие координат
+        dto = await self._ensure_coordinates(dto)
+
         target_driver_id = driver_id if driver_id is not None else dto.driver_id
-        logger.info("creating_order", driver_id=target_driver_id, pickup=(dto.pickup_lat, dto.pickup_lon))
+        logger.info("creating_order", 
+                    driver_id=target_driver_id, 
+                    pickup_addr=dto.pickup_address,
+                    pickup_coords=(dto.pickup_lat, dto.pickup_lon))
         
         # 1. Запрос к RoutingService для получения дистанции и времени
         origin = (dto.pickup_lon, dto.pickup_lat)

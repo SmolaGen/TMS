@@ -67,17 +67,6 @@ class ExcelImportService:
                 elif priority_str == 'high': priority = OrderPriority.HIGH
                 elif priority_str == 'low': priority = OrderPriority.LOW
 
-                # Мы не знаем координат из Excel, поэтому используем геокодинг
-                # TODO: Интегрировать геокодинг в OrderService или здесь
-                # Для начала предположим, что OrderService.create_order требует координат
-                # Нам нужно сначала найти координаты по адресу.
-                
-                # Но если у нас нет координат, мы не можем создать заказ через текущий OrderService.
-                # Нам нужно либо добавить геокодинг в импорт, либо разрешить создание без координат.
-                
-                # Временно пропустим те, где нет координат, если они не указаны в Excel.
-                # Если в Excel есть колонки "Широта погрузки" и т.д.
-                
                 orders.append({
                     "pickup_address": pickup_address,
                     "dropoff_address": dropoff_address,
@@ -97,37 +86,28 @@ class ExcelImportService:
                 
         return orders
 
-    async def import_orders(self, orders_data: List[Dict[str, Any]], geocoding_service) -> Dict[str, Any]:
-        """Импорт заказов с геокодингом."""
+    async def import_orders(self, orders_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Импорт заказов (геокодинг выполняется автоматически в OrderService)."""
         created = 0
         failed = 0
         errors = []
         
         for data in orders_data:
             try:
-                # 1. Геокодинг если координат нет
-                if not data.get('pickup_lat') or not data.get('pickup_lon'):
-                    res = await geocoding_service.geocode(data['pickup_address'])
-                    if res:
-                        data['pickup_lat'] = res.lat
-                        data['pickup_lon'] = res.lon
-                    else:
-                        raise ValueError(f"Не удалось найти адрес погрузки: {data['pickup_address']}")
-
-                if not data.get('dropoff_lat') or not data.get('dropoff_lon'):
-                    res = await geocoding_service.geocode(data['dropoff_address'])
-                    if res:
-                        data['dropoff_lat'] = res.lat
-                        data['dropoff_lon'] = res.lon
-                    else:
-                        raise ValueError(f"Не удалось найти адрес выгрузки: {data['dropoff_address']}")
-                
-                # 2. Создание заказа
+                # В OrderService.create_order теперь встроен автоматический геокодинг
                 dto = OrderCreate(**data)
                 await self.order_service.create_order(dto)
                 created += 1
             except Exception as e:
                 failed += 1
-                errors.append({"address": data['pickup_address'], "error": str(e)})
+                error_msg = str(e)
+                if hasattr(e, 'detail'):
+                    error_msg = e.detail
+                
+                logger.error(f"Import failed for {data.get('pickup_address')}: {error_msg}")
+                errors.append({
+                    "address": data.get('pickup_address', 'unknown'), 
+                    "error": error_msg
+                })
                 
         return {"created": created, "failed": failed, "errors": errors}

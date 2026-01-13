@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from src.database.models import OrderStatus, OrderPriority
 
 class OrderCreate(BaseModel):
@@ -10,16 +10,27 @@ class OrderCreate(BaseModel):
     external_id: Optional[str] = Field(None, description="ID заказа во внешней системе")
     time_start: datetime = Field(..., description="Начало интервала выполнения")
     time_end: Optional[datetime] = Field(None, description="Конец интервала выполнения (если пусто - рассчитается по маршруту)")
-    pickup_lat: float = Field(..., ge=-90, le=90)
-    pickup_lon: float = Field(..., ge=-180, le=180)
-    dropoff_lat: float = Field(..., ge=-90, le=90)
-    dropoff_lon: float = Field(..., ge=-180, le=180)
+    pickup_lat: Optional[float] = Field(None, ge=-90, le=90, description="Широта погрузки")
+    pickup_lon: Optional[float] = Field(None, ge=-180, le=180, description="Долгота погрузки")
+    dropoff_lat: Optional[float] = Field(None, ge=-90, le=90, description="Широта выгрузки")
+    dropoff_lon: Optional[float] = Field(None, ge=-180, le=180, description="Долгота выгрузки")
     priority: OrderPriority = OrderPriority.NORMAL
     comment: Optional[str] = None
-    pickup_address: Optional[str] = None
-    dropoff_address: Optional[str] = None
+    pickup_address: Optional[str] = Field(None, description="Адрес погрузки (обязателен, если нет координат)")
+    dropoff_address: Optional[str] = Field(None, description="Адрес выгрузки (обязателен, если нет координат)")
     customer_phone: Optional[str] = None
     customer_name: Optional[str] = None
+
+    @model_validator(mode='after')
+    def validate_coordinates_or_address(self) -> 'OrderCreate':
+        """Проверяем, что указаны либо координаты, либо адрес для обеих точек."""
+        if not (self.pickup_lat and self.pickup_lon) and not self.pickup_address:
+            raise ValueError("Необходимо указать либо координаты погрузки, либо адрес")
+        
+        if not (self.dropoff_lat and self.dropoff_lon) and not self.dropoff_address:
+            raise ValueError("Необходимо указать либо координаты выгрузки, либо адрес")
+        
+        return self
 
 class OrderMoveRequest(BaseModel):
     """Схема для Drag-and-Drop (изменение времени и водителя)."""
