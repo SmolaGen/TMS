@@ -35,6 +35,7 @@ from src.schemas.batch_assignment import (
     UnassignedOrdersResponse,
     DriverScheduleResponse
 )
+from src.schemas.stats import DetailedStatsResponse
 from src.core.logging import get_logger
 from src.config import settings
 from src.api.contractors import router as contractor_router
@@ -111,11 +112,12 @@ async def create_order(
 async def list_orders(
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
+    include_geometry: bool = False,
     current_driver: Driver = Depends(get_current_driver),
     service: OrderService = Depends(get_order_service)
 ):
     """Получить список заказов с опциональной фильтрацией по времени."""
-    return await service.get_orders_list(start_date=start, end_date=end)
+    return await service.get_orders_list(start_date=start, end_date=end, include_geometry=include_geometry)
 
 @router.post("/orders/import/excel")
 async def import_orders_excel(
@@ -618,4 +620,135 @@ async def get_driver_schedule(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Ошибка при получении расписания водителя"
+        )
+
+
+# --- Statistics ---
+
+@router.get("/stats/detailed", response_model=DetailedStatsResponse)
+async def get_detailed_stats(
+    start: Optional[datetime] = None,
+    end: Optional[datetime] = None,
+    current_driver: Driver = Depends(get_current_driver),
+    order_service: OrderService = Depends(get_order_service),
+    driver_service: DriverService = Depends(get_driver_service)
+):
+    """
+    Получить детализированную статистику за период.
+    
+    По умолчанию возвращает статистику за последние 7 дней.
+    """
+    from datetime import timedelta
+    from collections import defaultdict
+    from src.database.models import DriverStatus
+    
+    # Определяем период
+    if not end:
+        end = datetime.now()
+    if not start:
+        start = end - timedelta(days=7)
+    
+    try:
+        # Получаем заказы за период
+        orders = await order_service.get_orders_list(start_date=start, end_date=end)
+        
+        # Статистика по статусам
+        by_status = defaultdict(int)
+        for order in orders:
+            by_status[order.status.value] += 1
+        
+        # Статистика по приоритетам
+        by_priority = defaultdict(int)
+        for order in orders:
+            by_priority[order.priority.value] += 1
+        
+        # Статистика по часам
+        by_hour = defaultdict(int)
+        for order in orders:
+            if order.time_start:
+                hour = order.time_start.hour
+                by_hour[hour] += 1
+        hourly_stats = [{"hour": h, "count": by_hour.get(h, 0)} for h in range(24)]
+        
+        # Статистика по дням
+        by_day = defaultdict(lambda: {"count": 0, "revenue": 0.0})
+        for order in orders:
+            if order.time_start:
+                date_str = order.time_start.strftime("%d.%m")
+                by_day[date_str]["count"] += 1
+                by_day[date_str]["revenue"] += float(order.price or 0)
+        
+        daily_stats = [{"date": d, "count": v["count"], "revenue": v["revenue"]} for d, v in sorted(by_day.items())]
+        
+        # Общая выручка
+        total_revenue = sum(float(o.price or 0) for o in orders)
+        avg_revenue = total_revenue / len(orders) if orders else 0
+        
+        # Водители
+        all_drivers = await driver_service.get_all_drivers()
+        active_drivers = [d for d in all_drivers if d.status == DriverStatus.AVAILABLE or d.status == DriverStatus.BUSY]
+        
+        # Топ водителей (по количеству выполненных заказов)
+        driver_orders = defaultdict(lambda: {"completed": 0, "revenue": 0.0, "name": ""})
+        for order in orders:
+            if order.driver_id and order.status.value == "completed":
+                driver_orders[order.driver_id]["completed"] += 1
+                driver_orders[order.driver_id]["revenue"] += float(order.price or 0)
+                driver_orders[order.driver_id]["name"] = order.driver_name or f"Driver #{order.driver_id}"
+        
+        top_drivers = sorted(
+            [
+                {
+                    "driver_id": did,
+                    "name": data["name"],
+                    "completed_orders": data["completed"],
+                    "total_revenue": data["revenue"],
+                    "average_rating": None
+                }
+                for did, data in driver_orders.items()
+            ],
+            key=lambda x: x["completed_orders"],
+            reverse=True
+        )[:5]
+        
+        # Статистика маршрутов
+        total_distance = sum(float(o.distance_meters or 0) for o in orders) / 1000  # в км
+        avg_distance = total_distance / len(orders) if orders else 0
+        
+        longest_order = max(orders, key=lambda o: o.distance_meters or 0, default=None)
+        longest_route = {
+            "distance": float(longest_order.distance_meters or 0) / 1000 if longest_order else 0,
+            "order_id": longest_order.id if longest_order else 0
+        }
+        
+        return DetailedStatsResponse(
+            period={
+                "start": start.isoformat(),
+                "end": end.isoformat()
+            },
+            orders={
+                "total": len(orders),
+                "byStatus": dict(by_status),
+                "byPriority": dict(by_priority),
+                "byHour": hourly_stats,
+                "byDay": daily_stats,
+                "averageRevenue": avg_revenue,
+                "totalRevenue": total_revenue
+            },
+            drivers={
+                "total": len(all_drivers),
+                "active": len(active_drivers),
+                "topDrivers": top_drivers
+            },
+            routes={
+                "totalDistance": total_distance,
+                "averageDistance": avg_distance,
+                "longestRoute": longest_route
+            }
+        )
+    except Exception as e:
+        logger.error(f"Failed to get detailed stats: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Ошибка при получении статистики"
         )
