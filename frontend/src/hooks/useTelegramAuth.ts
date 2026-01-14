@@ -139,7 +139,6 @@ export function useTelegramAuth() {
         const tg = (window as any).Telegram?.WebApp;
 
         if (!tg || !tg.initData) {
-            // Нет ни токена, ни initData — показываем страницу авторизации
             setState({
                 isLoading: false,
                 isAuthenticated: false,
@@ -149,10 +148,6 @@ export function useTelegramAuth() {
             });
             return;
         }
-
-        // 3. Есть initData — авторизуемся через Mini App
-        tg.ready();
-        tg.expand();
 
         const initData = tg.initData;
         const initDataUnsafe = tg.initDataUnsafe;

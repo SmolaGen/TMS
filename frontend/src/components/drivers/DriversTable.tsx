@@ -51,6 +51,22 @@ export const DriversTable: React.FC<DriversTableProps> = ({
             ),
         },
         {
+            title: 'Онлайн',
+            dataIndex: 'is_online',
+            key: 'is_online',
+            width: 100,
+            filters: [
+                { text: 'Онлайн', value: true },
+                { text: 'Оффлайн', value: false },
+            ],
+            onFilter: (value, record) => record.is_online === value,
+            render: (isOnline: boolean) => (
+                <Tag color={isOnline ? 'green' : 'red'} icon={isOnline ? '🟢' : '⚫'}>
+                    {isOnline ? 'Онлайн' : 'Оффлайн'}
+                </Tag>
+            ),
+        },
+        {
             title: 'Статус',
             dataIndex: 'status',
             key: 'status',

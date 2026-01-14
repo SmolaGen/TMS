@@ -23,6 +23,7 @@ class DriverResponse(DriverBase):
 
     id: int
     status: DriverStatus
+    is_online: bool = Field(False, description="Реально онлайн (отправлял геолокацию < 5 мин)")
     created_at: datetime
     updated_at: datetime
 

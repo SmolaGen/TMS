@@ -1,7 +1,7 @@
 from aiogram import Router, F
 from aiogram.filters import Command
-from aiogram.types import Message, CallbackQuery, WebAppInfo
-from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.types import Message, CallbackQuery, WebAppInfo, ReplyKeyboardMarkup, KeyboardButton
+from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 from datetime import date
 
 from src.config import settings
@@ -155,12 +155,21 @@ async def cb_shift_toggle(callback: CallbackQuery, driver_id: int):
 @router.message(Command("start"))
 async def cmd_start(message: Message, driver_id: int) -> None:
     """Приветственное сообщение для авторизованного водителя."""
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="🚗 Открыть приложение", web_app=WebAppInfo(url=settings.WEBAPP_URL))],
+            [KeyboardButton(text="📍 Отправить геолокацию", request_location=True)]
+        ],
+        resize_keyboard=True
+    )
+    
     await message.answer(
         "<b>👋 Добро пожаловать в TMS!</b>\n\n"
         "Вы авторизованы как водитель.\n\n"
         "<b>Доступные команды:</b>\n"
-        "/orders - Открыть список заказов\n\n"
-        "<b>📍 Отправка геолокации:</b>\n"
-        "Используйте 'Отправить геолокацию' → 'Share Live Location' "
-        "для трансляции своего местоположения диспетчеру."
+        "/orders - Список заказов\n"
+        "/shift - Управление сменой\n"
+        "/current - Текущий заказ\n\n"
+        "Нажмите кнопку ниже для открытия приложения 👇",
+        reply_markup=keyboard
     )
