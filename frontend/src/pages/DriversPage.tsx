@@ -36,7 +36,8 @@ export const DriversPage: React.FC = () => {
         const available = safeDrivers.filter(d => d.status === DriverStatus.AVAILABLE).length;
         const busy = safeDrivers.filter(d => d.status === DriverStatus.BUSY).length;
         const offline = safeDrivers.filter(d => d.status === DriverStatus.OFFLINE).length;
-        return { total: safeDrivers.length, available, busy, offline };
+        const online = safeDrivers.filter(d => d.is_online).length;
+        return { total: safeDrivers.length, available, busy, offline, online };
     }, [safeDrivers]);
 
     // Фильтрация водителей
@@ -73,7 +74,7 @@ export const DriversPage: React.FC = () => {
             {/* Заголовок с KPI */}
             <div style={{ marginBottom: 16 }}>
                 <Row gutter={16}>
-                    <Col span={6}>
+                    <Col span={5}>
                         <div className="glass-card" style={{ padding: '12px' }}>
                             <Statistic
                                 title="Всего водителей"
@@ -82,7 +83,17 @@ export const DriversPage: React.FC = () => {
                             />
                         </div>
                     </Col>
-                    <Col span={6}>
+                    <Col span={5}>
+                        <div className="glass-card" style={{ padding: '12px' }}>
+                            <Statistic
+                                title="Реально онлайн"
+                                value={stats.online}
+                                valueStyle={{ color: '#52c41a' }}
+                                prefix={<CheckCircleOutlined />}
+                            />
+                        </div>
+                    </Col>
+                    <Col span={5}>
                         <div className="glass-card" style={{ padding: '12px' }}>
                             <Statistic
                                 title="Доступны"
@@ -92,7 +103,7 @@ export const DriversPage: React.FC = () => {
                             />
                         </div>
                     </Col>
-                    <Col span={6}>
+                    <Col span={5}>
                         <div className="glass-card" style={{ padding: '12px' }}>
                             <Statistic
                                 title="Заняты"
@@ -102,7 +113,7 @@ export const DriversPage: React.FC = () => {
                             />
                         </div>
                     </Col>
-                    <Col span={6}>
+                    <Col span={4}>
                         <div className="glass-card" style={{ padding: '12px' }}>
                             <Statistic
                                 title="Оффлайн"

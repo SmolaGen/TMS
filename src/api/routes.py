@@ -294,10 +294,21 @@ async def register_driver(
 @router.get("/drivers", response_model=List[DriverResponse])
 async def list_drivers(
     current_driver: Driver = Depends(get_current_driver),
-    service: DriverService = Depends(get_driver_service)
+    service: DriverService = Depends(get_driver_service),
+    manager: LocationManager = Depends(get_location_manager)
 ):
-    """Получить список всех водителей (защищено)."""
-    return await service.get_all_drivers()
+    """
+    Получить список всех водителей (защищено).
+    Включает is_online статус на основе активности в Redis (геолокация < 5 минут).
+    """
+    drivers = await service.get_all_drivers()
+    online_driver_ids = await manager.get_active_driver_ids()
+    online_set = set(online_driver_ids)
+
+    for driver in drivers:
+        driver.is_online = driver.id in online_set
+
+    return drivers
 
 @router.get("/drivers/{driver_id}", response_model=DriverResponse)
 async def get_driver(
@@ -751,4 +762,70 @@ async def get_detailed_stats(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Ошибка при получении статистики"
+        )
+
+
+@router.get("/stats/overview")
+async def get_stats_overview(
+    current_driver: Driver = Depends(get_current_driver),
+    order_service: OrderService = Depends(get_order_service),
+    driver_service: DriverService = Depends(get_driver_service)
+):
+    """
+    Получить краткую статистику для Dashboard KPI.
+    Возвращает активные заказы, свободных водителей, завершенные сегодня, алерты.
+    """
+    from datetime import timedelta
+    from src.database.models import DriverStatus, OrderStatus
+    
+    try:
+        today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_end = today_start + timedelta(days=1)
+        
+        # Получаем все заказы за сегодня
+        orders = await order_service.get_orders_list(start_date=today_start, end_date=today_end)
+        
+        # Активные заказы (не completed, не cancelled)
+        active_statuses = [OrderStatus.PENDING, OrderStatus.ASSIGNED, OrderStatus.EN_ROUTE_PICKUP, 
+                          OrderStatus.DRIVER_ARRIVED, OrderStatus.IN_PROGRESS]
+        active_orders = len([o for o in orders if o.status in active_statuses])
+        
+        # Завершенные сегодня
+        completed_today = len([o for o in orders if o.status == OrderStatus.COMPLETED])
+        
+        # Водители
+        all_drivers = await driver_service.get_all_drivers()
+        free_drivers = len([d for d in all_drivers if d.status == DriverStatus.AVAILABLE])
+        
+        # Алерты — заказы без водителя более 10 минут
+        alerts = []
+        now = datetime.now()
+        for order in orders:
+            if order.status == OrderStatus.PENDING and order.created_at:
+                age_minutes = (now - order.created_at).total_seconds() / 60
+                if age_minutes > 10:
+                    alerts.append({
+                        "id": str(order.id),
+                        "type": "warning",
+                        "title": f"Заказ #{order.id} без водителя",
+                        "description": f"Ожидает назначения более {int(age_minutes)} минут",
+                        "timestamp": order.created_at.isoformat(),
+                        "orderId": order.id
+                    })
+        
+        return {
+            "stats": {
+                "activeOrders": active_orders,
+                "freeDrivers": free_drivers,
+                "completedToday": completed_today,
+                "averageRating": 4.8,  # TODO: добавить реальный расчет
+                "averageWaitTime": 5   # TODO: добавить реальный расчет
+            },
+            "alerts": alerts[:10]  # Максимум 10 алертов
+        }
+    except Exception as e:
+        logger.error(f"Failed to get stats overview: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Ошибка при получении обзора статистики"
         )

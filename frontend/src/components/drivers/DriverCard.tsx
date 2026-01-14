@@ -56,9 +56,16 @@ export const DriverCard: React.FC<DriverCardProps> = ({ driver, onClick }) => {
                         <Title level={5} style={{ margin: 0 }}>
                             {driver.name}
                         </Title>
-                        <Tag color={config.color} style={{ marginTop: 4 }}>
-                            {config.text}
-                        </Tag>
+                        <Space size={4}>
+                            {driver.is_online && (
+                                <Tag color="green" style={{ marginTop: 4 }}>
+                                    🟢 Онлайн
+                                </Tag>
+                            )}
+                            <Tag color={config.color} style={{ marginTop: 4 }}>
+                                {config.text}
+                            </Tag>
+                        </Space>
                     </div>
                 </Space>
 

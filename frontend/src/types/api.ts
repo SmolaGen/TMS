@@ -103,6 +103,7 @@ export interface DriverResponse {
   name: string;
   phone: string | null;
   status: DriverStatus;
+  is_online: boolean;
   is_active: boolean;
   created_at: string;
   updated_at: string;

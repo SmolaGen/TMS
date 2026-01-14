@@ -51,27 +51,19 @@ async def get_urgent_assignment_service(
 ) -> UrgentAssignmentService:
     """Провайдер сервиса срочного назначения."""
     from src.database.connection import async_session_factory
-    from sqlalchemy.ext.asyncio import AsyncSession
     
-    session = AsyncSession(async_session_factory)
-    try:
+    async with async_session_factory() as session:
         yield UrgentAssignmentService(session, location_manager)
-    finally:
-        await session.close()
 
 async def get_notification_service(
     request: Request,
 ) -> NotificationService:
     """Провайдер сервиса уведомлений."""
     from src.database.connection import async_session_factory
-    from sqlalchemy.ext.asyncio import AsyncSession
     
     bot = getattr(request.app.state, "bot", None)
-    session = AsyncSession(async_session_factory)
-    try:
+    async with async_session_factory() as session:
         yield NotificationService(bot, session)
-    finally:
-        await session.close()
 
 def get_auth_service() -> AuthService:
     """Провайдер сервиса аутентификации."""
@@ -178,10 +170,6 @@ async def get_batch_assignment_service(
 ) -> BatchAssignmentService:
     """Провайдер сервиса batch-распределения заказов."""
     from src.database.connection import async_session_factory
-    from sqlalchemy.ext.asyncio import AsyncSession
 
-    session = AsyncSession(async_session_factory)
-    try:
+    async with async_session_factory() as session:
         yield BatchAssignmentService(session, order_service, notification_service)
-    finally:
-        await session.close()

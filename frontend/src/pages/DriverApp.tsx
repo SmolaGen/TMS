@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Layout, Card, Button, Typography, Space, Badge, Tag } from 'antd';
 import {
     EnvironmentOutlined,
@@ -16,18 +16,12 @@ const { Title, Text } = Typography;
 
 export const DriverApp: React.FC = () => {
     const { user } = useTelegramAuth();
-    const { latitude, longitude, error, isTracking, startTracking, stopTracking } = useGeoTracking(user?.id);
+    const { latitude, longitude, error, isTracking, startTracking, stopTracking } = useGeoTracking(user?.driver_id);
     const { data: orders = [] } = useOrdersRaw();
 
-    // Фильтруем заказы для текущего водителя по внутреннему ID (не Telegram ID!)
     const myOrders = orders.filter(o => o.driver_id === user?.driver_id);
 
-    useEffect(() => {
-        // Автоматически запускаем трекинг при входе
-        if (!isTracking) {
-            startTracking();
-        }
-    }, [isTracking, startTracking]);
+
 
     return (
         <Layout style={{ minHeight: '100vh', background: 'var(--tms-bg-layout)' }}>
@@ -59,24 +53,37 @@ export const DriverApp: React.FC = () => {
                                 <Text type="secondary" style={{ fontSize: '12px' }}>
                                     {latitude && longitude
                                         ? `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`
-                                        : error || 'Ожидание координат...'}
+                                        : error || (isTracking ? 'Ожидание координат...' : 'Нажмите "Начать смену" для активации')}
                                 </Text>
                             </div>
                         </Space>
                     </Card>
 
                     {/* Кнопка смены */}
-                    <Button
-                        type={isTracking ? 'default' : 'primary'}
-                        danger={isTracking}
-                        icon={isTracking ? <SyncOutlined spin={isTracking} /> : <CheckCircleOutlined />}
-                        size="large"
-                        block
-                        style={{ height: '50px', borderRadius: '12px', fontWeight: 'bold' }}
-                        onClick={isTracking ? stopTracking : startTracking}
-                    >
-                        {isTracking ? 'Завершить смену' : 'Начать смену'}
-                    </Button>
+                    {!isTracking ? (
+                        <Button
+                            type="primary"
+                            icon={<CheckCircleOutlined />}
+                            size="large"
+                            block
+                            style={{ height: '50px', borderRadius: '12px', fontWeight: 'bold' }}
+                            onClick={startTracking}
+                        >
+                            Начать смену
+                        </Button>
+                    ) : (
+                        <Button
+                            type="default"
+                            danger
+                            icon={<SyncOutlined spin={isTracking} />}
+                            size="large"
+                            block
+                            style={{ height: '50px', borderRadius: '12px', fontWeight: 'bold' }}
+                            onClick={stopTracking}
+                        >
+                            Завершить смену
+                        </Button>
+                    )}
 
                     {/* Список заказов */}
                     <Title level={5}>Мои заказы ({myOrders.length})</Title>
