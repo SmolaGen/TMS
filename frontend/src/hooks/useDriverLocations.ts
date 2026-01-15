@@ -1,14 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchDriverLocations } from '../api/drivers';
-import { isDevMode } from '../components/DevAuthSelector';
 import { MOCK_DRIVER_LOCATIONS } from '../api/mockData';
 
 export const useDriverLocations = () => {
     return useQuery({
         queryKey: ['driver-locations'],
         queryFn: async () => {
-            // В dev-режиме возвращаем мок-данные
-            if (isDevMode()) {
+            // Используем мок-данные только если явно включено в localStorage
+            if (localStorage.getItem('tms_use_mocks') === 'true') {
                 console.log('[DEV] Using mock driver locations');
                 return MOCK_DRIVER_LOCATIONS;
             }

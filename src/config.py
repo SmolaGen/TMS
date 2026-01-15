@@ -52,7 +52,7 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
 
     # Telegram Bot
-    TELEGRAM_BOT_TOKEN: str = "8237141688:AAHGU9MTuw42AEaQVZpM4UHT9SoxkE2dC9U"
+    TELEGRAM_BOT_TOKEN: str = "8237141688:AAGcLKDClo_RUxXRdO7CeGjNw_zwzITHf4w"
     TELEGRAM_WEBHOOK_URL: str = "https://myappnf.ru/bot/webhook"
     WEBAPP_URL: str = "https://myappnf.ru/webapp"
     ADMIN_USERNAME: str = "alsmolentsev"

@@ -13,7 +13,6 @@ import {
     assignOrder,
     importOrdersExcel
 } from '../api/orders';
-import { isDevMode } from '../components/DevAuthSelector';
 import { MOCK_ORDERS } from '../api/mockData';
 import type { OrderResponse, TimelineOrder, OrderMoveRequest } from '../types/api';
 
@@ -58,7 +57,7 @@ export const useOrdersRaw = (dateRange?: [Date, Date]) => {
         queryKey: ['orders', dateRange?.map(d => d.toISOString())],
         queryFn: async () => {
             // В dev-режиме возвращаем мок-данные
-            if (isDevMode()) {
+            if (localStorage.getItem('tms_use_mocks') === 'true') {
                 console.log('[DEV] Using mock orders data');
                 return MOCK_ORDERS;
             }
