@@ -19,7 +19,6 @@ rsync -avz --delete \
     --exclude '.DS_Store' \
     --exclude '.env' \
     --exclude 'frontend/node_modules' \
-    --exclude 'frontend/dist' \
     --exclude '.pytest_cache' \
     --exclude '.agent' \
     --exclude '.cursor' \

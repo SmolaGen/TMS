@@ -37,7 +37,7 @@ class LocationManager:
     STREAM_NAME = "driver:locations"    # Единый Stream для всех водителей
     STREAM_PREFIX = "driver:stream"     # Для персональных стримов водителей
     STREAM_MAXLEN = 100000              # Защита от переполнения RAM (~100K записей)
-    TTL = 300  # 5 минут
+    TTL = 600  # 10 минут
 
     def __init__(self, redis: Redis):
         self.redis = redis

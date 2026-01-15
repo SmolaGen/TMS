@@ -23,15 +23,24 @@ async def process_location(message: Message, driver: Driver) -> None:
     Используется как для message, так и для edited_message.
     """
     # 1. Проверяем роль пользователя
-    if driver.role != UserRole.DRIVER:
-        # Админы и диспетчеры могут слать локацию, но мы её не сохраняем в трекинг
+    if driver.role not in (UserRole.DRIVER, UserRole.ADMIN, UserRole.DISPATCHER):
+        # Другие роли (например, PENDING) игнорируем
         logger.debug(
             "location_update_ignored",
             driver_id=driver.id,
             role=driver.role,
-            reason="not_a_driver"
+            reason="not_authorized_role"
         )
         return
+    
+    if driver.role != UserRole.DRIVER:
+        logger.info(
+            "staff_location_received",
+            user_id=driver.id,
+            role=driver.role,
+            lat=message.location.latitude if message.location else None,
+            lon=message.location.longitude if message.location else None
+        )
 
     location = message.location
     if location is None:
