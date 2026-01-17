@@ -168,15 +168,25 @@ async def websocket_endpoint(websocket: WebSocket):
     """WebSocket эндпоинт для real-time обновлений."""
     # Проверка Origin для безопасности (CORS для WebSocket)
     origin = websocket.headers.get("origin")
+    host = websocket.headers.get("host")
+    upgrade = websocket.headers.get("upgrade")
+    connection = websocket.headers.get("connection")
+    
+    logger.info("websocket_attempt", origin=origin, host=host, upgrade=upgrade, connection=connection)
+
     allowed_origins = settings.CORS_ORIGINS.split(",")
     
     if origin and origin not in allowed_origins:
-        logger.warning("websocket_rejected_origin", origin=origin)
+        logger.warning("websocket_rejected_origin", origin=origin, allowed=allowed_origins)
         await websocket.close(code=1008, reason="Origin not allowed")
         return
     
-    await websocket.accept()
-    logger.info("websocket_connected", origin=origin)
+    try:
+        await websocket.accept()
+        logger.info("websocket_accepted", origin=origin)
+    except Exception as e:
+        logger.error("websocket_accept_failed", error=str(e), origin=origin)
+        return
     
     # Отправляем приветственное сообщение
     try:

@@ -183,8 +183,17 @@ async def cancel_order(
     order_service: OrderService = Depends(get_order_service)
 ):
     """Отменить заказ."""
-    await service.cancel_order(order_id, reason)
-    return await order_service.get_order(order_id)
+    from statemachine.exceptions import TransitionNotAllowed
+    try:
+        await service.cancel_order(order_id, reason)
+        return await order_service.get_order(order_id)
+    except TransitionNotAllowed as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Недопустимый переход: {str(e)}"
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 @router.post("/orders/{order_id}/complete", response_model=OrderResponse)
 async def complete_order(
@@ -194,8 +203,37 @@ async def complete_order(
     order_service: OrderService = Depends(get_order_service)
 ):
     """Завершить заказ."""
-    await service.complete_order(order_id)
-    return await order_service.get_order(order_id)
+    from statemachine.exceptions import TransitionNotAllowed
+    try:
+        await service.complete_order(order_id)
+        return await order_service.get_order(order_id)
+    except TransitionNotAllowed as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Недопустимый переход: {str(e)}"
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+@router.post("/orders/{order_id}/depart", response_model=OrderResponse)
+async def mark_departed(
+    order_id: int,
+    current_driver: Driver = Depends(get_current_driver),
+    service: OrderWorkflowService = Depends(get_order_workflow_service),
+    order_service: OrderService = Depends(get_order_service)
+):
+    """Отметить выезд водителя к клиенту."""
+    from statemachine.exceptions import TransitionNotAllowed
+    try:
+        await service.mark_departed(order_id)
+        return await order_service.get_order(order_id)
+    except TransitionNotAllowed as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Недопустимый переход: {str(e)}"
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 @router.post("/orders/{order_id}/arrive", response_model=OrderResponse)
 async def mark_arrived(
@@ -205,8 +243,17 @@ async def mark_arrived(
     order_service: OrderService = Depends(get_order_service)
 ):
     """Отметить прибытие водителя."""
-    await service.mark_arrived(order_id)
-    return await order_service.get_order(order_id)
+    from statemachine.exceptions import TransitionNotAllowed
+    try:
+        await service.mark_arrived(order_id)
+        return await order_service.get_order(order_id)
+    except TransitionNotAllowed as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Недопустимый переход: {str(e)}"
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 @router.post("/orders/{order_id}/start", response_model=OrderResponse)
 async def start_trip(
@@ -216,9 +263,17 @@ async def start_trip(
     order_service: OrderService = Depends(get_order_service)
 ):
     """Начать поездку."""
-    await service.start_trip(order_id)
-    await service.start_trip(order_id)
-    return await order_service.get_order(order_id)
+    from statemachine.exceptions import TransitionNotAllowed
+    try:
+        await service.start_trip(order_id)
+        return await order_service.get_order(order_id)
+    except TransitionNotAllowed as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Недопустимый переход: {str(e)}"
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 @router.get("/orders/active", response_model=List[OrderResponse])
 async def get_active_orders(
