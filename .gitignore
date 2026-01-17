@@ -75,3 +75,7 @@ init_osrm.sh
 AGENTS.md
 Check_tg_app.md
 .env.example
+
+# Ralph state files
+.ralph/state/
+.ralph/logs/

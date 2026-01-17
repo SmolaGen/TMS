@@ -13,7 +13,7 @@ import time
 # CONFIG
 API_KEY = os.getenv("VIBEPROXY_API_KEY", "sk-vibeproxy-placeholder")
 API_URL = os.getenv("VIBEPROXY_URL", "http://127.0.0.1:8317/v1/chat/completions")
-MODEL = os.getenv("VIBEPROXY_MODEL", "claude-sonnet-4-20250514")  # Используем стандартную модель
+MODEL = os.getenv("VIBEPROXY_MODEL", "gemini-2.5-flash")  # Работающая модель VibeProxy
 
 MAX_RETRIES = 3
 RETRY_DELAY = 10  # секунд
