@@ -1,0 +1,37 @@
+```python
+from sqlalchemy.orm import Session
+from typing import List, Optional
+
+from ..models.order import Order
+from ..schemas.order import OrderCreate, OrderUpdate
+
+def get_order(db: Session, order_id: int) -> Optional[Order]:
+    return db.query(Order).filter(Order.id == order_id).first()
+
+def get_orders(db: Session, skip: int = 0, limit: int = 100) -> List[Order]:
+    return db.query(Order).offset(skip).limit(limit).all()
+
+def create_order(db: Session, order: OrderCreate) -> Order:
+    db_order = Order(**order.dict())
+    db.add(db_order)
+    db.commit()
+    db.refresh(db_order)
+    return db_order
+
+def update_order(db: Session, order_id: int, order_update: OrderUpdate) -> Optional[Order]:
+    db_order = db.query(Order).filter(Order.id == order_id).first()
+    if db_order:
+        update_data = order_update.dict(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(db_order, key, value)
+        db.add(db_order)
+        db.commit()
+        db.refresh(db_order)
+    return db_order
+
+def delete_order(db: Session, order_id: int) -> Optional[Order]:
+    db_order = db.query(Order).filter(Order.id == order_id).first()
+    if db_order:
+        db.delete(db_order)
+        db.commit()
+    return db_order
