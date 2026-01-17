@@ -9,7 +9,7 @@
 
 - [x] Настроена базовая структура проекта
 - [x] Настроен Docker Compose
-- [x] Настроена CI/CD на GitHub Actions
+- [x] Настроен CI/CD на GitHub Actions
 
 ## Epic 2: Аутентификация
 
