@@ -125,7 +125,17 @@ EOF
     
     echo "## 📁 Структура Проекта" >> "$context_file"
     echo '```' >> "$context_file"
-    tree -L 2 -I 'node_modules|.venv|__pycache__|.git|.next|dist' "$PROJECT_ROOT" 2>/dev/null | head -n 50 >> "$context_file"
+    # Используем find вместо tree для совместимости
+    find "$PROJECT_ROOT" -maxdepth 3 -type f \
+        ! -path "*/node_modules/*" \
+        ! -path "*/.venv/*" \
+        ! -path "*/__pycache__/*" \
+        ! -path "*/.git/*" \
+        ! -path "*/.next/*" \
+        ! -path "*/dist/*" \
+        ! -path "*/.ralph/state/*" \
+        ! -path "*/.ralph/logs/*" \
+        2>/dev/null | head -n 60 | sed "s|$PROJECT_ROOT/||" >> "$context_file"
     echo '```' >> "$context_file"
     echo "" >> "$context_file"
     
