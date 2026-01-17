@@ -13,7 +13,7 @@ ERROR_THRESHOLD=3           # Порог для включения режима 
 LINT_FIRST=true             # Линтинг перед тестами
 AUTO_COMMIT=true            # Авто-коммит при успехе
 ARCHITECT_INTERVAL=5        # Вызов Архитектора каждые N итераций
-SLEEP_BETWEEN=3             # Пауза между итерациями (сек)
+SLEEP_BETWEEN=10            # Пауза между итерациями (сек) - увеличена для rate limit
 
 # Пути
 RALPH_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
