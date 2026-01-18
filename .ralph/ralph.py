@@ -22,6 +22,9 @@ MODEL = os.getenv("VIBEPROXY_MODEL", "gemini-2.5-flash")
 MAX_ITERATIONS = 20
 MAX_SAME_ERROR_COUNT = 3  # Остановиться если та же ошибка повторяется N раз
 
+# Интерактивный режим: по умолчанию ВКЛ, с флагом --auto выключается
+INTERACTIVE_MODE = "--auto" not in sys.argv
+
 # Project root (one level up from .ralph)
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
@@ -48,6 +51,36 @@ def log(msg: str, color: str = "blue") -> None:
         "end": "\033[0m"
     }
     print(f"{colors.get(color, '')}[RALPH] {msg}{colors['end']}")
+
+
+def ask_continue() -> bool:
+    """
+    Спрашивает пользователя, продолжить ли работу.
+    Возвращает True если продолжить, False если остановить.
+    """
+    if not INTERACTIVE_MODE:
+        return True
+    
+    print()
+    log("━" * 50, "cyan")
+    log("Действие выполнено. Что дальше?", "cyan")
+    log("  [Enter] - продолжить", "green")
+    log("  [q]     - остановить агента", "yellow")
+    log("  [s]     - пропустить эту задачу", "yellow")
+    log("━" * 50, "cyan")
+    
+    try:
+        response = input("\n👉 Ваш выбор: ").strip().lower()
+        if response == 'q':
+            log("⛔ Агент остановлен пользователем", "red")
+            sys.exit(0)
+        elif response == 's':
+            log("⏭️ Задача пропущена", "yellow")
+            return False  # Сигнал пропустить
+        return True
+    except (KeyboardInterrupt, EOFError):
+        log("\n⛔ Агент остановлен (Ctrl+C)", "red")
+        sys.exit(0)
 
 
 def get_error_hash(error_text: str) -> str:
@@ -340,6 +373,12 @@ def main() -> None:
     
     log(f"📋 Current task #{task_index + 1}: {task_text}", "yellow")
     
+    if INTERACTIVE_MODE:
+        log("🎮 Режим: ИНТЕРАКТИВНЫЙ (после каждого действия ждём подтверждения)", "cyan")
+        log("   Используй './ralph --auto' для автоматического режима", "cyan")
+    else:
+        log("🤖 Режим: АВТОМАТИЧЕСКИЙ", "cyan")
+    
     with open(LOG_FILE, 'a') as f:
         f.write(f"\n\n{'='*80}\n")
         f.write(f"NEW AGENT SESSION - Task #{task_index + 1}: {task_text}\n")
@@ -458,6 +497,12 @@ If tests pass, use ```done``` to mark task complete.
                     write_file(target_path, content + "\n")
                 
                 action_taken = True
+                
+                # Интерактивный режим: спрашиваем продолжать ли
+                if not ask_continue():
+                    log("⏭️ Переход к следующей задаче...", "yellow")
+                    break
+                
                 break
             
             if in_write_block:
@@ -466,7 +511,9 @@ If tests pass, use ```done``` to mark task complete.
         if not action_taken:
             log("⚠️ No action detected in response. Continuing...", "yellow")
         
-        time.sleep(3)
+        # Пауза только в автоматическом режиме
+        if not INTERACTIVE_MODE:
+            time.sleep(3)
     
     log(f"⏰ Max iterations ({MAX_ITERATIONS}) reached for this task.", "red")
     log("💾 Agent stopped. Please check LOG.md and fix manually.", "yellow")
