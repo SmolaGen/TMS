@@ -127,11 +127,12 @@ def main():
     for i in range(1, MAX_ITERATIONS + 1):
         log(f"=== Iteration {i}/{MAX_ITERATIONS} ===")
         
+        recent_logs = "\n".join(read_file(LOG_FILE).splitlines()[-30:])
         user_prompt = f"""Current Plan:
 {read_file(TODO_FILE)}
 
 Recent Logs:
-{""..join(read_file(LOG_FILE).splitlines()[-30:])}
+{recent_logs}
 
 {get_project_context()}
 
@@ -174,7 +175,7 @@ Your turn. What is the next step?"""
                     log(f"Writing to {target_path}...", "green")
                     write_file(target_path, content + "\n")
                 processed = True
-                continue
+                break  # Только одно действие за итерацию
             
             if in_write_block: write_buffer.append(line)
 
