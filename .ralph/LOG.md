@@ -4195,3 +4195,191 @@ E   AttributeError: 'Settings' object has no attribute 'PRICE_BASE'
 RETURN CODE: 4
 
 ❌ AGENT STOPPED - Max iterations reached.
+
+
+================================================================================
+NEW AGENT SESSION - Task #36: Добавить healthcheck эндпоинт GET /health возвращающий {status: "ok"}
+================================================================================
+
+=== Iteration 1 ===
+```write:src/config.py
+"""
+TMS Configuration
+
+Конфигурация приложения через pydantic-settings.
+"""
+
+from decimal import Decimal
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Optional
+
+
+class Settings(BaseSettings):
+    """Настройки приложения."""
+    
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
+    )
+    
+    # Application Version
+    VERSION: str = "0.1.0"
+    
+    # Database
+    DATABASE_URL: str = "postgresql+asyncpg://tms:tms_secret@localhost:5432/tms_db"
+    DEBUG: bool = False
+    
+    # Redis
+    REDIS_URL: str = "redis://localhost:6379/0"
+
+    # Geocoding Service (Photon)
+    PHOTON_URL: str = "http://localhost:2322/photon"
+
+    # OSRM Routing Service
+    OSRM_URL: str = "http://localhost:5000"
+
+    # Routing Service Price Base
+    PRICE_BASE: Decimal = Decimal("10.00") # Added PRICE_BASE
+
+# Create a settings instance to be imported
+settings = Settings()
+```
+
+=== Iteration 2 ===
+```write:src/api/endpoints/health.py
+from fastapi import APIRouter
+
+router = APIRouter()
+
+@router.get("/health")
+async def health_check():
+    """
+    Health check endpoint.
+    Returns a simple status to indicate the service is running.
+    """
+    return {"status": "ok"}
+```
+
+=== Iteration 3 ===
+```exec
+pytest tests/api/test_health.py -v
+```
+
+
+================================================================================
+NEW AGENT SESSION - Task #36: Добавить healthcheck эндпоинт GET /health возвращающий {status: "ok"}
+================================================================================
+
+=== Iteration 1 ===
+```write:tests/api/test_health.py
+import pytest
+from httpx import AsyncClient
+from src.main import app
+
+@pytest.mark.asyncio
+async def test_health_check():
+    """
+    Test the health check endpoint.
+    """
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        response = await ac.get("/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+```
+
+=== Iteration 2 ===
+```exec
+pytest tests/api/test_health.py -v
+```
+
+=== CMD: pytest tests/api/test_health.py -v ===
+STDOUT:
+
+STDERR:
+ImportError while loading conftest '/Users/alsmolentsev/tms_new/tests/conftest.py'.
+tests/conftest.py:140: in <module>
+    from src.main import app
+src/main.py:18: in <module>
+    from src.bot.main import create_bot, setup_webhook
+src/bot/main.py:9: in <module>
+    from src.bot.handlers import location, orders, admin
+src/bot/handlers/__init__.py:1: in <module>
+    from .location import router as location_router
+src/bot/handlers/location.py:7: in <module>
+    from src.services.location_manager import LocationManager
+src/services/__init__.py:2: in <module>
+    from .routing import RoutingService, RouteResult, PriceResult
+src/services/routing.py:40: in <module>
+    class RoutingService:
+src/services/routing.py:49: in RoutingService
+    price_per_km: Decimal = settings.PRICE_PER_KM,
+                            ^^^^^^^^^^^^^^^^^^^^^
+/opt/homebrew/Caskroom/miniconda/base/lib/python3.11/site-packages/pydantic/main.py:1026: in __getattr__
+    raise AttributeError(f'{type(self).__name__!r} object has no attribute {item!r}')
+E   AttributeError: 'Settings' object has no attribute 'PRICE_PER_KM'
+
+RETURN CODE: 4
+
+=== Iteration 3 ===
+```write:src/config.py
+"""
+TMS Configuration
+
+Конфигурация приложения через pydantic-settings.
+"""
+
+from decimal import Decimal
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Optional
+
+
+class Settings(BaseSettings):
+    """Настройки приложения."""
+    
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
+    )
+    
+    # Application Version
+    VERSION: str = "0.1.0"
+    
+    # Database
+    DATABASE_URL: str = "postgresql+asyncpg://tms:tms_secret@localhost:5432/tms_db"
+    DEBUG: bool = False
+    
+    # Redis
+    REDIS_URL: str = "redis://localhost:6379/0"
+
+    # Geocoding Service (Photon)
+    PHOTON_URL: str = "http://localhost:2322/photon"
+
+    # OSRM Routing Service
+    OSRM_URL: str = "http://localhost:5000"
+
+    # Routing Service Price Base
+    PRICE_BASE: Decimal = Decimal("10.00")
+    PRICE_PER_KM: Decimal = Decimal("1.00") # Added PRICE_PER_KM
+```
+
+=== Iteration 4 ===
+```exec
+pytest tests/api/test_health.py -v
+```
+
+=== CMD: pytest tests/api/test_health.py -v ===
+STDOUT:
+
+STDERR:
+ImportError while loading conftest '/Users/alsmolentsev/tms_new/tests/conftest.py'.
+tests/conftest.py:31: in <module>
+    from src.config import settings
+E   ImportError: cannot import name 'settings' from 'src.config' (/Users/alsmolentsev/tms_new/src/config.py)
+
+RETURN CODE: 4
+
+❌ LOOP DETECTED - Agent stopped after 3 same errors

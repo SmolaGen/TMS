@@ -19,7 +19,7 @@ from collections import Counter
 API_KEY = os.getenv("VIBEPROXY_API_KEY", "sk-vibeproxy-placeholder")
 API_URL = os.getenv("VIBEPROXY_URL", "http://127.0.0.1:8317/v1/chat/completions")
 MODEL = os.getenv("VIBEPROXY_MODEL", "gemini-2.5-flash")
-MAX_ITERATIONS = 20
+MAX_ITERATIONS = 3  # 1 агент = 3 попытки на задачу
 MAX_SAME_ERROR_COUNT = 3  # Остановиться если та же ошибка повторяется N раз
 
 # Интерактивный режим: по умолчанию ВКЛ, с флагом --auto выключается

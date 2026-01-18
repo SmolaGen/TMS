@@ -35,5 +35,10 @@ class Settings(BaseSettings):
     # OSRM Routing Service
     OSRM_URL: str = "http://localhost:5000"
 
-# Create a settings instance to be imported
+    # Routing Service Price Base
+    PRICE_BASE: Decimal = Decimal("10.00")
+    PRICE_PER_KM: Decimal = Decimal("1.00")
+
+
+# Создаём экземпляр настроек
 settings = Settings()
