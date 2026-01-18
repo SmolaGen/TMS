@@ -39,6 +39,21 @@ class Settings(BaseSettings):
     PRICE_BASE: Decimal = Decimal("10.00")
     PRICE_PER_KM: Decimal = Decimal("1.00")
 
+    # Sentry
+    SENTRY_DSN: Optional[str] = None
+    
+    # Bot
+    TELEGRAM_BOT_TOKEN: str = "placeholder"
+    BOT_WEBHOOK_URL: str = "http://localhost:8000/webhook"
+    TELEGRAM_INIT_DATA_EXPIRE_SECONDS: int = 86400
+
+    # Security
+    JWT_SECRET_KEY: str = "supersecret"
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+
+
+
 
 # Создаём экземпляр настроек
 settings = Settings()

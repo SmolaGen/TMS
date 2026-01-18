@@ -1,306 +1,240 @@
-#!/usr/bin/env python3
-"""
-Enterprise Ralph - Autonomous AI Developer Agent
-
-Стабильная версия с защитой от зацикливания.
-"""
 import os
 import sys
-import json
-import urllib.request
-import urllib.error
-import subprocess
-import time
 import re
+import json
+import time
 import hashlib
-from collections import Counter
+import requests
+from typing import Optional, List, Dict, Any, Tuple
+from datetime import datetime
 
-# --- CONFIGURATION ---
-API_KEY = os.getenv("VIBEPROXY_API_KEY", "sk-vibeproxy-placeholder")
-API_URL = os.getenv("VIBEPROXY_URL", "http://127.0.0.1:8317/v1/chat/completions")
-MODEL = os.getenv("VIBEPROXY_MODEL", "gemini-2.5-flash")
-MAX_ITERATIONS = 3  # 1 агент = 3 попытки на задачу
-MAX_SAME_ERROR_COUNT = 3  # Остановиться если та же ошибка повторяется N раз
+# --- Configuration ---
+VIBEPROXY_API_KEY = os.getenv("VIBEPROXY_API_KEY")
+VIBEPROXY_URL = os.getenv("VIBEPROXY_URL", "https://api.vibe.sh/v1")
+VIBEPROXY_MODEL = os.getenv("VIBEPROXY_MODEL", "gpt-4o")
 
-# Интерактивный режим: по умолчанию ВКЛ, с флагом --auto выключается
+PROJECT_ROOT = os.getcwd()
+PRD_FILE = os.path.join(PROJECT_ROOT, "PRD.md")
+LOG_FILE = os.path.join(PROJECT_ROOT, ".ralph", "LOG.md")
+ERROR_HISTORY_FILE = os.path.join(PROJECT_ROOT, ".ralph", "state", "error_history.json")
+ARCHITECT_PROMPT_FILE = os.path.join(PROJECT_ROOT, ".ralph", "prompts", "architect_prompt.md")
+PLAN_FILE = os.path.join(PROJECT_ROOT, ".ralph", "state", "current_plan.md")
+
+MAX_ITERATIONS = 3
 INTERACTIVE_MODE = "--auto" not in sys.argv
 
-# Project root (one level up from .ralph)
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
+# Ensure directories exist
+os.makedirs(os.path.dirname(ERROR_HISTORY_FILE), exist_ok=True)
+os.makedirs(os.path.dirname(PLAN_FILE), exist_ok=True)
 
-# Files
-PRD_FILE = os.path.join(PROJECT_ROOT, "PRD.md")
-LOG_FILE = os.path.join(SCRIPT_DIR, "LOG.md")
-AGENTS_FILE = os.path.join(PROJECT_ROOT, "AGENTS.md")
-STATE_DIR = os.path.join(SCRIPT_DIR, "state")
-ERROR_HISTORY_FILE = os.path.join(STATE_DIR, "error_history.json")
-
-# Ensure state directory exists
-os.makedirs(STATE_DIR, exist_ok=True)
-
-
-def log(msg: str, color: str = "blue") -> None:
-    """Вывод сообщения с цветом в консоль."""
+# --- Logging Utils ---
+def log(message: str, color: str = "white") -> None:
     colors = {
-        "blue": "\033[94m",
-        "green": "\033[92m",
         "red": "\033[91m",
+        "green": "\033[92m",
         "yellow": "\033[93m",
+        "blue": "\033[94m",
+        "magenta": "\033[95m",
         "cyan": "\033[96m",
-        "end": "\033[0m"
+        "white": "\033[97m",
     }
-    print(f"{colors.get(color, '')}[RALPH] {msg}{colors['end']}")
+    reset = "\033[0m"
+    print(f"{colors.get(color, colors['white'])}[RALPH] {message}{reset}")
 
+def write_file(path: str, content: str) -> None:
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(content)
+
+def read_file(path: str) -> str:
+    if not os.path.exists(path):
+        return ""
+    with open(path, 'r', encoding='utf-8') as f:
+        return f.read()
+
+# --- Core Tools ---
+def run_command(command: str) -> Tuple[int, str]:
+    import subprocess
+    log(f"Exec: {command}", "magenta")
+    try:
+        process = subprocess.Popen(
+            command,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            cwd=PROJECT_ROOT
+        )
+        stdout, stderr = process.communicate()
+        output = f"STDOUT:\n{stdout}\nSTDERR:\n{stderr}\nRETURN CODE: {process.returncode}"
+        return process.returncode, output
+    except Exception as e:
+        return 1, str(e)
 
 def ask_continue() -> bool:
-    """
-    Спрашивает пользователя, продолжить ли работу.
-    Возвращает True если продолжить, False если остановить.
-    """
     if not INTERACTIVE_MODE:
         return True
     
-    print()
-    log("━" * 50, "cyan")
+    log("\n" + "━" * 50, "cyan")
     log("Действие выполнено. Что дальше?", "cyan")
-    log("  [Enter] - продолжить", "green")
-    log("  [q]     - остановить агента", "yellow")
-    log("  [s]     - пропустить эту задачу", "yellow")
+    log("  [Enter] - продолжить", "white")
+    log("  [q]     - остановить агента", "white")
+    log("  [s]     - пропустить эту задачу", "white")
     log("━" * 50, "cyan")
     
     try:
-        response = input("\n👉 Ваш выбор: ").strip().lower()
-        if response == 'q':
-            log("⛔ Агент остановлен пользователем", "red")
+        choice = input("\n👉 Ваш выбор: ").strip().lower()
+        if choice == 'q':
+            log("🛑 Агент остановлен пользователем", "red")
             sys.exit(0)
-        elif response == 's':
+        if choice == 's':
             log("⏭️ Задача пропущена", "yellow")
-            return False  # Сигнал пропустить
+            return False
         return True
     except (KeyboardInterrupt, EOFError):
         log("\n⛔ Агент остановлен (Ctrl+C)", "red")
         sys.exit(0)
 
+# --- Planner Logic ---
+def clear_plan() -> None:
+    if os.path.exists(PLAN_FILE):
+        os.remove(PLAN_FILE)
+        log("🗑️ Текущий план удалён", "cyan")
 
-def get_error_hash(error_text: str) -> str:
-    """Создаёт хэш ошибки для сравнения."""
-    # Извлекаем ключевую часть ошибки (тип и сообщение)
-    error_patterns = [
-        r"(ImportError:.*?)(?:\n|$)",
-        r"(ModuleNotFoundError:.*?)(?:\n|$)",
-        r"(SyntaxError:.*?)(?:\n|$)",
-        r"(NameError:.*?)(?:\n|$)",
-        r"(AttributeError:.*?)(?:\n|$)",
-        r"(TypeError:.*?)(?:\n|$)",
-    ]
+def run_architect(task_text: str) -> None:
+    log("🏛️ Запуск Архитектора для планирования...", "cyan")
+    architect_system_prompt = read_file(ARCHITECT_PROMPT_FILE)
     
-    for pattern in error_patterns:
-        match = re.search(pattern, error_text, re.IGNORECASE)
-        if match:
-            error_key = match.group(1).strip()
-            return hashlib.md5(error_key.encode()).hexdigest()[:12]
+    if not architect_system_prompt:
+        log("❌ Architect prompt file missing!", "red")
+        sys.exit(1)
+        
+    user_prompt = f"""**TASKS FOR PLANNING:**
+{task_text}
+
+**Project Structure:**
+{get_project_context()}
+
+Создай план в файле `.ralph/state/current_plan.md`. 
+Если нужно изменить PRD.md (добавить новые задачи), используй блок ```prd.
+"""
+    log("🤔 Проектирую решение...", "blue")
+    plan_content = call_llm(architect_system_prompt, user_prompt)
     
-    # Fallback: хэш всего stderr
-    return hashlib.md5(error_text.encode()).hexdigest()[:12]
-
-
-def load_error_history() -> dict:
-    """Загружает историю ошибок."""
-    if os.path.exists(ERROR_HISTORY_FILE):
-        try:
-            with open(ERROR_HISTORY_FILE, 'r') as f:
-                return json.load(f)
-        except json.JSONDecodeError:
-            return {"errors": [], "task_hash": None}
-    return {"errors": [], "task_hash": None}
-
-
-def save_error_history(history: dict) -> None:
-    """Сохраняет историю ошибок."""
-    with open(ERROR_HISTORY_FILE, 'w') as f:
-        json.dump(history, f, indent=2)
-
-
-def check_error_loop(error_output: str, task_hash: str) -> tuple[bool, int]:
-    """
-    Проверяет, не зацикливается ли агент на одной ошибке.
-    Возвращает (is_looping, error_count).
-    """
-    history = load_error_history()
+    # Парсим ответ на наличие ```prd и ```markdown (для плана)
+    lines = plan_content.splitlines()
+    in_prd = False
+    in_plan = False
+    prd_buffer = []
+    plan_buffer = []
     
-    # Сбросить историю если задача изменилась
-    if history.get("task_hash") != task_hash:
-        history = {"errors": [], "task_hash": task_hash}
-    
-    error_hash = get_error_hash(error_output)
-    history["errors"].append(error_hash)
-    
-    # Оставляем только последние 10 ошибок
-    history["errors"] = history["errors"][-10:]
-    save_error_history(history)
-    
-    # Считаем повторения последней ошибки
-    error_counts = Counter(history["errors"])
-    current_count = error_counts.get(error_hash, 0)
-    
-    is_looping = current_count >= MAX_SAME_ERROR_COUNT
-    return is_looping, current_count
+    for line in lines:
+        if line.startswith("```prd"):
+            in_prd = True; continue
+        if line.startswith("```markdown") and not in_prd:
+            in_plan = True; continue
+        if line.strip() == "```":
+            in_prd = False; in_plan = False; continue
+        
+        if in_prd: prd_buffer.append(line)
+        if in_plan: plan_buffer.append(line)
+        
+    if plan_buffer:
+        write_file(PLAN_FILE, "\n".join(plan_buffer))
+        log(f"✅ План сохранён в: {PLAN_FILE}", "green")
+    else:
+        # Если нет блока markdown, сохраняем всё как план (fallback)
+        write_file(PLAN_FILE, plan_content)
+        log(f"✅ Ответ сохранён в план", "green")
+        
+    if prd_buffer:
+        write_file(PRD_FILE, "\n".join(prd_buffer))
+        log("✅ PRD.md обновлён новыми задачами", "green")
+        
+    log("Проверь план и запусти './ralph' для выполнения.", "yellow")
+    sys.exit(0)
 
+# --- Context Utils ---
+def get_project_context() -> str:
+    structure = run_command("find . -maxdepth 2 -not -path '*/.*'")[1]
+    prd = read_file(PRD_FILE)
+    config = read_file(os.path.join(PROJECT_ROOT, "src", "config.py"))
+    return f"Files:\n{structure}\n\nPRD:\n{prd}\n\nConfig:\n{config}"
 
-def clear_error_history() -> None:
-    """Очищает историю ошибок (при успешном завершении)."""
-    if os.path.exists(ERROR_HISTORY_FILE):
-        os.remove(ERROR_HISTORY_FILE)
-
-
-def call_llm(system_prompt: str, user_prompt: str) -> str:
-    """Вызов LLM API с retry логикой."""
-    payload = {
-        "model": MODEL,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ],
-        "temperature": 0.1,
-        "max_tokens": 8192
-    }
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {API_KEY}"
-    }
-    req = urllib.request.Request(
-        API_URL,
-        data=json.dumps(payload).encode('utf-8'),
-        headers=headers
-    )
-    
-    for attempt in range(1, 4):
-        try:
-            with urllib.request.urlopen(req, timeout=120) as response:
-                return json.load(response)["choices"][0]["message"]["content"]
-        except urllib.error.HTTPError as e:
-            if e.code == 429 and attempt < 3:
-                wait_time = 10 * attempt
-                log(f"Rate limit hit, waiting {wait_time}s...", "yellow")
-                time.sleep(wait_time)
-            else:
-                log(f"API Error {e.code}: {e.reason}", "red")
-                sys.exit(1)
-        except Exception as e:
-            log(f"Error: {e}", "red")
-            if attempt == 3:
-                sys.exit(1)
-            time.sleep(10)
-    
-    return ""
-
-
-def read_file(path: str) -> str:
-    """Читает файл и возвращает содержимое."""
-    if os.path.exists(path):
-        return open(path, 'r', encoding='utf-8', errors='ignore').read()
-    return ""
-
-
-def write_file(path: str, content: str) -> None:
-    """Записывает контент в файл."""
-    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
-    with open(path, 'w', encoding='utf-8') as f:
-        f.write(content)
-
-
-def run_command(cmd: str) -> tuple[int, str]:
-    """Выполняет команду и возвращает результат."""
-    log(f"Exec: {cmd}", "cyan")
-    result = subprocess.run(
-        cmd,
-        shell=True,
-        capture_output=True,
-        text=True,
-        cwd=PROJECT_ROOT
-    )
-    output = f"STDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}\nRETURN CODE: {result.returncode}"
-    
-    with open(LOG_FILE, 'a') as f:
-        f.write(f"\n=== CMD: {cmd} ===\n{output}\n")
-    
-    return result.returncode, output
-
-
-def get_first_unchecked_task() -> tuple[int | None, str | None]:
-    """Извлекает первую невыполненную задачу из PRD.md."""
+def get_first_unchecked_task() -> Tuple[Optional[int], Optional[str]]:
     if not os.path.exists(PRD_FILE):
         return None, None
-    
     prd_content = read_file(PRD_FILE)
     lines = prd_content.splitlines()
-    
     for i, line in enumerate(lines):
         if re.search(r'^\s*-\s*\[\s*\]\s+', line):
             task_text = re.sub(r'^\s*-\s*\[\s*\]\s+', '', line).strip()
             return i, task_text
-    
     return None, None
 
-
 def mark_task_complete(task_line_index: int) -> None:
-    """Отмечает задачу как выполненную в PRD.md."""
-    if not os.path.exists(PRD_FILE):
-        return
-    
+    if not os.path.exists(PRD_FILE): return
     prd_content = read_file(PRD_FILE)
     lines = prd_content.splitlines()
-    
     if task_line_index < len(lines):
-        lines[task_line_index] = re.sub(r'^\s*-\s*\[\s*\]', '- [x]', lines[task_line_index])
-        write_file(PRD_FILE, '\n'.join(lines) + '\n')
-        log(f"✅ Marked task #{task_line_index + 1} as complete", "green")
+        lines[task_line_index] = lines[task_line_index].replace("[ ]", "[x]")
+        write_file(PRD_FILE, "\n".join(lines))
 
-
-def get_project_context() -> str:
-    """Получает контекст проекта для LLM."""
-    cmd = (
-        "find . -maxdepth 3 -type f "
-        "-not -path '*/.*' "
-        "-not -path '*venv*' "
-        "-not -path '*node_modules*' "
-        "-not -path '*__pycache__*' "
-        "-name '*.py' | head -n 30"
-    )
-    structure = subprocess.run(
-        cmd,
-        shell=True,
-        capture_output=True,
-        text=True,
-        cwd=PROJECT_ROOT
-    ).stdout.strip()
+# --- LLM Integration ---
+def call_llm(system_prompt: str, user_prompt: str) -> str:
+    if not VIBEPROXY_API_KEY:
+        log("❌ VIBEPROXY_API_KEY is not set!", "red")
+        sys.exit(1)
+        
+    headers = {"Authorization": f"Bearer {VIBEPROXY_API_KEY}", "Content-Type": "application/json"}
+    payload = {
+        "model": VIBEPROXY_MODEL,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        "temperature": 0.2
+    }
     
-    key_files = ""
-    for fname in ["requirements.txt", "src/main.py", "src/config.py", "pytest.ini", "src/api/routes.py"]:
-        fpath = os.path.join(PROJECT_ROOT, fname)
-        if os.path.exists(fpath):
-            content = read_file(fpath)
-            key_files += f"\n--- {fname} (first 30 lines) ---\n"
-            key_files += "\n".join(content.splitlines()[:30]) + "\n"
-    
-    agents_guide = ""
-    if os.path.exists(AGENTS_FILE):
-        agents_content = read_file(AGENTS_FILE)
-        agents_guide = f"\n--- AGENTS.md (Code Style Guidelines) ---\n"
-        agents_guide += "\n".join(agents_content.splitlines()[:100]) + "\n"
-    
-    return f"Project Python Files:\n{structure}\n\nKey Files:{key_files}\n{agents_guide}"
+    try:
+        response = requests.post(f"{VIBEPROXY_URL}/chat/completions", headers=headers, json=payload)
+        response.raise_for_status()
+        return response.json()['choices'][0]['message']['content']
+    except Exception as e:
+        log(f"❌ LLM Call Failed: {e}", "red")
+        if hasattr(e, 'response') and e.response is not None:
+             log(f"Response: {e.response.text}", "red")
+        sys.exit(1)
 
+# --- Error Management ---
+def clear_error_history() -> None:
+    if os.path.exists(ERROR_HISTORY_FILE):
+        os.remove(ERROR_HISTORY_FILE)
 
+def check_error_loop(stderr: str, task_hash: str) -> Tuple[bool, int]:
+    if not stderr or "STDERR:" not in stderr: return False, 0
+    err_part = stderr.split("STDERR:\n")[1].split("\nRETURN CODE:")[0].strip()
+    if not err_part: return False, 0
+    
+    err_hash = hashlib.md5(err_part.encode()).hexdigest()[:12]
+    history = {}
+    if os.path.exists(ERROR_HISTORY_FILE):
+        with open(ERROR_HISTORY_FILE, 'r') as f:
+            history = json.load(f)
+            
+    key = f"{task_hash}:{err_hash}"
+    count = history.get(key, 0) + 1
+    history[key] = count
+    
+    with open(ERROR_HISTORY_FILE, 'w') as f:
+        json.dump(history, f)
+        
+    return count >= 3, count
+
+# --- SYSTEM PROMPTS ---
 SYSTEM_PROMPT = """You are Ralph, an autonomous senior developer working on the TMS project.
 
 **Your Mission:**
 Complete ONE TASK from PRD.md in a SINGLE response. Do ALL steps at once.
-
-**Project Context:**
-- Backend: Python 3.11+, FastAPI, SQLAlchemy (async), PostgreSQL
-- Tests: pytest (backend)
 
 **Critical Rules:**
 1. Use absolute imports: `from src.module import Class`
@@ -315,10 +249,6 @@ Complete ONE TASK from PRD.md in a SINGLE response. Do ALL steps at once.
 # file content
 ```
 
-```write:tests/test_file.py
-# test content  
-```
-
 ```exec
 pytest tests/test_file.py -v
 ```
@@ -331,181 +261,113 @@ Task completed.
 - Use MULTIPLE code blocks in ONE response
 - Write ALL files first, then run tests
 - End with ```done``` when tests pass
-- If you can't complete the task, explain why and STOP
 """
 
-
+# --- Main Flow ---
 def main() -> None:
-    """Главная функция агента."""
-    if not os.path.exists(PRD_FILE):
-        log("❌ PRD.md not found in project root!", "red")
-        print("\nCreate PRD.md with your tasks:")
-        print("\n# Product Requirements Document")
-        print("\n## Epic 1: Features")
-        print("- [ ] Add healthcheck endpoint")
-        print("- [ ] Add metrics endpoint\n")
-        sys.exit(1)
+    args = sys.argv[1:]
+    manual_task = " ".join([a for a in args if not a.startswith("-")])
     
-    task_index, task_text = get_first_unchecked_task()
-    
-    if task_index is None:
-        log("🎉 All tasks completed! No unchecked tasks in PRD.md", "green")
+    task_index = None
+    task_text = None
+
+    if manual_task:
+        task_text = manual_task
+        log(f"📝 Задача: {task_text}", "cyan")
+    else:
+        if not os.path.exists(PRD_FILE):
+            log("❌ PRD.md not found!", "red")
+            sys.exit(1)
+        task_index, task_text = get_first_unchecked_task()
+
+    if "--plan" in sys.argv:
+        if not task_text:
+            log("⚠️ Нет задачи для планирования!", "yellow")
+            sys.exit(1)
+        run_architect(task_text)
+
+    if task_text is None:
+        log("🎉 All tasks completed!", "green")
         clear_error_history()
         sys.exit(0)
     
-    task_hash = hashlib.md5(f"{task_index}:{task_text}".encode()).hexdigest()[:8]
+    display_index = task_index + 1 if task_index is not None else 0
+    task_hash = hashlib.md5(f"{display_index}:{task_text}".encode()).hexdigest()[:8]
     
-    log(f"📋 Current task #{task_index + 1}: {task_text}", "yellow")
+    log(f"📋 Task #{display_index}: {task_text}", "yellow")
     
-    if INTERACTIVE_MODE:
-        log("🎮 Режим: ИНТЕРАКТИВНЫЙ (после каждого действия ждём подтверждения)", "cyan")
-        log("   Используй './ralph --auto' для автоматического режима", "cyan")
-    else:
-        log("🤖 Режим: АВТОМАТИЧЕСКИЙ", "cyan")
+    current_plan = read_file(PLAN_FILE)
+    if current_plan:
+        log("📖 Использую план из current_plan.md", "cyan")
+
+    log(f"🎮 Режим: {'ИНТЕРАКТИВНЫЙ' if INTERACTIVE_MODE else 'АВТОМАТИЧЕСКИЙ'}", "cyan")
     
     with open(LOG_FILE, 'a') as f:
-        f.write(f"\n\n{'='*80}\n")
-        f.write(f"NEW AGENT SESSION - Task #{task_index + 1}: {task_text}\n")
-        f.write(f"{'='*80}\n")
+        f.write(f"\n\n{'='*80}\nNEW SESSION: {task_text}\n{'='*80}\n")
     
     for iteration in range(1, MAX_ITERATIONS + 1):
-        log(f"\n{'='*60}", "blue")
-        log(f"Iteration {iteration}/{MAX_ITERATIONS}", "blue")
-        log(f"{'='*60}", "blue")
+        log(f"\nIteration {iteration}/{MAX_ITERATIONS}", "blue")
         
         recent_logs = "\n".join(read_file(LOG_FILE).splitlines()[-100:])
         
-        user_prompt = f"""**CURRENT TASK:** {task_text}
-
-**What previous agents tried (Recent Logs):**
-{recent_logs}
-
-**Project Context:**
-{get_project_context()}
-
-What's your next step to complete this task?
-Remember: ONE action per response (write file OR run command).
-If tests pass, use ```done``` to mark task complete.
-
-**ВАЖНО:** Проверь что все импорты существуют перед использованием!
-"""
+        user_prompt = f"**TASK:** {task_text}\n\n**CONTEXT:**\n{get_project_context()}\n"
+        if iteration > 1:
+            user_prompt += f"\n**LOGS:**\n{recent_logs}\n"
+        if current_plan:
+            user_prompt += f"\n**PLAN:**\n{current_plan}\n"
+        user_prompt += "\nDo the work. End with ```done```.\n"
         
         log("🤔 Thinking...", "blue")
         response = call_llm(SYSTEM_PROMPT, user_prompt)
-        
-        print(f"\n{'='*60}")
-        print("AI Response:")
-        print(f"{'='*60}")
-        print(response)
-        print(f"{'='*60}\n")
+        print(f"\nAI Response:\n{response}\n")
         
         with open(LOG_FILE, 'a') as f:
             f.write(f"\n=== Iteration {iteration} ===\n{response}\n")
         
         lines = response.splitlines()
-        current_file = None
-        write_buffer = []
-        in_write_block = False
-        action_taken = False
-        
-        for line in lines:
-            # Detect write block start
-            if line.strip().startswith("```write:"):
-                current_file = line.strip().replace("```write:", "").strip()
-                in_write_block = True
-                write_buffer = []
-                continue
-            
-            # Detect exec block start
-            if line.strip().startswith("```exec"):
-                current_file = "EXEC"
-                in_write_block = True
-                write_buffer = []
-                continue
-            
-            # Detect done block
-            if "```done" in line.lower():
-                log("✅ AI marked task as DONE!", "green")
-                mark_task_complete(task_index)
-                log(f"🎉 Task #{task_index + 1} completed: {task_text}", "green")
-                
-                with open(LOG_FILE, 'a') as f:
-                    f.write(f"\n✅ TASK COMPLETED SUCCESSFULLY!\n")
-                
-                clear_error_history()
-                
-                log("🔄 Checking for next task...", "blue")
-                time.sleep(2)
-                
-                # Проверяем есть ли ещё задачи
-                next_task_index, next_task_text = get_first_unchecked_task()
-                if next_task_index is not None:
-                    log(f"📋 Next task found: {next_task_text}", "yellow")
-                    os.execv(sys.executable, ['python3'] + sys.argv)
-                else:
-                    log("🎉 ALL TASKS COMPLETED!", "green")
-                    sys.exit(0)
-            
-            # Detect block end
-            if line.strip() == "```" and in_write_block:
-                in_write_block = False
-                content = "\n".join(write_buffer)
-                
-                if current_file == "EXEC":
-                    return_code, output = run_command(content.strip())
-                    print(f"\n📊 Command output:\n{output}\n")
-                    
-                    if return_code != 0:
-                        log(f"⚠️ Command failed with code {return_code}", "yellow")
-                        
-                        # Проверяем на зацикливание
-                        is_looping, error_count = check_error_loop(output, task_hash)
-                        if is_looping:
-                            log(f"🔴 LOOP DETECTED! Same error repeated {error_count} times.", "red")
-                            log("⛔ Stopping to prevent infinite loop. Please fix manually:", "red")
-                            
-                            # Извлекаем и показываем ошибку
-                            stderr_match = re.search(r"STDERR:\n(.*?)(?:RETURN CODE|$)", output, re.DOTALL)
-                            if stderr_match:
-                                print(f"\n❌ Repeating error:\n{stderr_match.group(1).strip()}\n")
-                            
-                            with open(LOG_FILE, 'a') as f:
-                                f.write(f"\n❌ LOOP DETECTED - Agent stopped after {error_count} same errors\n")
-                            
-                            sys.exit(1)
-                    else:
-                        log("✅ Command succeeded", "green")
-                else:
-                    target_path = os.path.join(PROJECT_ROOT, current_file)
-                    log(f"📝 Writing to {current_file}...", "green")
-                    write_file(target_path, content + "\n")
-                
-                action_taken = True
-                # НЕ break — продолжаем обрабатывать остальные блоки
-            
-            if in_write_block:
-                write_buffer.append(line)
-        
-        if not action_taken:
-            log("⚠️ No action detected in response.", "yellow")
-        
-        # Интерактивный режим: спрашиваем после ВСЕХ действий
-        if action_taken and not ask_continue():
-            log("⏭️ Агент остановлен", "yellow")
-            break
-        
-        # Пауза только в автоматическом режиме
-        if not INTERACTIVE_MODE:
-            time.sleep(2)
-    
-    log(f"⏰ Max iterations ({MAX_ITERATIONS}) reached for this task.", "red")
-    log("💾 Agent stopped. Please check LOG.md and fix manually.", "yellow")
-    
-    with open(LOG_FILE, 'a') as f:
-        f.write(f"\n❌ AGENT STOPPED - Max iterations reached.\n")
-    
-    sys.exit(1)
+        success, done_found, action_taken = True, False, False
+        in_block, cur_file, buffer = False, None, []
 
+        for line in lines:
+            if not success: break
+            if line.startswith("```write:"):
+                cur_file, in_block, buffer = line.replace("```write:", "").strip(), True, []
+                continue
+            if line.startswith("```exec"):
+                cur_file, in_block, buffer = "EXEC", True, []
+                continue
+            if line.startswith("```prd"):
+                cur_file, in_block, buffer = "PRD", True, []
+                continue
+            if "```done" in line.lower():
+                done_found = True
+                continue
+            if line.strip() == "```" and in_block:
+                in_block, content = False, "\n".join(buffer)
+                if cur_file == "EXEC":
+                    ret, out = run_command(content.strip())
+                    print(f"\nOutput:\n{out}")
+                    if ret != 0:
+                        success = False
+                        is_l, count = check_error_loop(out, task_hash)
+                        if is_l: log("🔴 LOOP DETECTED!", "red"); sys.exit(1)
+                    else: log("✅ OK", "green")
+                elif cur_file == "PRD":
+                    write_file(PRD_FILE, content + "\n"); log("📝 Updated PRD", "green")
+                else:
+                    write_file(os.path.join(PROJECT_ROOT, cur_file), content + "\n"); log(f"📝 Wrote {cur_file}", "green")
+                action_taken = True
+                continue
+            if in_block: buffer.append(line)
+
+        if success and done_found:
+            log("✅ DONE!", "green")
+            if task_index is not None: mark_task_complete(task_index)
+            clear_plan()
+            sys.exit(0)
+        
+        if not action_taken: log("⚠️ No action", "yellow")
+        if action_taken and not ask_continue(): break
 
 if __name__ == "__main__":
     main()
