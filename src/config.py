@@ -29,8 +29,11 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
 
-    # Routing Service
-    PRICE_BASE: Decimal = Decimal("100.00") # Added missing setting
+    # Geocoding Service (Photon)
+    PHOTON_URL: str = "http://localhost:2322/photon"
 
-# Instantiate settings to be imported by other modules
+    # OSRM Routing Service
+    OSRM_URL: str = "http://localhost:5000"
+
+# Create a settings instance to be imported
 settings = Settings()
