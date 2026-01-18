@@ -2,10 +2,10 @@ from fastapi import APIRouter
 
 router = APIRouter()
 
-@router.get("/health")
-async def health_check():
+@router.get("/health", tags=["Health"])
+async def health_check() -> dict[str, str]:
     """
-    Health check endpoint.
-    Returns a simple status to indicate the service is running.
+    Performs a health check on the application.
+    Returns a simple status to indicate the application is running.
     """
     return {"status": "ok"}

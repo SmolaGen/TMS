@@ -33,7 +33,7 @@
 
 ## Epic 5: Мониторинг и Health Checks
 
-- [ ] Добавить healthcheck эндпоинт GET /health возвращающий {status: "ok"}
+- [x] Добавить healthcheck эндпоинт GET /health возвращающий {status: "ok"}
 
 ---
 
