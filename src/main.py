@@ -18,7 +18,7 @@ from src.database.connection import close_db
 from src.bot.main import create_bot, setup_webhook
 from src.core.logging import get_logger, configure_logging
 from src.core.middleware import CorrelationIdMiddleware
-from src.api.routes import router as api_router
+from src.api.routes import api_router  # Import the api_router
 from aiogram.types import Update
 from src.workers.scheduler import TMSProjectScheduler
 
@@ -28,189 +28,118 @@ from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_
 # Sentry SDK
 import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
-from sentry_sdk.integrations.starlette import StarletteIntegration
 
+# Configure logging
+configure_logging()
 logger = get_logger(__name__)
-configure_logging(settings.LOG_LEVEL)
 
-# Prometheus Metrics
-REQUEST_COUNT = Counter(
-    'tms_requests_total',
-    'Total request count',
-    ['method', 'endpoint', 'status']
-)
-REQUEST_LATENCY = Histogram(
-    'tms_request_latency_seconds',
-    'Request latency in seconds',
-    ['method', 'endpoint']
-)
+# Sentry initialization
+if settings.SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=settings.SENTRY_DSN,
+        integrations=[
+            FastApiIntegration(
+                transaction_style="endpoint",
+            ),
+        ],
+        traces_sample_rate=1.0,
+        profiles_sample_rate=1.0,
+    )
+    logger.info("Sentry initialized.")
 
+# Initialize SlowAPI Limiter
+limiter = Limiter(key_func=get_remote_address)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan manager."""
-    # Startup
-    logger.info("app_starting", env=settings.APP_ENV)
-    
-    # Initialize Sentry (only in production)
-    sentry_dsn = os.environ.get("SENTRY_DSN")
-    if sentry_dsn and settings.APP_ENV == "production":
-        sentry_sdk.init(
-            dsn=sentry_dsn,
-            integrations=[
-                StarletteIntegration(transaction_style="endpoint"),
-                FastApiIntegration(transaction_style="endpoint"),
-            ],
-            traces_sample_rate=0.1,  # 10% трейсов
-            environment=settings.APP_ENV,
-        )
-        logger.info("sentry_initialized")
-    
-    # Инициализация Redis (для LocationManager в API)
-    # NOTE: ingest_worker запускается как отдельный процесс (не в lifespan)
-    # Это обеспечивает масштабируемость и отказоустойчивость
-    logger.info("lifespan_redis_ready")
+    """
+    Context manager for application startup and shutdown events.
+    """
+    logger.info("Application startup...")
+    # Initialize scheduler
+    app.state.scheduler = TMSProjectScheduler()
+    app.state.scheduler.start()
+    logger.info("Scheduler started.")
 
-
-    # Инициализация Бота (graceful fallback если токен невалидный)
-    try:
-        bot, dp = await create_bot()
-        app.state.bot = bot
-        app.state.dp = dp
-
-        # Установка webhook (только в prod/staging, при наличии URL)
-        if settings.TELEGRAM_WEBHOOK_URL and "your-bot-token" not in settings.TELEGRAM_BOT_TOKEN:
-            await setup_webhook(bot)
-            logger.info("bot_webhook_set", url=settings.TELEGRAM_WEBHOOK_URL)
-        
-        # Запуск планировщика
-        if bot:
-            scheduler = TMSProjectScheduler(bot)
-            await scheduler.start()
-            app.state.scheduler = scheduler
-    except Exception as e:
-        logger.warning("bot_init_failed", error=str(e))
-        app.state.bot = None
-        app.state.dp = None
-    
     yield
-    
-    # Shutdown
-    logger.info("app_stopping")
-    if hasattr(app.state, "scheduler") and app.state.scheduler:
-        await app.state.scheduler.shutdown()
+
+    logger.info("Application shutdown...")
+    # Shutdown scheduler
+    if hasattr(app.state, "scheduler") and app.state.scheduler.running:
+        app.state.scheduler.shutdown()
+        logger.info("Scheduler shut down.")
     await close_db()
-    # await init_db()  # Используем alembic вместо автоматического создания
+    logger.info("Database connection closed.")
 
 
 app = FastAPI(
-    title="TMS - Transport Management System",
-    description="Отказоустойчивая система управления транспортом",
-    version="0.1.0",
+    title="TMS API",
+    version=settings.VERSION,
+    debug=settings.DEBUG,
     lifespan=lifespan,
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    openapi_url="/api/openapi.json",
 )
 
-# Rate Limiting (SlowAPI with Redis backend)
-limiter = Limiter(
-    key_func=get_remote_address,
-    storage_uri=settings.REDIS_URL,
-    default_limits=[settings.RATE_LIMIT_DEFAULT],
-    headers_enabled=True,
-)
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+# Add Correlation ID Middleware
+app.add_middleware(CorrelationIdMiddleware)
 
-# CORS middleware (production: ограничено конкретными доменами)
+# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS.split(","),
+    allow_origins=["*"],  # Adjust this in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Correlation ID and Logging context
-app.add_middleware(CorrelationIdMiddleware)
+# Add rate limiting exception handler
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# API Routes
-app.include_router(api_router, prefix="/api")
-
-
-@app.get("/health")
-async def health_check():
-    """Health check endpoint."""
-    return {"status": "healthy", "service": "tms-backend"}
+# Include API routes
+app.include_router(api_router)
 
 
 @app.get("/metrics")
 async def metrics():
-    """Prometheus metrics endpoint."""
-    return Response(
-        content=generate_latest(),
-        media_type=CONTENT_TYPE_LATEST
-    )
+    """
+    Endpoint to expose Prometheus metrics.
+    """
+    return Response(content=generate_latest().decode("utf-8"), media_type=CONTENT_TYPE_LATEST)
 
 
-@app.post("/bot/webhook")
-async def bot_webhook(update: dict):
-    """Эндпоинт для получения обновлений от Telegram."""
-    bot = app.state.bot
-    dp = app.state.dp
-    
-    telegram_update = Update.model_validate(update, context={"bot": bot})
-    await dp.feed_update(bot, telegram_update)
+@app.post("/webhook")
+async def bot_webhook(update: Update):
+    """
+    Endpoint for Telegram bot webhooks.
+    """
+    bot = create_bot()
+    await bot.update_queue.put(update)
     return {"ok": True}
 
 
+@app.on_event("startup")
+async def on_startup():
+    """
+    Startup event handler.
+    """
+    if settings.BOT_WEBHOOK_URL:
+        await setup_webhook(settings.BOT_WEBHOOK_URL)
+        logger.info(f"Telegram bot webhook set to {settings.BOT_WEBHOOK_URL}")
+    else:
+        logger.warning("BOT_WEBHOOK_URL is not set. Telegram bot webhook will not be configured.")
+
+
+# WebSocket endpoint for real-time updates (example)
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    """WebSocket эндпоинт для real-time обновлений."""
-    # Проверка Origin для безопасности (CORS для WebSocket)
-    origin = websocket.headers.get("origin")
-    host = websocket.headers.get("host")
-    upgrade = websocket.headers.get("upgrade")
-    connection = websocket.headers.get("connection")
-    
-    logger.info("websocket_attempt", origin=origin, host=host, upgrade=upgrade, connection=connection)
-
-    allowed_origins = settings.CORS_ORIGINS.split(",")
-    
-    if origin and origin not in allowed_origins:
-        logger.warning("websocket_rejected_origin", origin=origin, allowed=allowed_origins)
-        await websocket.close(code=1008, reason="Origin not allowed")
-        return
-    
-    try:
-        await websocket.accept()
-        logger.info("websocket_accepted", origin=origin)
-    except Exception as e:
-        logger.error("websocket_accept_failed", error=str(e), origin=origin)
-        return
-    
-    # Отправляем приветственное сообщение
-    try:
-        await websocket.send_json({
-            "type": "HELLO",
-            "payload": {"message": "Connected to TMS WS"}
-        })
-    except Exception as e:
-        logger.error("websocket_hello_failed", error=str(e))
-    
+    await websocket.accept()
     try:
         while True:
-            # Пока просто держим соединение живым
-            await websocket.receive_text()
+            data = await websocket.receive_text()
+            await websocket.send_text(f"Message text was: {data}")
     except WebSocketDisconnect:
-        logger.info("websocket_disconnected")
-
-
-@app.get("/")
-async def root():
-    """Root endpoint."""
-    return {
-        "message": "TMS - Transport Management System",
-        "docs": "/docs",
-        "redoc": "/redoc",
-    }
-
+        logger.info("Client disconnected from websocket")
