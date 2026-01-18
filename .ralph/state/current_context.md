@@ -16,13 +16,18 @@ init_osrm.sh
 app/database.py```
 app/main.py```
 app/models/__init__.py```
+app/models/user.py
+app/models/order.py
 app/models/order.py```
 app/models/user.py```
 app/schemas/__init__.py```
+app/schemas/order.py
 app/schemas/order.py```
 app/crud/__init__.py```
+app/crud/order.py
 app/crud/order.py```
 app/api/__init__.py```
+app/main.py
 pytest.ini
 frontend/index.html
 frontend/.DS_Store
@@ -57,11 +62,6 @@ Dockerfile
 .augment/commands/openspec-proposal.md
 requirements.txt```
 tests/test_batch_assignment.py
-tests/test_order_workflow.py
-tests/test_excel_import.py
-tests/test_bot_orders.py
-tests/conftest.py
-tests/.DS_Store
 ```
 
 ---
@@ -180,7 +180,7 @@ feat(ralph): <краткое описание>
 
 - [x] CRUD операции для заказов
 - [x] Статусная машина заказа
-- [ ] Назначение водителя на заказ
+- [x] Назначение водителя на заказ
 
 ## Epic 4: Геолокация
 
