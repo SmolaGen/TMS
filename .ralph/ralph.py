@@ -293,61 +293,45 @@ def get_project_context() -> str:
     return f"Project Python Files:\n{structure}\n\nKey Files:{key_files}\n{agents_guide}"
 
 
-SYSTEM_PROMPT = """You are Ralph, an autonomous senior developer working on the TMS (Transport Management System) project.
+SYSTEM_PROMPT = """You are Ralph, an autonomous senior developer working on the TMS project.
 
 **Your Mission:**
-Complete ONE SPECIFIC TASK from PRD.md. Work iteratively until tests pass, then STOP.
+Complete ONE TASK from PRD.md in a SINGLE response. Do ALL steps at once.
 
 **Project Context:**
-- Backend: Python 3.11+, FastAPI, SQLAlchemy (async), PostgreSQL, Redis
-- Frontend: React, TypeScript, Vite, Ant Design
-- Tests: pytest (backend), npm test (frontend)
+- Backend: Python 3.11+, FastAPI, SQLAlchemy (async), PostgreSQL
+- Tests: pytest (backend)
 
 **Critical Rules:**
-1. Read AGENTS.md guidelines for code style and testing patterns
-2. Use absolute imports: `from src.module import Class`
-3. Always add type hints in Python
-4. Use async/await for database operations
-5. Cache data BEFORE commit() to avoid PendingRollbackError
-6. Write tests FIRST, then implement
-7. **ВАЖНО:** Если модуль не существует, НЕ импортируйте его! Сначала проверьте структуру проекта.
+1. Use absolute imports: `from src.module import Class`
+2. Always add type hints
+3. **NEVER delete existing code** that is not related to your task
+4. **NEVER remove** `settings = Settings()` from config.py
+5. Check what files exist before importing
 
-**Your Workflow:**
-1. Understand the current task
-2. Check existing code structure (IMPORTANT: verify imports exist!)
-3. Write/modify code following AGENTS.md patterns
-4. Run tests: `pytest tests/test_*.py` or `npm test`
-5. Fix errors if tests fail
-6. When tests pass → Mark task complete → STOP
+**Response Format — USE MULTIPLE BLOCKS:**
 
-**Response Format:**
-
-To write/update a file (path relative to project root):
-```write:src/api/health.py
-from fastapi import APIRouter
-
-router = APIRouter()
-
-@router.get("/health")
-async def health_check():
-    return {"status": "ok"}
+```write:path/to/file.py
+# file content
 ```
 
-To run a command (in project root):
+```write:tests/test_file.py
+# test content  
+```
+
 ```exec
-pytest tests/test_health.py -v
+pytest tests/test_file.py -v
 ```
 
-To mark task complete and finish:
 ```done
-Task completed successfully. All tests passing.
+Task completed.
 ```
 
-**CRITICAL:** 
-- Only use ONE code block per response
-- Work step-by-step
-- If you see the SAME error 3 times, STOP and explain what's wrong
-- Don't import modules that don't exist!
+**IMPORTANT:**
+- Use MULTIPLE code blocks in ONE response
+- Write ALL files first, then run tests
+- End with ```done``` when tests pass
+- If you can't complete the task, explain why and STOP
 """
 
 
@@ -497,23 +481,22 @@ If tests pass, use ```done``` to mark task complete.
                     write_file(target_path, content + "\n")
                 
                 action_taken = True
-                
-                # Интерактивный режим: спрашиваем продолжать ли
-                if not ask_continue():
-                    log("⏭️ Переход к следующей задаче...", "yellow")
-                    break
-                
-                break
+                # НЕ break — продолжаем обрабатывать остальные блоки
             
             if in_write_block:
                 write_buffer.append(line)
         
         if not action_taken:
-            log("⚠️ No action detected in response. Continuing...", "yellow")
+            log("⚠️ No action detected in response.", "yellow")
+        
+        # Интерактивный режим: спрашиваем после ВСЕХ действий
+        if action_taken and not ask_continue():
+            log("⏭️ Агент остановлен", "yellow")
+            break
         
         # Пауза только в автоматическом режиме
         if not INTERACTIVE_MODE:
-            time.sleep(3)
+            time.sleep(2)
     
     log(f"⏰ Max iterations ({MAX_ITERATIONS}) reached for this task.", "red")
     log("💾 Agent stopped. Please check LOG.md and fix manually.", "yellow")
