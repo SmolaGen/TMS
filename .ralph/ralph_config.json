@@ -1,0 +1,80 @@
+{
+    "execution": {
+        "max_iterations": 10,
+        "max_sessions_per_task": 5,
+        "sleep_between_iterations": 5,
+        "interactive_mode": true
+    },
+    "protection": {
+        "files": [
+            "src/main.py",
+            "src/config.py",
+            "tests/conftest.py"
+        ],
+        "critical_patterns": {
+            "src/config.py": [
+                "settings = Settings()"
+            ],
+            "src/main.py": [
+                "lifespan",
+                "api_router",
+                "app = FastAPI"
+            ]
+        }
+    },
+    "commands": {
+        "whitelist": [
+            "pytest",
+            "ruff",
+            "npm",
+            "git",
+            "ls",
+            "find",
+            "grep",
+            "python",
+            "pip",
+            "cat",
+            "rm",
+            "mkdir",
+            "touch",
+            "cp",
+            "mv"
+        ],
+        "blocked_patterns": [
+            "rm -rf /",
+            "sudo",
+            "> /dev",
+            "chmod"
+        ]
+    },
+    "logging": {
+        "max_log_size_mb": 10,
+        "rotate_count": 5,
+        "error_history_ttl_hours": 24
+    },
+    "llm": {
+        "model": "gemini-2.5-flash",
+        "url": "http://127.0.0.1:8317/v1",
+        "temperature": 0.2,
+        "max_tokens": 8192,
+        "retry_policy": {
+            "initial_interval": 1.0,
+            "backoff_factor": 2.0,
+            "max_interval": 10.0,
+            "max_attempts": 3
+        }
+    },
+    "memory": {
+        "database_path": ".ralph/memory/long_term.db",
+        "entity_graph_path": ".ralph/memory/entity_graph.json",
+        "max_context_items": 5
+    },
+    "tools": {
+        "auto_discover": true,
+        "custom_tools_dir": ".ralph/tools/custom"
+    },
+    "flow": {
+        "enable_parallel": false,
+        "max_parallel_tasks": 3
+    }
+}
