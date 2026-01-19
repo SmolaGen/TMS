@@ -1,139 +1,180 @@
-from decimal import Decimal
-from typing import List, Tuple, Optional, Dict, Any
+import re
+from decimal import Decimal, ROUND_HALF_UP
+from dataclasses import dataclass
+from typing import Optional, Tuple
 import httpx
-from pydantic import BaseModel, Field
+
 from src.config import settings
 from src.core.logging import get_logger
 
 logger = get_logger(__name__)
 
-class OSRMUnavailableError(Exception):
-    """Custom exception for when the OSRM service is unavailable."""
+
+@dataclass
+class RouteResult:
+    """Результат расчёта маршрута."""
+    distance_meters: float      # Дистанция в метрах
+    duration_seconds: float     # Время в пути (секунды)
+    geometry: Optional[str] = None  # Polyline геометрия (для отрисовки на карте)
+
+
+@dataclass
+class PriceResult:
+    """Результат расчёта стоимости."""
+    distance_km: Decimal        # Дистанция в километрах
+    base_price: Decimal         # Базовая ставка
+    distance_price: Decimal     # Стоимость за километры
+    total_price: Decimal        # Итоговая стоимость
+
+
+class RoutingServiceError(Exception):
+    """Базовое исключение сервиса маршрутизации."""
     pass
 
-class RouteNotFoundError(Exception):
-    """Custom exception for when a route cannot be found by OSRM."""
+
+class RouteNotFoundError(RoutingServiceError):
+    """Маршрут не найден (нет дороги между точками)."""
     pass
 
-class Coordinate(BaseModel):
-    """Represents a geographical coordinate (longitude, latitude)."""
-    lon: float
-    lat: float
 
-    def to_osrm_format(self) -> str:
-        """Converts coordinate to OSRM string format 'longitude,latitude'."""
-        return f"{self.lon},{self.lat}"
+class OSRMUnavailableError(RoutingServiceError):
+    """OSRM сервер недоступен."""
+    pass
 
-class RouteResult(BaseModel):
-    """Result of a routing request."""
-    distance_km: float
-    duration_minutes: float
-    route_geometry: Optional[str] = None  # GeoJSON LineString or similar encoded polyline
-
-class PriceResult(BaseModel):
-    """Result of a price calculation based on routing."""
-    total_price: Decimal
-    base_price: Decimal
-    price_per_km: Decimal
-    distance_km: float
 
 class RoutingService:
-    """
-    Service for interacting with the OSRM routing engine.
-    Provides methods to calculate routes and estimate prices.
-    """
+    """Сервис маршрутизации и расчёта стоимости."""
+    
     def __init__(
         self,
-        osrm_base_url: str = settings.OSRM_URL,
+        osrm_url: str = settings.OSRM_URL,
         price_base: Decimal = settings.PRICE_BASE,
         price_per_km: Decimal = settings.PRICE_PER_KM,
+        timeout: float = settings.OSRM_TIMEOUT
     ):
-        self.osrm_base_url = osrm_base_url
+        self.osrm_url = osrm_url.rstrip("/")
         self.price_base = price_base
         self.price_per_km = price_per_km
-        self.http_client = httpx.AsyncClient(base_url=self.osrm_base_url, timeout=10.0)
-
-    async def _make_osrm_request(self, endpoint: str, coordinates: List[Coordinate]) -> Dict[str, Any]:
+        self.timeout = timeout
+    
+    async def get_route(
+        self,
+        origin: Tuple[float, float],       # (lon, lat)
+        destination: Tuple[float, float],  # (lon, lat)
+        with_geometry: bool = False
+    ) -> RouteResult:
         """
-        Makes a request to the OSRM service.
+        Рассчитывает маршрут между двумя точками через OSRM.
+        
         Args:
-            endpoint: OSRM endpoint (e.g., "route", "table").
-            coordinates: List of Coordinate objects for the request.
+            origin: Координаты начала (lon, lat)
+            destination: Координаты конца (lon, lat)
+            with_geometry: Включить polyline геометрию
+            
         Returns:
-            JSON response from OSRM.
+            RouteResult с дистанцией и временем
+            
         Raises:
-            OSRMUnavailableError: If OSRM service is unreachable or returns an error.
-            RouteNotFoundError: If OSRM cannot find a route.
+            RouteNotFoundError: Маршрут не найден
+            OSRMUnavailableError: OSRM недоступен
         """
-        coords_str = ";".join([coord.to_osrm_format() for coord in coordinates])
-        url = f"/{endpoint}/v1/driving/{coords_str}"
+        # Формат: lon,lat
+        coords = f"{origin[0]},{origin[1]};{destination[0]},{destination[1]}"
+        overview = "full" if with_geometry else "false"
+        url = f"{self.osrm_url}/route/v1/driving/{coords}?overview={overview}"
         
         try:
-            response = await self.http_client.get(url, params={"overview": "full", "geometries": "geojson"})
-            response.raise_for_status()
-            data = response.json()
-
-            if data.get("code") == "Ok":
-                return data
-            elif data.get("code") == "NoRoute":
-                raise RouteNotFoundError(f"OSRM could not find a route for coordinates: {coords_str}")
-            else:
-                raise OSRMUnavailableError(f"OSRM error: {data.get('code', 'Unknown')} - {data.get('message', 'No message')}")
-        except httpx.RequestError as e:
-            logger.error(f"OSRM request failed: {e}")
-            raise OSRMUnavailableError(f"OSRM service is unreachable: {e}")
-        except httpx.HTTPStatusError as e:
-            logger.error(f"OSRM HTTP error: {e.response.status_code} - {e.response.text}")
-            raise OSRMUnavailableError(f"OSRM service returned HTTP error: {e.response.status_code}")
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(url)
+                response.raise_for_status()
+                data = response.json()
+        except (httpx.ConnectError, httpx.TimeoutException, httpx.HTTPStatusError) as e:
+            logger.error(f"OSRM request failed: {str(e)}")
+            raise OSRMUnavailableError(f"OSRM service at {self.osrm_url} is unavailable") from e
         except Exception as e:
-            logger.error(f"An unexpected error occurred during OSRM request: {e}")
-            raise OSRMUnavailableError(f"Unexpected error during OSRM request: {e}")
+            logger.exception("Unexpected error during OSRM request")
+            raise RoutingServiceError(f"Failed to fetch route: {str(e)}") from e
 
-    async def get_route(self, origin: Coordinate, destination: Coordinate) -> RouteResult:
-        """
-        Calculates a route between two points.
-        Args:
-            origin: Starting point.
-            destination: Ending point.
-        Returns:
-            RouteResult containing distance, duration, and route geometry.
-        """
-        data = await self._make_osrm_request("route", [origin, destination])
-        
-        if not data.get("routes"):
-            raise RouteNotFoundError("OSRM returned no routes.")
+        code = data.get("code")
+        if code != "Ok":
+            logger.warning(f"OSRM returned error code: {code} for points {coords}")
+            if code in ("NoRoute", "NoSegment"):
+                raise RouteNotFoundError(f"No route found between points: {coords}")
+            raise RoutingServiceError(f"OSRM error: {code}")
 
-        route = data["routes"][0]
-        distance_meters = route["distance"]
-        duration_seconds = route["duration"]
-        geometry = route.get("geometry") # GeoJSON LineString
+        routes = data.get("routes", [])
+        if not routes:
+            raise RouteNotFoundError(f"No routes in OSRM response for {coords}")
 
+        best_route = routes[0]
         return RouteResult(
-            distance_km=round(distance_meters / 1000, 2),
-            duration_minutes=round(duration_seconds / 60, 2),
-            route_geometry=geometry
+            distance_meters=float(best_route["distance"]),
+            duration_seconds=float(best_route["duration"]),
+            geometry=best_route.get("geometry") if with_geometry else None
         )
-
-    async def calculate_price(self, origin: Coordinate, destination: Coordinate) -> PriceResult:
+    
+    def calculate_price(
+        self,
+        distance_meters: float
+    ) -> PriceResult:
         """
-        Calculates the price for a route based on distance.
-        Args:
-            origin: Starting point.
-            destination: Ending point.
-        Returns:
-            PriceResult containing total price, base price, price per km, and distance.
-        """
-        route_result = await self.get_route(origin, destination)
+        Рассчитывает стоимость доставки по дистанции.
         
-        total_price = self.price_base + (self.price_per_km * Decimal(str(route_result.distance_km)))
+        Args:
+            distance_meters: Дистанция в метрах
+            
+        Returns:
+            PriceResult с детализацией стоимости
+        """
+        # Конвертация в км с округлением до 2 знаков для расчета
+        dist_km = Decimal(str(distance_meters / 1000)).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+        
+        dist_price = (dist_km * self.price_per_km).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+        
+        total = (self.price_base + dist_price).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
         
         return PriceResult(
-            total_price=round(total_price, 2),
+            distance_km=dist_km,
             base_price=self.price_base,
-            price_per_km=self.price_per_km,
-            distance_km=route_result.distance_km
+            distance_price=dist_price,
+            total_price=total
         )
-
-    async def close(self):
-        """Closes the underlying HTTP client session."""
-        await self.http_client.aclose()
+    
+    async def get_route_with_price(
+        self,
+        origin: Tuple[float, float],
+        destination: Tuple[float, float],
+        with_geometry: bool = True
+    ) -> Tuple[RouteResult, PriceResult]:
+        """
+        Комбинированный метод: маршрут + стоимость.
+        """
+        route = await self.get_route(origin, destination, with_geometry=with_geometry)
+        price = self.calculate_price(route.distance_meters)
+        return route, price
+    
+    @staticmethod
+    def parse_geometry_point(wkt_or_ewkt: str) -> Tuple[float, float]:
+        """
+        Парсит WKT/EWKT POINT в кортеж (lon, lat).
+        Поддерживает: 
+        - POINT(131.8869 43.1150)
+        - SRID=4326;POINT(131.8869 43.1150)
+        """
+        if not wkt_or_ewkt:
+            raise ValueError("Empty geometry string")
+            
+        # Ищем числа в скобках POINT(...)
+        match = re.search(r"POINT\s*\(\s*(-?\d+\.?\d*)\s+(-?\d+\.?\d*)\s*\)", wkt_or_ewkt, re.IGNORECASE)
+        if not match:
+            raise ValueError(f"Invalid POINT format: {wkt_or_ewkt}")
+            
+        lon = float(match.group(1))
+        lat = float(match.group(2))
+        return lon, lat
