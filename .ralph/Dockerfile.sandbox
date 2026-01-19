@@ -1,0 +1,19 @@
+# Sandbox Dockerfile for Ralph Agent
+FROM python:3.11-slim-bullseye
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    libpq-dev \
+    gcc \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements from project root
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# We will mount the current project directory as /app
+# This allows the agent to run tests on the real files in a safe environment.

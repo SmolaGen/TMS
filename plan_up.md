@@ -1,236 +1,120 @@
 # 🚀 Implementation Plan: Улучшение Ralph на основе CrewAI
 
-**Дата:** 2026-01-19  
-**Цель:** Внедрить ключевые архитектурные паттерны из CrewAI
+**Дата:** 2026-01-19 (обновлено)  
+**Статус:** ✅ Фазы 1-4 реализованы, требуется интеграция  
 
 ---
 
-## 📋 Контекст
+## 📊 Общий прогресс
 
-На основе анализа CrewAI выявлены 5 ключевых улучшений:
-1. Tool Registry — модульная система инструментов
-2. Memory System — многоуровневая память
-3. Flow Manager — управление зависимостями задач
-4. Specialized Agents — роли Researcher, Tester, Reviewer
-5. Learning System — обучаемость
-
----
-
-## 🎯 Затрагиваемые файлы
-
-### Новые файлы:
-- [NEW] [tools/base.py](file:///Users/alsmolentsev/tms_new/.ralph/tools/base.py)
-- [NEW] [tools/registry.py](file:///Users/alsmolentsev/tms_new/.ralph/tools/registry.py)
-- [NEW] [tools/file_tools.py](file:///Users/alsmolentsev/tms_new/.ralph/tools/file_tools.py)
-- [NEW] [memory_manager.py](file:///Users/alsmolentsev/tms_new/.ralph/memory_manager.py)
-- [NEW] [flow_manager.py](file:///Users/alsmolentsev/tms_new/.ralph/flow_manager.py)
-- [NEW] [learning.py](file:///Users/alsmolentsev/tms_new/.ralph/learning.py)
-
-### Модифицируемые:
-- [MODIFY] [ralph.py](file:///Users/alsmolentsev/tms_new/.ralph/ralph.py)
-- [MODIFY] [ralph_config.json](file:///Users/alsmolentsev/tms_new/.ralph/ralph_config.json)
+| Фаза | Компонент | Статус | Файлы |
+|:-----|:----------|:-------|:------|
+| **1** | Tool Registry | ✅ **Готово** | `tools/base.py`, `registry.py`, `file_tools.py`, `exec_tools.py`, `search_tools.py` |
+| **2** | Memory System | ✅ **Готово** | `memory/memory_manager.py`, `short_term_memory.py`, `reranker.py` |
+| **3** | Flow Manager (DAG) | ✅ **Готово** | `flow/flow_manager.py`, `handoff_manager.py`, `dynamic_router.py`, `refinement_cycle.py` |
+| **4** | Specialized Agents | ✅ **Готово** | `agents/roles.py`, `prompts/researcher_prompt.md`, `tester_prompt.md`, `reviewer_prompt.md` |
+| **5** | Learning System | ⏳ **Частично** | `memory/lessons_learned.md` (файл есть, модуль `learning.py` отсутствует) |
+| **6** | Интеграция в ralph.py | 🚨 **Требуется** | `ralph.py` — есть ошибка `get_project_context` |
 
 ---
 
-## 🔨 Фаза 1: Tool Registry
+## ✅ Фаза 1: Tool Registry — **Выполнено**
 
-### Шаг 1.1: Базовая инфраструктура
-**Файл:** `tools/base.py`
+### Реализованные компоненты:
+- `tools/base.py` — Базовый класс `Tool` с Pydantic валидацией
+- `tools/registry.py` — `ToolRegistry` с глобальным реестром
+- `tools/file_tools.py` — `ReadFileTool`, `WriteFileTool`, `ListDirTool`
+- `tools/exec_tools.py` — `ExecCommandTool`
+- `tools/search_tools.py` — `GrepSearchTool`, `FindFilesTool`
 
-```python
-from abc import ABC, abstractmethod
-from pydantic import BaseModel
-
-class ToolOutput(BaseModel):
-    success: bool
-    message: str
-    data: dict = None
-
-class Tool(ABC):
-    name: str
-    description: str
-    
-    @abstractmethod
-    def execute(self, **kwargs) -> ToolOutput:
-        pass
-```
-
-### Шаг 1.2: Registry
-**Файл:** `tools/registry.py`
-
-```python
-class ToolRegistry:
-    def __init__(self):
-        self._tools = {}
-    
-    def register(self, tool):
-        self._tools[tool.name] = tool
-    
-    def get(self, name):
-        return self._tools.get(name)
-```
-
-### Шаг 1.3: Конкретные инструменты
-**Файл:** `tools/file_tools.py`
-
-```python
-from .base import Tool, ToolOutput
-import utils
-
-class WriteFileTool(Tool):
-    name = "write_file"
-    description = "Записывает файл с валидацией"
-    
-    def execute(self, path, content):
-        ok, msg = utils.safe_write(path, content)
-        return ToolOutput(success=ok, message=msg)
-```
+### Тесты: ✅ 5/5 passed
 
 ---
 
-## 🔨 Фаза 2: Memory System
+## ✅ Фаза 2: Memory System — **Выполнено + Бонус (RAG)**
 
-### Шаг 2.1: Long-term Memory
-**Файл:** `memory_manager.py`
+### Реализованные компоненты:
+- `memory/memory_manager.py` — `LongTermMemory` (SQLite), `EntityMemory` (JSON-граф), `MemoryManager` (фасад)
+- `memory/short_term_memory.py` — RAG c ChromaDB и semantic chunking
+- `memory/reranker.py` — FlashRank для переранжирования результатов
 
-```python
-import sqlite3
+### Бонус: Hybrid RAG
+- **RRF (Reciprocal Rank Fusion)** для объединения SQLite + ChromaDB результатов
+- **Semantic Chunking** для разбиения контекста
+- База данных: `long_term.db` (36KB, активно используется)
 
-class LongTermMemory:
-    def __init__(self, db_path=".ralph/memory/long_term.db"):
-        self.db_path = db_path
-        self._init_db()
-    
-    def _init_db(self):
-        conn = sqlite3.connect(self.db_path)
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS task_history (
-                id INTEGER PRIMARY KEY,
-                task_id TEXT,
-                task_text TEXT,
-                status TEXT,
-                tools_used TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        conn.commit()
-        conn.close()
-    
-    def store(self, task_id, result):
-        conn = sqlite3.connect(self.db_path)
-        conn.execute(
-            "INSERT INTO task_history (task_id, task_text, status, tools_used) VALUES (?, ?, ?, ?)",
-            (task_id, result['text'], result['status'], ','.join(result.get('tools', [])))
-        )
-        conn.commit()
-        conn.close()
-```
-
-### Шаг 2.2: Entity Memory
-**Файл:** `memory_manager.py` (дополнение)
-
-```python
-import networkx as nx
-import json
-
-class EntityMemory:
-    def __init__(self, graph_path=".ralph/memory/entity_graph.json"):
-        self.graph_path = graph_path
-        self.graph = nx.DiGraph()
-        self._load()
-    
-    def add_dependency(self, from_file, to_file):
-        self.graph.add_edge(from_file, to_file)
-        self._save()
-    
-    def get_dependencies(self, filepath):
-        return list(self.graph.successors(filepath))
-```
+### Тесты: ✅ 8/8 passed
 
 ---
 
-## 🔨 Фаза 3: Flow Manager
+## ✅ Фаза 3: Flow Manager (DAG) — **Выполнено + DAG Architecture**
 
-**Файл:** `flow_manager.py`
+### Реализованные компоненты:
+- `flow/flow_manager.py` — Основной FlowManager с парсингом зависимостей
+- `flow/task_stage.py` — Enum стадий задачи (PENDING → PLANNING → RESEARCHING → CODING → TESTING → REVIEWING → DONE)
+- `flow/handoff_manager.py` — Передача "эстафеты" между ролями
+- `flow/dynamic_router.py` — Маршрутизация по сложности (TRIVIAL/NORMAL/CRITICAL)
+- `flow/refinement_cycle.py` — Цикл доработки после ревью
 
-```python
-import re
-from dataclasses import dataclass
-
-@dataclass
-class Task:
-    id: int
-    text: str
-    status: str
-    depends_on: list
-    line_index: int
-
-class FlowManager:
-    def __init__(self, prd_file):
-        self.prd_file = prd_file
-        self.tasks = []
-        self._parse_prd()
-    
-    def get_next_task(self):
-        for task in self.tasks:
-            if task.status == 'pending' and self._deps_met(task):
-                return task
-        return None
-    
-    def _deps_met(self, task):
-        for dep_id in task.depends_on:
-            dep = next((t for t in self.tasks if t.id == dep_id), None)
-            if not dep or dep.status != 'done':
-                return False
-        return True
-```
+### Тесты: ✅ 9/9 passed
 
 ---
 
-## 🔨 Фаза 4: Learning System
+## ✅ Фаза 4: Specialized Agents — **Выполнено**
 
-**Файл:** `learning.py`
+### Реализованные компоненты:
+- `agents/roles.py` — Enum ролей агентов
+- `prompts/researcher_prompt.md`
+- `prompts/tester_prompt.md`
+- `prompts/reviewer_prompt.md`
+- `prompts/worker_prompt.md`
 
-```python
-import json
+### Интеграция:
+Функция `get_prompt_for_role()` в `ralph.py` переключает промпты в зависимости от текущей роли.
 
-class LearningSystem:
-    def __init__(self, patterns_file=".ralph/memory/patterns.json"):
-        self.patterns_file = patterns_file
-        self.patterns = self._load()
-    
-    def record_outcome(self, task, success):
-        pattern = {
-            'type': self._categorize(task['text']),
-            'approach': task.get('approach'),
-            'success': success
-        }
-        category = 'success' if success else 'failure'
-        self.patterns[category].append(pattern)
-        self._save()
-    
-    def suggest_approach(self, task_text):
-        task_type = self._categorize(task_text)
-        relevant = [p for p in self.patterns['success'] if p['type'] == task_type]
-        return relevant[0] if relevant else None
+---
+
+## 🚨 Фаза 5: Интеграция — **Требуется доработка**
+
+### Проблема:
+При запуске `ralph.py` возникает ошибка:
 ```
+NameError: name 'get_project_context' is not defined
+```
+
+### Необходимые действия:
+1. Восстановить функцию `get_project_context()` (была удалена или не импортирована)
+2. Проверить все импорты модулей после рефакторинга
+
+---
+
+## ⏳ Фаза 6: Learning System — **Частично реализовано**
+
+### Текущее состояние:
+- ✅ База для обучения есть: `MemoryManager.remember()` сохраняет успехи/неудачи в SQLite
+- ✅ Файл `memory/lessons_learned.md` для ручных выводов
+- ❌ Отсутствует: автоматический модуль `learning.py`
 
 ---
 
 ## ✅ Критерии завершения
 
-- [ ] Tool Registry работает с 5+ инструментами
-- [ ] LongTermMemory сохраняет историю в SQLite
-- [ ] EntityMemory строит граф зависимостей
-- [ ] FlowManager управляет порядком задач
-- [ ] LearningSystem предлагает подходы
+| Критерий | Статус |
+|:---------|:-------|
+| Tool Registry работает с 5+ инструментами | ✅ 6 инструментов |
+| LongTermMemory сохраняет историю в SQLite | ✅ Работает |
+| EntityMemory строит граф зависимостей | ✅ Работает |
+| FlowManager управляет порядком задач | ✅ Работает |
+| DAG с Handoff и Rollback | ✅ Работает |
+| Specialized Agents переключаются | ✅ Работает |
+| LearningSystem предлагает подходы | ⏳ Частично |
+| **ralph.py запускается без ошибок** | 🚨 **НЕТ** |
 
 ---
 
-## 📊 План внедрения
+## 📋 Следующие шаги (Приоритет)
 
-1. **Неделя 1:** Tool Registry
-2. **Неделя 2:** Long-term Memory
-3. **Неделя 3:** Entity Memory + Flow Manager
-4. **Неделя 4:** Learning System
-5. **Неделя 5:** Тестирование и оптимизация
+1. **🚨 CRITICAL:** Исправить `get_project_context` в `ralph.py`
+2. **HIGH:** Создать модуль `learning.py` для автоматического анализа паттернов
+3. **MEDIUM:** Добавить персистентность стадий задач в PRD.md
+4. **LOW:** Добавить визуализацию DAG (Mermaid диаграммы)
