@@ -13,7 +13,7 @@ ERROR_THRESHOLD=3           # Порог для включения режима 
 LINT_FIRST=true             # Линтинг перед тестами
 AUTO_COMMIT=true            # Авто-коммит при успехе
 ARCHITECT_INTERVAL=5        # Вызов Архитектора каждые N итераций
-SLEEP_BETWEEN=10            # Пауза между итерациями (сек) - увеличена для rate limit
+SLEEP_BETWEEN=3             # Пауза между итерациями (сек)
 
 # Пути
 RALPH_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -116,7 +116,7 @@ check_error_loop() {
 # ═══════════════════════════════════════════════════════════════
 build_context() {
     local context_file="$STATE_DIR/current_context.md"
-    log "CONTEXT" "📚 Собираем контекст..." >&2
+    log "CONTEXT" "📚 Собираем контекст..."
     
     cat > "$context_file" << 'EOF'
 # 🤖 КОНТЕКСТ ДЛЯ AI-АГЕНТА
@@ -125,17 +125,7 @@ EOF
     
     echo "## 📁 Структура Проекта" >> "$context_file"
     echo '```' >> "$context_file"
-    # Используем find вместо tree для совместимости
-    find "$PROJECT_ROOT" -maxdepth 3 -type f \
-        ! -path "*/node_modules/*" \
-        ! -path "*/.venv/*" \
-        ! -path "*/__pycache__/*" \
-        ! -path "*/.git/*" \
-        ! -path "*/.next/*" \
-        ! -path "*/dist/*" \
-        ! -path "*/.ralph/state/*" \
-        ! -path "*/.ralph/logs/*" \
-        2>/dev/null | head -n 60 | sed "s|$PROJECT_ROOT/||" >> "$context_file"
+    tree -L 2 -I 'node_modules|.venv|__pycache__|.git|.next|dist' "$PROJECT_ROOT" 2>/dev/null | head -n 50 >> "$context_file"
     echo '```' >> "$context_file"
     echo "" >> "$context_file"
     
