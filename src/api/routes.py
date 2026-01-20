@@ -39,6 +39,7 @@ from src.schemas.stats import DetailedStatsResponse
 from src.core.logging import get_logger
 from src.config import settings
 from src.api.contractors import router as contractor_router
+from src.api.endpoints.drivers import router as driver_endpoints_router
 
 # Import limiter from main app (will be set via app.state)
 from slowapi import Limiter
@@ -47,6 +48,7 @@ from slowapi.util import get_remote_address
 logger = get_logger(__name__)
 router = APIRouter(prefix="/v1", tags=["TMS API"])
 router.include_router(contractor_router)
+router.include_router(driver_endpoints_router)
 
 # Локальный limiter для использования в декораторах
 # Локальный limiter для использования в декораторах

@@ -6,6 +6,7 @@ from src.database.connection import async_session_factory
 from src.database.uow import SQLAlchemyUnitOfWork
 from src.database.models import Driver
 from src.services.location_manager import LocationManager
+from src.services.location_manager import LocationManager
 from src.services.order_service import OrderService
 from src.services.routing import RoutingService
 from src.services.auth_service import AuthService
@@ -42,9 +43,12 @@ def get_location_manager(redis: Redis = Depends(get_redis)) -> LocationManager:
 
 from src.services.driver_service import DriverService
 
-def get_driver_service(uow: SQLAlchemyUnitOfWork = Depends(get_uow)) -> DriverService:
+def get_driver_service(
+    uow: SQLAlchemyUnitOfWork = Depends(get_uow),
+    location_manager: LocationManager = Depends(get_location_manager)
+) -> DriverService:
     """Провайдер сервиса водителей."""
-    return DriverService(uow)
+    return DriverService(uow, location_manager)
 
 async def get_urgent_assignment_service(
     location_manager: LocationManager = Depends(get_location_manager)
