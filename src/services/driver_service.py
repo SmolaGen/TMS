@@ -5,10 +5,13 @@ from src.database.uow import AbstractUnitOfWork
 from src.database.models import Driver, Order, OrderStatus
 from src.schemas.driver import DriverCreate, DriverResponse, DriverUpdate
 from src.database.models import DriverStatus
+from src.services.location_manager import LocationManager
+from src.api.dependencies import get_location_manager
 
 class DriverService:
-    def __init__(self, uow: AbstractUnitOfWork):
+    def __init__(self, uow: AbstractUnitOfWork, location_manager: LocationManager):
         self.uow = uow
+        self.location_manager = location_manager
 
     async def register_driver(self, data: DriverCreate) -> DriverResponse:
         async with self.uow:
@@ -20,7 +23,7 @@ class DriverService:
             driver = Driver(
                 telegram_id=data.telegram_id,
                 name=data.name,
-                phone=data.phone,
+                phone_number=data.phone,
                 status=DriverStatus.OFFLINE,
                 is_active=data.is_active
             )
@@ -43,11 +46,14 @@ class DriverService:
             driver = await self.uow.drivers.get(driver_id)
             if not driver:
                 return None
-            
+
             update_data = data.model_dump(exclude_unset=True)
             for key, value in update_data.items():
                 setattr(driver, key, value)
             
+            if "status" in update_data:
+                await self.location_manager.update_driver_status_only(driver.id, update_data["status"].value)
+
             await self.uow.commit()
             return DriverResponse.model_validate(driver)
 
@@ -63,7 +69,7 @@ class DriverService:
             driver = Driver(
                 telegram_id=telegram_id,
                 name=name,
-                phone=username or "",
+                phone_number=username or "",
                 status=DriverStatus.OFFLINE,
                 is_active=True
             )
@@ -77,20 +83,20 @@ class DriverService:
             driver = await self.uow.drivers.get(driver_id)
             if not driver:
                 return None
-            
+
             # Период для статистики
             start_date = datetime.utcnow() - timedelta(days=days)
-            
+
             # Подсчёт заказов через session
             session = self.uow.session
-            
+
             # Всего заказов
             total_orders = await session.scalar(
                 select(func.count(Order.id))
                 .where(Order.driver_id == driver_id)
                 .where(Order.created_at >= start_date)
             )
-            
+
             # Завершённых
             completed_orders = await session.scalar(
                 select(func.count(Order.id))
@@ -98,7 +104,7 @@ class DriverService:
                 .where(Order.status == OrderStatus.COMPLETED)
                 .where(Order.created_at >= start_date)
             )
-            
+
             # Отменённых
             cancelled_orders = await session.scalar(
                 select(func.count(Order.id))
@@ -106,18 +112,18 @@ class DriverService:
                 .where(Order.status == OrderStatus.CANCELLED)
                 .where(Order.created_at >= start_date)
             )
-            
+
             # Активных сейчас
             active_orders = await session.scalar(
                 select(func.count(Order.id))
                 .where(Order.driver_id == driver_id)
                 .where(Order.status.in_([
-                    OrderStatus.ASSIGNED, 
-                    OrderStatus.DRIVER_ARRIVED, 
+                    OrderStatus.ASSIGNED,
+                    OrderStatus.DRIVER_ARRIVED,
                     OrderStatus.IN_PROGRESS
                 ]))
             )
-            
+
             # Сумма заработка
             total_revenue = await session.scalar(
                 select(func.sum(Order.price))
@@ -125,7 +131,7 @@ class DriverService:
                 .where(Order.status == OrderStatus.COMPLETED)
                 .where(Order.created_at >= start_date)
             ) or 0
-            
+
             # Общая дистанция
             total_distance = await session.scalar(
                 select(func.sum(Order.distance_meters))
@@ -133,7 +139,7 @@ class DriverService:
                 .where(Order.status == OrderStatus.COMPLETED)
                 .where(Order.created_at >= start_date)
             ) or 0
-            
+
             return {
                 "driver_id": driver_id,
                 "period_days": days,

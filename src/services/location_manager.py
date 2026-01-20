@@ -37,7 +37,45 @@ class LocationManager:
     STREAM_NAME = "driver:locations"    # Единый Stream для всех водителей
     STREAM_PREFIX = "driver:stream"     # Для персональных стримов водителей
     STREAM_MAXLEN = 100000              # Защита от переполнения RAM (~100K записей)
-    TTL = 600  # 10 минут
+    TTL = 300  # 5 минут
+
+    async def update_driver_status_only(
+        self,
+        driver_id: int,
+        status: str,
+    ) -> None:
+        """
+        Обновляет только статус водителя в Redis и сбрасывает TTL.
+        Используется, когда водитель явно меняет свой статус.
+        """
+        key = f"{self.KEY_PREFIX}:{driver_id}"
+        existing_data = await self.redis.hgetall(key)
+        
+        if existing_data:
+            # Обновляем только статус, сохраняя остальные данные
+            existing_data[b"status"] = status.encode()
+            await self.redis.hset(key, mapping=existing_data)
+            await self.redis.expire(key, self.TTL)
+            logger.debug("driver_status_updated_redis", driver_id=driver_id, status=status)
+        else:
+            # Если данных нет, возможно, водитель не отправлял геолокацию,
+            # но мы все равно хотим сохранить его статус.
+            # В этом случае создадим минимальную запись.
+            # Если водитель потом отправит геолокацию, она обновится.
+            ts = datetime.now(timezone.utc)
+            hash_data = {
+                "lat": 0.0, # Используем 0.0 как заглушку, если нет геопозиции
+                "lon": 0.0,
+                "status": status,
+                "ts": ts.isoformat()
+            }
+            await self.redis.hset(key, mapping=hash_data)
+            await self.redis.expire(key, self.TTL)
+            logger.warning(
+                "driver_status_set_no_location_redis",
+                driver_id=driver_id,
+                status=status
+            )
 
     def __init__(self, redis: Redis):
         self.redis = redis
