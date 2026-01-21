@@ -55,6 +55,7 @@ class OrderStateMachine(StateMachine):
 
     def on_enter_assigned(self):
         self.order.status = OrderStatus.ASSIGNED
+        self.order.assigned_at = datetime.utcnow()
         logger.info("order_entered_assigned", order_id=self.order.id)
 
     def on_enter_pending(self):
