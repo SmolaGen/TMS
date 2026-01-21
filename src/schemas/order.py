@@ -63,6 +63,7 @@ class OrderResponse(BaseModel):
     updated_at: datetime
     
     # Lifecycle timestamps
+    assigned_at: Optional[datetime] = None
     arrived_at: Optional[datetime] = None
     started_at: Optional[datetime] = None
     end_time: Optional[datetime] = None

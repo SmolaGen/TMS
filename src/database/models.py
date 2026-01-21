@@ -261,6 +261,10 @@ class Order(Base):
     )
     
     # Lifecycle timestamps
+    assigned_at: Mapped[Optional[datetime]] = mapped_column(
+        nullable=True,
+        comment="Время назначения водителя на заказ"
+    )
     arrived_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
     started_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
     end_time: Mapped[Optional[datetime]] = mapped_column(nullable=True)

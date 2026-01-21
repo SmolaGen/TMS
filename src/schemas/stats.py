@@ -57,6 +57,13 @@ class RoutesStats(BaseModel):
     longestRoute: LongestRoute
 
 
+class WaitTimeStats(BaseModel):
+    """Статистика времени ожидания."""
+    averageWaitTime: float
+    averagePickupTime: float
+    averageDeliveryTime: float
+
+
 class Period(BaseModel):
     """Период статистики."""
     start: str
@@ -69,3 +76,4 @@ class DetailedStatsResponse(BaseModel):
     orders: OrdersStats
     drivers: DriversStats
     routes: RoutesStats
+    waitTimes: WaitTimeStats

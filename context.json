@@ -2,29 +2,37 @@
   "files_to_modify": {
     "backend": [
       "src/database/models.py",
-      "src/services/notification_service.py",
+      "src/schemas/stats.py",
       "src/services/order_workflow.py",
-      "src/api/dependencies.py"
+      "src/api/routes.py"
+    ],
+    "frontend": [
+      "frontend/src/hooks/useDetailedStats.ts"
+    ]
+  },
+  "files_to_create": {
+    "backend": [
+      "src/api/endpoints/stats.py"
     ]
   },
   "files_to_reference": [
-    "src/services/notification_service.py",
-    "src/services/webhook_service.py",
-    "src/services/order_workflow.py"
+    "src/services/driver_service.py",
+    "src/api/contractors.py",
+    "frontend/src/pages/StatsPage.tsx"
   ],
   "patterns": {
-    "notification_pattern": "NotificationService handles Telegram messages via aiogram Bot. Current implementation is driver-focused.",
-    "workflow_pattern": "OrderWorkflowService uses OrderStateMachine to manage transitions and trigger side effects like webhooks.",
-    "model_pattern": "Models use SQLAlchemy 2.0 declarative style. Order has client_id and customer_phone/name fields.",
-    "di_pattern": "FastAPI dependencies in src/api/dependencies.py handle service instantiation."
+    "service_pattern": "Uses SQLAlchemy with Unit of Work (AbstractUnitOfWork) and Repository pattern.",
+    "route_pattern": "FastAPI routers with dependency injection for services.",
+    "state_machine": "Order lifecycle managed by python-statemachine in src/services/order_workflow.py.",
+    "frontend_stats": "Frontend uses TanStack Query (useQuery) and Ant Design for UI."
   },
   "existing_implementations": {
-    "description": "NotificationService exists but only for drivers. WebhookService handles external contractor notifications on status changes.",
+    "description": "Found stats schema in src/schemas/stats.py. Order model has lifecycle timestamps (arrived_at, started_at, end_time). Frontend has a StatsPage.tsx and useDetailedStats hook pointing to /stats/detailed which is currently not implemented or mocked.",
     "relevant_files": [
-      "src/services/notification_service.py",
-      "src/services/webhook_service.py",
-      "src/services/order_workflow.py",
-      "src/database/models.py"
+      "src/schemas/stats.py",
+      "src/database/models.py",
+      "frontend/src/hooks/useDetailedStats.ts",
+      "frontend/src/pages/StatsPage.tsx"
     ]
   }
 }

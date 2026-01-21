@@ -5,15 +5,21 @@
       "path": ".",
       "tech_stack": ["python", "fastapi", "sqlalchemy", "postgresql"],
       "port": 8000,
-      "dev_command": "uvicorn src.main:app --reload",
+      "dev_command": "uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload",
       "test_command": "pytest"
+    },
+    "frontend": {
+      "path": "frontend",
+      "tech_stack": ["typescript", "react", "vite"],
+      "port": 3000,
+      "dev_command": "npm run dev",
+      "test_command": "npm test"
     }
   },
   "infrastructure": {
     "docker": true,
     "database": "postgresql",
-    "redis": true,
-    "telegram_bot": true
+    "redis": true
   },
   "conventions": {
     "linter": "ruff",
