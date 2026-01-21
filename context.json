@@ -1,0 +1,38 @@
+{
+  "files_to_modify": {
+    "backend": [
+      "src/database/models.py",
+      "src/schemas/stats.py",
+      "src/services/order_workflow.py",
+      "src/api/routes.py"
+    ],
+    "frontend": [
+      "frontend/src/hooks/useDetailedStats.ts"
+    ]
+  },
+  "files_to_create": {
+    "backend": [
+      "src/api/endpoints/stats.py"
+    ]
+  },
+  "files_to_reference": [
+    "src/services/driver_service.py",
+    "src/api/contractors.py",
+    "frontend/src/pages/StatsPage.tsx"
+  ],
+  "patterns": {
+    "service_pattern": "Uses SQLAlchemy with Unit of Work (AbstractUnitOfWork) and Repository pattern.",
+    "route_pattern": "FastAPI routers with dependency injection for services.",
+    "state_machine": "Order lifecycle managed by python-statemachine in src/services/order_workflow.py.",
+    "frontend_stats": "Frontend uses TanStack Query (useQuery) and Ant Design for UI."
+  },
+  "existing_implementations": {
+    "description": "Found stats schema in src/schemas/stats.py. Order model has lifecycle timestamps (arrived_at, started_at, end_time). Frontend has a StatsPage.tsx and useDetailedStats hook pointing to /stats/detailed which is currently not implemented or mocked.",
+    "relevant_files": [
+      "src/schemas/stats.py",
+      "src/database/models.py",
+      "frontend/src/hooks/useDetailedStats.ts",
+      "frontend/src/pages/StatsPage.tsx"
+    ]
+  }
+}

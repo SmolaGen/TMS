@@ -1,0 +1,232 @@
+{
+  "feature": "Wait Time Analytics",
+  "workflow_type": "feature",
+  "workflow_rationale": "Implementing wait time analytics requires database schema changes, business logic updates for lifecycle tracking, new API endpoints for data retrieval, and frontend integration to display the metrics.",
+  "phases": [
+    {
+      "id": "phase-1-database",
+      "name": "Database Schema Updates",
+      "type": "implementation",
+      "description": "Add assigned_at column to Order model and create migration",
+      "depends_on": [],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-1-1",
+          "description": "Add assigned_at field to Order model in src/database/models.py",
+          "service": "backend",
+          "files_to_modify": ["src/database/models.py"],
+          "verification": {
+            "type": "command",
+            "command": "python -c \"from src.database.models import Order; print('assigned_at' in Order.__table__.columns)\"",
+            "expected": "True"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-1-2",
+          "description": "Create and apply Alembic migration for assigned_at column",
+          "service": "backend",
+          "files_to_modify": [],
+          "verification": {
+            "type": "command",
+            "command": "alembic current",
+            "expected": "head"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-2-backend-logic",
+      "name": "Backend Business Logic",
+      "type": "implementation",
+      "description": "Update OrderStateMachine to track assigned_at and create StatsService",
+      "depends_on": ["phase-1-database"],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-2-1",
+          "description": "Update OrderStateMachine.on_enter_assigned to set assigned_at in src/services/order_workflow.py",
+          "service": "backend",
+          "files_to_modify": ["src/services/order_workflow.py"],
+          "verification": {
+            "type": "command",
+            "command": "grep \"self.order.assigned_at = datetime.utcnow()\" src/services/order_workflow.py",
+            "expected_status": 0
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-2-2",
+          "description": "Update src/schemas/stats.py to include wait time fields in OrdersStats and DailyStats",
+          "service": "backend",
+          "files_to_modify": ["src/schemas/stats.py"],
+          "verification": {
+            "type": "command",
+            "command": "grep \"averageWaitTime\" src/schemas/stats.py",
+            "expected_status": 0
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-2-3",
+          "description": "Create StatsService to calculate wait time averages in src/services/stats_service.py",
+          "service": "backend",
+          "files_to_create": ["src/services/stats_service.py"],
+          "patterns_from": ["src/services/driver_service.py"],
+          "verification": {
+            "type": "command",
+            "command": "python -c \"from src.services.stats_service import StatsService; print('OK')\"",
+            "expected": "OK"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-3-api",
+      "name": "API Layer",
+      "type": "implementation",
+      "description": "Create stats endpoints and register them in the router",
+      "depends_on": ["phase-2-backend-logic"],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-3-1",
+          "description": "Implement /api/stats/detailed endpoint in src/api/endpoints/stats.py",
+          "service": "backend",
+          "files_to_create": ["src/api/endpoints/stats.py"],
+          "patterns_from": ["src/api/endpoints/health.py"],
+          "verification": {
+            "type": "api",
+            "method": "GET",
+            "url": "http://localhost:8000/api/stats/detailed",
+            "expected_status": 200
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-3-2",
+          "description": "Register stats router in src/api/routes.py",
+          "service": "backend",
+          "files_to_modify": ["src/api/routes.py"],
+          "verification": {
+            "type": "api",
+            "method": "GET",
+            "url": "http://localhost:8000/api/stats/detailed",
+            "expected_status": 200
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-4-frontend",
+      "name": "Frontend Integration",
+      "type": "implementation",
+      "description": "Update frontend to fetch real stats instead of mock data",
+      "depends_on": ["phase-3-api"],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-4-1",
+          "description": "Update useDetailedStats hook to remove isDevMode mock check in frontend/src/hooks/useDetailedStats.ts",
+          "service": "frontend",
+          "files_to_modify": ["frontend/src/hooks/useDetailedStats.ts"],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:3000/stats",
+            "checks": ["Average wait time displayed", "Data fetched from API"]
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-5-integration",
+      "name": "Integration & Verification",
+      "type": "integration",
+      "description": "End-to-end verification of wait time calculation and display",
+      "depends_on": ["phase-4-frontend"],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-5-1",
+          "description": "Verify end-to-end wait time flow",
+          "all_services": true,
+          "verification": {
+            "type": "e2e",
+            "steps": [
+              "Create a new order",
+              "Assign a driver",
+              "Verify assigned_at is set in database",
+              "Verify stats endpoint includes this order in averages",
+              "Verify frontend reflects updated stats"
+            ]
+          },
+          "status": "pending"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_phases": 5,
+    "total_subtasks": 9,
+    "services_involved": ["backend", "frontend"],
+    "parallelism": {
+      "max_parallel_phases": 1,
+      "parallel_groups": [],
+      "recommended_workers": 1,
+      "speedup_estimate": "1.0x (Sequential due to schema and dependency chain)"
+    },
+    "startup_command": "source .venv/bin/activate && python run.py --spec 002 --parallel 1"
+  },
+  "verification_strategy": {
+    "risk_level": "medium",
+    "skip_validation": false,
+    "test_creation_phase": "post_implementation",
+    "test_types_required": ["unit", "integration"],
+    "security_scanning_required": false,
+    "staging_deployment_required": false,
+    "acceptance_criteria": [
+      "Order assigned_at is tracked correctly in the database",
+      "Wait time calculation (created_at to assigned_at) is accurate",
+      "Stats API /api/stats/detailed returns correct average and trend data",
+      "Frontend displays real data from API without mock data",
+      "Filtering by date range works correctly in API and UI"
+    ],
+    "verification_steps": [
+      {
+        "name": "Backend Tests",
+        "command": "pytest tests/test_stats.py",
+        "expected_outcome": "All wait time calculation tests pass",
+        "type": "test",
+        "required": true,
+        "blocking": true
+      }
+    ],
+    "reasoning": "Schema changes and new business logic for metrics require automated verification of calculations to ensure data accuracy."
+  },
+  "qa_acceptance": {
+    "unit_tests": {
+      "required": true,
+      "commands": ["pytest tests/test_stats.py"]
+    },
+    "database_verification": {
+      "required": true,
+      "checks": ["assigned_at column exists in orders table", "Alembic migration is present and applied"]
+    },
+    "api_verification": {
+      "required": true,
+      "endpoints": ["/api/stats/detailed"]
+    },
+    "browser_verification": {
+      "required": true,
+      "pages": [
+        {"url": "http://localhost:3000/stats", "checks": ["KPI widgets show data", "Charts show data"]}
+      ]
+    }
+  },
+  "qa_signoff": null
+}
