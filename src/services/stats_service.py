@@ -54,7 +54,7 @@ class StatsService:
                     func.count(Order.id)
                 )
                 .where(Order.created_at.between(start_date, end_date))
-                .group_by(func.extract('hour', Order.created_at))
+                .group_by(func.extract('hour', Order.created_at), 'hour')
                 .order_by('hour')
             )
             by_hour = [HourlyStats(hour=int(h), count=c) for h, c in hourly_data]
@@ -67,7 +67,7 @@ class StatsService:
                     func.sum(Order.price)
                 )
                 .where(Order.created_at.between(start_date, end_date))
-                .group_by(func.to_char(Order.created_at, 'YYYY-MM-DD'))
+                .group_by(func.to_char(Order.created_at, 'YYYY-MM-DD'), 'date')
                 .order_by('date')
             )
             by_day = [DailyStats(date=d, count=c, revenue=float(r or 0)) for d, c, r in daily_data]
