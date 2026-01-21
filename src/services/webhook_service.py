@@ -12,26 +12,31 @@ class WebhookService:
         # Мы создаем клиент здесь, но в идеале его лучше инжектировать или держать один на приложение
         self.client = httpx.AsyncClient(timeout=10.0)
 
-    async def notify_status_change(self, order: Order):
+    async def notify_status_change(self, order: Order, event: str = "status_changed", extra_data: Optional[dict] = None):
         """Уведомить подрядчика или клиента об изменении статуса заказа."""
         # 1. Уведомление подрядчика (если есть)
         if order.contractor_id and order.contractor and order.contractor.webhook_url:
             await self._send_webhook(
                 order.contractor.webhook_url,
                 order,
-                "status_changed",
-                {"X-TMS-Event": "order.status_changed"}
+                event,
+                {"X-TMS-Event": f"order.{event}"},
+                extra_data
             )
         elif order.contractor_id and order.contractor:
             logger.debug("webhook_skip_no_url", order_id=order.id, contractor_id=order.contractor_id)
 
-        # 2. Уведомление клиента (если есть webhook_url в заказе)
-        # Мы предполагаем, что в будущем у заказа может быть поле customer_webhook_url
-        # или мы получаем его из настроек клиента. Для текущей реализации расширим
-        # логику для поддержки передачи URL напрямую (например, если он хранится в метаданных)
-        # В данной подзадаче мы просто подготовили структуру для отправки произвольных вебхуков.
+        # 2. Уведомление клиента (если есть customer_webhook_url в заказе)
+        if order.customer_webhook_url:
+            await self._send_webhook(
+                order.customer_webhook_url,
+                order,
+                event,
+                {"X-TMS-Event": f"order.{event}"},
+                extra_data
+            )
 
-    async def _send_webhook(self, url: str, order: Order, event: str, headers: dict):
+    async def _send_webhook(self, url: str, order: Order, event: str, headers: dict, extra_data: Optional[dict] = None):
         """Вспомогательный метод для отправки вебхука."""
         payload = {
             "order_id": order.id,
@@ -46,6 +51,8 @@ class WebhookService:
                 "customer_name": order.customer_name
             }
         }
+        if extra_data:
+            payload["data"].update(extra_data)
 
         try:
             logger.info("webhook_sending", order_id=order.id, url=url, webhook_event=event)
