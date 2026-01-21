@@ -219,7 +219,18 @@ class Order(Base):
     dropoff_address: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     customer_phone: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     customer_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    
+    customer_telegram_id: Mapped[Optional[int]] = mapped_column(
+        BigInteger,
+        nullable=True,
+        index=True,
+        comment="Telegram ID заказчика для уведомлений"
+    )
+    customer_webhook_url: Mapped[Optional[str]] = mapped_column(
+        String(500),
+        nullable=True,
+        comment="URL вебхука заказчика для уведомлений"
+    )
+
     # Рассчитанные данные от RoutingService
     distance_meters: Mapped[Optional[float]] = mapped_column(
         nullable=True,

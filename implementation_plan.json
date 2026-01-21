@@ -1,0 +1,212 @@
+{
+  "feature": "Customer Notification System",
+  "workflow_type": "feature",
+  "workflow_rationale": "This task involves adding new functionality (automated customer notifications) across backend services, involving database model updates, service logic, and potentially API endpoints.",
+  "phases": [
+    {
+      "id": "phase-1-database",
+      "name": "Database & Models",
+      "type": "implementation",
+      "description": "Extend Order model to support customer notification preferences and status tracking.",
+      "depends_on": [],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-1-1",
+          "description": "Add customer notification preference fields to Order model",
+          "service": "backend",
+          "files_to_modify": ["src/database/models.py"],
+          "files_to_create": [],
+          "patterns_from": ["src/database/models.py"],
+          "verification": {
+            "type": "command",
+            "command": "python -c \"from src.database.models import Order; print('OK')\"",
+            "expected": "OK"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-2-notification-service",
+      "name": "Customer Notification Service",
+      "type": "implementation",
+      "description": "Extend NotificationService to handle customer-specific notifications and webhooks.",
+      "depends_on": ["phase-1-database"],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-2-1",
+          "description": "Implement customer notification methods in NotificationService",
+          "service": "backend",
+          "files_to_modify": ["src/services/notification_service.py"],
+          "files_to_create": [],
+          "patterns_from": ["src/services/notification_service.py"],
+          "verification": {
+            "type": "command",
+            "command": "pytest tests/test_notification_service.py",
+            "expected": "All tests pass"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-2-2",
+          "description": "Add webhook support for customer notifications",
+          "service": "backend",
+          "files_to_modify": ["src/services/notification_service.py"],
+          "files_to_create": [],
+          "patterns_from": ["src/services/routing.py"],
+          "verification": {
+            "type": "command",
+            "command": "pytest tests/test_notification_service.py",
+            "expected": "All tests pass"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-3-event-triggers",
+      "name": "Event Triggers",
+      "type": "implementation",
+      "description": "Integrate notification triggers into order status change logic.",
+      "depends_on": ["phase-2-notification-service"],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-3-1",
+          "description": "Trigger notifications on order status changes (assigned, en-route, arrived, completed)",
+          "service": "backend",
+          "files_to_modify": ["app/crud/order.py"],
+          "files_to_create": [],
+          "patterns_from": ["app/crud/order.py"],
+          "verification": {
+            "type": "e2e",
+            "steps": [
+              "Create a test order",
+              "Change order status to 'assigned'",
+              "Verify notification is sent/logged"
+            ]
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-4-eta-updates",
+      "name": "ETA Updates",
+      "type": "implementation",
+      "description": "Implement ETA notifications when driver is approaching delivery.",
+      "depends_on": ["phase-3-event-triggers"],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-4-1",
+          "description": "Calculate approaching ETA and send notification",
+          "service": "backend",
+          "files_to_modify": ["src/services/notification_service.py"],
+          "files_to_create": [],
+          "patterns_from": ["src/services/routing.py"],
+          "verification": {
+            "type": "command",
+            "command": "pytest tests/test_eta_notifications.py",
+            "expected": "All tests pass"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-5-integration",
+      "name": "Integration & Verification",
+      "type": "integration",
+      "description": "Final end-to-end verification of the customer notification system.",
+      "depends_on": ["phase-4-eta-updates"],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-5-1",
+          "description": "Complete flow verification (Telegram & Webhook)",
+          "all_services": true,
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "e2e",
+            "steps": [
+              "Verify order confirmed notification",
+              "Verify driver assigned notification",
+              "Verify driver en-route notification",
+              "Verify approaching delivery notification",
+              "Verify delivered notification",
+              "Verify webhook receives status updates"
+            ]
+          },
+          "status": "pending"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_phases": 5,
+    "total_subtasks": 6,
+    "services_involved": ["backend"],
+    "parallelism": {
+      "max_parallel_phases": 1,
+      "parallel_groups": [],
+      "recommended_workers": 1,
+      "speedup_estimate": "1.0x (sequential due to service dependencies)"
+    },
+    "startup_command": "source .venv/bin/activate && uvicorn src.main:app --reload"
+  },
+  "verification_strategy": {
+    "risk_level": "medium",
+    "skip_validation": false,
+    "test_creation_phase": "post_implementation",
+    "test_types_required": ["unit", "integration", "e2e"],
+    "security_scanning_required": false,
+    "staging_deployment_required": false,
+    "acceptance_criteria": [
+      "All order status changes trigger correct customer notifications",
+      "Telegram and Webhook channels are supported",
+      "Approaching delivery ETA is calculated and sent",
+      "No regression in driver notifications"
+    ],
+    "verification_steps": [
+      {
+        "name": "Unit Tests",
+        "command": "pytest tests/",
+        "expected_outcome": "All tests pass",
+        "type": "test",
+        "required": true,
+        "blocking": true
+      }
+    ],
+    "reasoning": "Medium risk feature adding new notification channels and triggers, requires thorough unit and integration testing."
+  },
+  "qa_acceptance": {
+    "unit_tests": {
+      "required": true,
+      "commands": ["pytest tests/test_notification_service.py"],
+      "minimum_coverage": null
+    },
+    "integration_tests": {
+      "required": true,
+      "commands": ["pytest tests/test_eta_notifications.py"],
+      "services_to_test": ["backend"]
+    },
+    "e2e_tests": {
+      "required": true,
+      "commands": [],
+      "flows": ["order-notification-flow"]
+    },
+    "browser_verification": {
+      "required": false
+    },
+    "database_verification": {
+      "required": true,
+      "checks": ["migrations-exist", "schema-valid"]
+    }
+  },
+  "qa_signoff": null
+}

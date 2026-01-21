@@ -1,0 +1,23 @@
+{
+  "project_type": "single",
+  "services": {
+    "backend": {
+      "path": ".",
+      "tech_stack": ["python", "fastapi", "sqlalchemy", "postgresql"],
+      "port": 8000,
+      "dev_command": "uvicorn src.main:app --reload",
+      "test_command": "pytest"
+    }
+  },
+  "infrastructure": {
+    "docker": true,
+    "database": "postgresql",
+    "redis": true,
+    "telegram_bot": true
+  },
+  "conventions": {
+    "linter": "ruff",
+    "formatter": "black",
+    "testing": "pytest"
+  }
+}
