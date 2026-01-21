@@ -1,48 +1,41 @@
 === AUTO-BUILD PROGRESS ===
 
-Project: Customer Notification System
-Workspace: managed by orchestrator
-Started: 2026-01-21
+Project: Wait Time Analytics
+Workspace: /Users/alsmolentsev/tms_new/.auto-claude/worktrees/tasks/002-wait-time-analytics
+Started: 2026-01-22
 
 Workflow Type: feature
-Rationale: This task involves extending the backend API and service layer to support a new business feature (customer notifications) across multiple notification channels.
+Rationale: This task involves database schema changes, backend service logic, API implementation, and frontend UI updates across multiple services.
 
 Session 1 (Planner):
 - Created implementation_plan.json
-- Phases: 4
-- Total subtasks: 6
+- Phases: 5
+- Total subtasks: 9
 - Created init.sh
 
 Phase Summary:
-- Infrastructure and Models: 2 subtasks, depends on []
-- Notification Service Expansion: 2 subtasks, depends on [phase-1-infrastructure]
-- Workflow Integration: 1 subtasks, depends on [phase-2-notification-service]
-- End-to-End Integration: 1 subtask, depends on [phase-3-workflow-integration]
+- Database & Models: 2 subtasks, depends on []
+- Backend Logic & Service: 3 subtasks, depends on [phase-1-database]
+- API Endpoints: 1 subtasks, depends on [phase-2-backend-logic]
+- Frontend Integration: 2 subtasks, depends on [phase-3-api]
+- Integration & Verification: 1 subtasks, depends on [phase-4-frontend]
 
 Services Involved:
-- backend: NotificationService, OrderWorkflowService, WebhookService
+- backend: Database models, business logic for wait time calculation, and REST API.
+- frontend: Hooks and UI components for displaying analytics.
 
 Parallelism Analysis:
 - Max parallel phases: 1
 - Recommended workers: 1
-- Parallel groups: []
+- Parallel groups: Sequential execution recommended due to schema dependencies.
 
 === STARTUP COMMAND ===
 
 To continue building this spec, run:
 
-  source auto-claude/.venv/bin/activate && python auto-claude/run.py --spec 003 --parallel 1
+  source .auto-claude/venv/bin/activate && python .auto-claude/run.py --spec 002 --parallel 1
 
 Example:
-  source auto-claude/.venv/bin/activate && python auto-claude/run.py --spec 003 --parallel 1
+  source .auto-claude/venv/bin/activate && python .auto-claude/run.py --spec 002 --parallel 1
 
 === END SESSION 1 ===
-
-Session 3 (QA Fix):
-- Resolved Alembic migration issue by creating a dummy revision `f77ccb29aa5f` to fix broken state.
-- Generated new Alembic migration `bead1875fb36` adding `customer_telegram_id` and `customer_webhook_url` to `Order` model.
-- Implemented `notify_approaching` in `NotificationService`.
-- Added `update_eta` to `OrderWorkflowService` to trigger customer notifications and webhooks.
-- Extended `WebhookService.notify_status_change` to support arbitrary events and `customer_webhook_url`.
-- Added E2E test for ETA updates and verified all tests pass.
-

@@ -1,26 +1,83 @@
 {
-  "feature": "Customer Notification System",
+  "feature": "Wait Time Analytics",
   "workflow_type": "feature",
-  "workflow_rationale": "This task involves adding new functionality (automated customer notifications) across backend services, involving database model updates, service logic, and potentially API endpoints.",
+  "workflow_rationale": "Implementing wait time analytics requires database schema changes, business logic updates for lifecycle tracking, new API endpoints for data retrieval, and frontend integration to display the metrics.",
   "phases": [
     {
       "id": "phase-1-database",
-      "name": "Database & Models",
+      "name": "Database Schema Updates",
       "type": "implementation",
-      "description": "Extend Order model to support customer notification preferences and status tracking.",
+      "description": "Add assigned_at column to Order model and create migration",
       "depends_on": [],
       "parallel_safe": true,
       "subtasks": [
         {
           "id": "subtask-1-1",
-          "description": "Add customer notification preference fields to Order model",
+          "description": "Add assigned_at field to Order model in src/database/models.py",
           "service": "backend",
           "files_to_modify": ["src/database/models.py"],
-          "files_to_create": [],
-          "patterns_from": ["src/database/models.py"],
           "verification": {
             "type": "command",
-            "command": "python -c \"from src.database.models import Order; print('OK')\"",
+            "command": "python -c \"from src.database.models import Order; print('assigned_at' in Order.__table__.columns)\"",
+            "expected": "True"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-1-2",
+          "description": "Create and apply Alembic migration for assigned_at column",
+          "service": "backend",
+          "files_to_modify": [],
+          "verification": {
+            "type": "command",
+            "command": "alembic current",
+            "expected": "head"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-2-backend-logic",
+      "name": "Backend Business Logic",
+      "type": "implementation",
+      "description": "Update OrderStateMachine to track assigned_at and create StatsService",
+      "depends_on": ["phase-1-database"],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-2-1",
+          "description": "Update OrderStateMachine.on_enter_assigned to set assigned_at in src/services/order_workflow.py",
+          "service": "backend",
+          "files_to_modify": ["src/services/order_workflow.py"],
+          "verification": {
+            "type": "command",
+            "command": "grep \"self.order.assigned_at = datetime.utcnow()\" src/services/order_workflow.py",
+            "expected_status": 0
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-2-2",
+          "description": "Update src/schemas/stats.py to include wait time fields in OrdersStats and DailyStats",
+          "service": "backend",
+          "files_to_modify": ["src/schemas/stats.py"],
+          "verification": {
+            "type": "command",
+            "command": "grep \"averageWaitTime\" src/schemas/stats.py",
+            "expected_status": 0
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-2-3",
+          "description": "Create StatsService to calculate wait time averages in src/services/stats_service.py",
+          "service": "backend",
+          "files_to_create": ["src/services/stats_service.py"],
+          "patterns_from": ["src/services/driver_service.py"],
+          "verification": {
+            "type": "command",
+            "command": "python -c \"from src.services.stats_service import StatsService; print('OK')\"",
             "expected": "OK"
           },
           "status": "pending"
@@ -28,89 +85,59 @@
       ]
     },
     {
-      "id": "phase-2-notification-service",
-      "name": "Customer Notification Service",
+      "id": "phase-3-api",
+      "name": "API Layer",
       "type": "implementation",
-      "description": "Extend NotificationService to handle customer-specific notifications and webhooks.",
-      "depends_on": ["phase-1-database"],
+      "description": "Create stats endpoints and register them in the router",
+      "depends_on": ["phase-2-backend-logic"],
       "parallel_safe": true,
       "subtasks": [
         {
-          "id": "subtask-2-1",
-          "description": "Implement customer notification methods in NotificationService",
+          "id": "subtask-3-1",
+          "description": "Implement /api/stats/detailed endpoint in src/api/endpoints/stats.py",
           "service": "backend",
-          "files_to_modify": ["src/services/notification_service.py"],
-          "files_to_create": [],
-          "patterns_from": ["src/services/notification_service.py"],
+          "files_to_create": ["src/api/endpoints/stats.py"],
+          "patterns_from": ["src/api/endpoints/health.py"],
           "verification": {
-            "type": "command",
-            "command": "pytest tests/test_notification_service.py",
-            "expected": "All tests pass"
+            "type": "api",
+            "method": "GET",
+            "url": "http://localhost:8000/api/stats/detailed",
+            "expected_status": 200
           },
           "status": "pending"
         },
         {
-          "id": "subtask-2-2",
-          "description": "Add webhook support for customer notifications",
+          "id": "subtask-3-2",
+          "description": "Register stats router in src/api/routes.py",
           "service": "backend",
-          "files_to_modify": ["src/services/notification_service.py"],
-          "files_to_create": [],
-          "patterns_from": ["src/services/routing.py"],
+          "files_to_modify": ["src/api/routes.py"],
           "verification": {
-            "type": "command",
-            "command": "pytest tests/test_notification_service.py",
-            "expected": "All tests pass"
+            "type": "api",
+            "method": "GET",
+            "url": "http://localhost:8000/api/stats/detailed",
+            "expected_status": 200
           },
           "status": "pending"
         }
       ]
     },
     {
-      "id": "phase-3-event-triggers",
-      "name": "Event Triggers",
+      "id": "phase-4-frontend",
+      "name": "Frontend Integration",
       "type": "implementation",
-      "description": "Integrate notification triggers into order status change logic.",
-      "depends_on": ["phase-2-notification-service"],
-      "parallel_safe": false,
-      "subtasks": [
-        {
-          "id": "subtask-3-1",
-          "description": "Trigger notifications on order status changes (assigned, en-route, arrived, completed)",
-          "service": "backend",
-          "files_to_modify": ["app/crud/order.py"],
-          "files_to_create": [],
-          "patterns_from": ["app/crud/order.py"],
-          "verification": {
-            "type": "e2e",
-            "steps": [
-              "Create a test order",
-              "Change order status to 'assigned'",
-              "Verify notification is sent/logged"
-            ]
-          },
-          "status": "pending"
-        }
-      ]
-    },
-    {
-      "id": "phase-4-eta-updates",
-      "name": "ETA Updates",
-      "type": "implementation",
-      "description": "Implement ETA notifications when driver is approaching delivery.",
-      "depends_on": ["phase-3-event-triggers"],
-      "parallel_safe": false,
+      "description": "Update frontend to fetch real stats instead of mock data",
+      "depends_on": ["phase-3-api"],
+      "parallel_safe": true,
       "subtasks": [
         {
           "id": "subtask-4-1",
-          "description": "Calculate approaching ETA and send notification",
-          "service": "backend",
-          "files_to_modify": ["src/services/notification_service.py"],
-          "files_to_create": [],
-          "patterns_from": ["src/services/routing.py"],
+          "description": "Update useDetailedStats hook to remove isDevMode mock check in frontend/src/hooks/useDetailedStats.ts",
+          "service": "frontend",
+          "files_to_modify": ["frontend/src/hooks/useDetailedStats.ts"],
           "verification": {
-            "type": "command",
-            "command": "pytest tests/test_eta_notifications.py",
-            "expected": "All tests pass"
+            "type": "browser",
+            "url": "http://localhost:3000/stats",
+            "checks": ["Average wait time displayed", "Data fetched from API"]
           },
           "status": "pending"
         }
@@ -120,26 +147,22 @@
       "id": "phase-5-integration",
       "name": "Integration & Verification",
       "type": "integration",
-      "description": "Final end-to-end verification of the customer notification system.",
-      "depends_on": ["phase-4-eta-updates"],
+      "description": "End-to-end verification of wait time calculation and display",
+      "depends_on": ["phase-4-frontend"],
       "parallel_safe": false,
       "subtasks": [
         {
           "id": "subtask-5-1",
-          "description": "Complete flow verification (Telegram & Webhook)",
+          "description": "Verify end-to-end wait time flow",
           "all_services": true,
-          "files_to_modify": [],
-          "files_to_create": [],
-          "patterns_from": [],
           "verification": {
             "type": "e2e",
             "steps": [
-              "Verify order confirmed notification",
-              "Verify driver assigned notification",
-              "Verify driver en-route notification",
-              "Verify approaching delivery notification",
-              "Verify delivered notification",
-              "Verify webhook receives status updates"
+              "Create a new order",
+              "Assign a driver",
+              "Verify assigned_at is set in database",
+              "Verify stats endpoint includes this order in averages",
+              "Verify frontend reflects updated stats"
             ]
           },
           "status": "pending"
@@ -149,63 +172,60 @@
   ],
   "summary": {
     "total_phases": 5,
-    "total_subtasks": 6,
-    "services_involved": ["backend"],
+    "total_subtasks": 9,
+    "services_involved": ["backend", "frontend"],
     "parallelism": {
       "max_parallel_phases": 1,
       "parallel_groups": [],
       "recommended_workers": 1,
-      "speedup_estimate": "1.0x (sequential due to service dependencies)"
+      "speedup_estimate": "1.0x (Sequential due to schema and dependency chain)"
     },
-    "startup_command": "source .venv/bin/activate && uvicorn src.main:app --reload"
+    "startup_command": "source .venv/bin/activate && python run.py --spec 002 --parallel 1"
   },
   "verification_strategy": {
     "risk_level": "medium",
     "skip_validation": false,
     "test_creation_phase": "post_implementation",
-    "test_types_required": ["unit", "integration", "e2e"],
+    "test_types_required": ["unit", "integration"],
     "security_scanning_required": false,
     "staging_deployment_required": false,
     "acceptance_criteria": [
-      "All order status changes trigger correct customer notifications",
-      "Telegram and Webhook channels are supported",
-      "Approaching delivery ETA is calculated and sent",
-      "No regression in driver notifications"
+      "Order assigned_at is tracked correctly in the database",
+      "Wait time calculation (created_at to assigned_at) is accurate",
+      "Stats API /api/stats/detailed returns correct average and trend data",
+      "Frontend displays real data from API without mock data",
+      "Filtering by date range works correctly in API and UI"
     ],
     "verification_steps": [
       {
-        "name": "Unit Tests",
-        "command": "pytest tests/",
-        "expected_outcome": "All tests pass",
+        "name": "Backend Tests",
+        "command": "pytest tests/test_stats.py",
+        "expected_outcome": "All wait time calculation tests pass",
         "type": "test",
         "required": true,
         "blocking": true
       }
     ],
-    "reasoning": "Medium risk feature adding new notification channels and triggers, requires thorough unit and integration testing."
+    "reasoning": "Schema changes and new business logic for metrics require automated verification of calculations to ensure data accuracy."
   },
   "qa_acceptance": {
     "unit_tests": {
       "required": true,
-      "commands": ["pytest tests/test_notification_service.py"],
-      "minimum_coverage": null
-    },
-    "integration_tests": {
-      "required": true,
-      "commands": ["pytest tests/test_eta_notifications.py"],
-      "services_to_test": ["backend"]
-    },
-    "e2e_tests": {
-      "required": true,
-      "commands": [],
-      "flows": ["order-notification-flow"]
-    },
-    "browser_verification": {
-      "required": false
+      "commands": ["pytest tests/test_stats.py"]
     },
     "database_verification": {
       "required": true,
-      "checks": ["migrations-exist", "schema-valid"]
+      "checks": ["assigned_at column exists in orders table", "Alembic migration is present and applied"]
+    },
+    "api_verification": {
+      "required": true,
+      "endpoints": ["/api/stats/detailed"]
+    },
+    "browser_verification": {
+      "required": true,
+      "pages": [
+        {"url": "http://localhost:3000/stats", "checks": ["KPI widgets show data", "Charts show data"]}
+      ]
     }
   },
   "qa_signoff": null

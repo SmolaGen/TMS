@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "003-customer-notification-system",
-  "state": "complete",
+  "spec": "002-wait-time-analytics",
+  "state": "building",
   "subtasks": {
-    "completed": 6,
-    "total": 6,
-    "in_progress": 0,
+    "completed": 7,
+    "total": 9,
+    "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "End-to-End Integration",
+    "current": "Frontend Integration",
     "id": null,
-    "total": 1
+    "total": 2
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 4,
-    "started_at": "2026-01-21T23:51:31.408754"
+    "number": 13,
+    "started_at": "2026-01-22T00:26:40.469298"
   },
-  "last_update": "2026-01-22T00:23:00.541856"
+  "last_update": "2026-01-22T01:49:17.245208"
 }
