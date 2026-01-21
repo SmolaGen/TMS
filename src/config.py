@@ -69,5 +69,12 @@ class Settings(BaseSettings):
     RATE_LIMIT_DEFAULT: str = "100/minute"
     RATE_LIMIT_LOCATION: str = "30/minute"  # Защита high-throughput GPS endpoint
 
+    # Notifications
+    NOTIFICATIONS_ENABLED: bool = True
+    ENABLE_TELEGRAM_NOTIFICATIONS: bool = True
+    ENABLE_WEBHOOK_NOTIFICATIONS: bool = True
+    NOTIFICATION_RETRY_COUNT: int = 3
+    NOTIFICATION_RETRY_DELAY: int = 5  # seconds
+
 
 settings = Settings()
