@@ -94,3 +94,23 @@ class NotificationService:
             f"Пора выезжать! 🚗"
         )
         return await self.send_message(driver_id, text)
+
+    async def notify_customer(self, telegram_id: int, text: str, reply_markup=None) -> bool:
+        """Метод для отправки сообщения клиенту."""
+        if not self.bot:
+            logger.warning("bot_not_initialized", customer_telegram_id=telegram_id)
+            return False
+
+        try:
+            await self.bot.send_message(
+                chat_id=telegram_id,
+                text=text,
+                reply_markup=reply_markup,
+                parse_mode="HTML"
+            )
+            return True
+        except Exception as e:
+            logger.error("failed_to_send_customer_notification",
+                         customer_telegram_id=telegram_id,
+                         error=str(e))
+            return False
