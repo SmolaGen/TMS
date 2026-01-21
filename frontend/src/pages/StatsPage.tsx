@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { Card, Row, Col, DatePicker, Typography, Spin, Alert, Tabs } from 'antd';
-import { ReloadOutlined, BarChartOutlined, TeamOutlined, CarOutlined } from '@ant-design/icons';
+import { ReloadOutlined, BarChartOutlined, TeamOutlined, CarOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import dayjs, { Dayjs } from 'dayjs';
 import { useDetailedStats } from '../hooks/useDetailedStats';
 import { HourlyChart } from '../components/stats/HourlyChart';
 import { DriverRanking } from '../components/stats/DriverRanking';
 import { OrdersBreakdown } from '../components/stats/OrdersBreakdown';
 import { RoutesStats } from '../components/stats/RoutesStats';
+import { WaitTimeStats } from '../components/stats/WaitTimeStats';
 import { DailyChart } from '../components/stats/DailyChart';
 import { KPIWidgets } from '../components/dashboard/KPIWidgets';
 
@@ -181,6 +182,24 @@ export const StatsPage: React.FC = () => {
                     style={{ background: 'var(--tms-bg-container)', borderRadius: 8 }}
                 >
                     <RoutesStats data={stats.routes} isMobile={isMobile} />
+                </Card>
+            ),
+        },
+        {
+            key: 'wait_times',
+            label: (
+                <span>
+                    <ClockCircleOutlined />
+                    {!isMobile && ' Время ожидания'}
+                </span>
+            ),
+            children: (
+                <Card
+                    title={<Text strong>Аналитика времени ожидания</Text>}
+                    size="small"
+                    style={{ background: 'var(--tms-bg-container)', borderRadius: 8 }}
+                >
+                    <WaitTimeStats data={stats.waitTimes} isMobile={isMobile} />
                 </Card>
             ),
         },
