@@ -41,10 +41,15 @@ def get_location_manager(redis: Redis = Depends(get_redis)) -> LocationManager:
     return LocationManager(redis)
 
 from src.services.driver_service import DriverService
+from src.services.stats_service import StatsService
 
 def get_driver_service(uow: SQLAlchemyUnitOfWork = Depends(get_uow)) -> DriverService:
     """Провайдер сервиса водителей."""
     return DriverService(uow)
+
+def get_stats_service(uow: SQLAlchemyUnitOfWork = Depends(get_uow)) -> StatsService:
+    """Провайдер сервиса статистики."""
+    return StatsService(uow)
 
 async def get_urgent_assignment_service(
     location_manager: LocationManager = Depends(get_location_manager)
