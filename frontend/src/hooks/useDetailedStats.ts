@@ -36,6 +36,11 @@ export interface DetailedStats {
             order_id: number;
         };
     };
+    waitTimes: {
+        averageWaitTime: number;
+        averagePickupTime: number;
+        averageDeliveryTime: number;
+    };
 }
 
 const MOCK_DETAILED_STATS: DetailedStats = {
@@ -87,6 +92,11 @@ const MOCK_DETAILED_STATS: DetailedStats = {
             distance: 18.5,
             order_id: 123,
         },
+    },
+    waitTimes: {
+        averageWaitTime: 12.5,
+        averagePickupTime: 8.2,
+        averageDeliveryTime: 24.5,
     },
 };
 
