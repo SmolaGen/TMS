@@ -126,11 +126,19 @@ class NotificationService:
             "driver_arrived": f"📍 Водитель прибыл на место забора груза по заказу #{order.id}.",
             "in_progress": f"📦 Ваш заказ #{order.id} принят к перевозке и находится в пути.",
             "completed": f"✅ Ваш заказ #{order.id} успешно доставлен. Спасибо, что выбрали нас!",
-            "cancelled": f"❌ Ваш заказ #{order.id} был отменен. Причина: {order.cancellation_reason or 'не указана'}."
+            "cancelled": f"❌ Ваш заказ #{order.id} был отменен. Причина: {order.cancellation_reason or 'не указана'}.",
         }
 
         text = status_messages.get(order.status)
         if not text:
             return False
 
+        return await self.notify_customer(order.customer_telegram_id, text)
+
+    async def notify_approaching(self, order: Order, eta_minutes: int) -> bool:
+        """Уведомить клиента о приближении водителя."""
+        if not order.customer_telegram_id:
+            return False
+
+        text = f"⏳ Водитель будет у вас через {eta_minutes} мин. (Заказ #{order.id})"
         return await self.notify_customer(order.customer_telegram_id, text)

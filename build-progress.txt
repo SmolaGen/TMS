@@ -37,3 +37,12 @@ Example:
   source auto-claude/.venv/bin/activate && python auto-claude/run.py --spec 003 --parallel 1
 
 === END SESSION 1 ===
+
+Session 3 (QA Fix):
+- Resolved Alembic migration issue by creating a dummy revision `f77ccb29aa5f` to fix broken state.
+- Generated new Alembic migration `bead1875fb36` adding `customer_telegram_id` and `customer_webhook_url` to `Order` model.
+- Implemented `notify_approaching` in `NotificationService`.
+- Added `update_eta` to `OrderWorkflowService` to trigger customer notifications and webhooks.
+- Extended `WebhookService.notify_status_change` to support arbitrary events and `customer_webhook_url`.
+- Added E2E test for ETA updates and verified all tests pass.
+

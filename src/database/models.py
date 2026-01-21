@@ -225,7 +225,12 @@ class Order(Base):
         index=True,
         comment="Telegram ID заказчика для уведомлений"
     )
-    
+    customer_webhook_url: Mapped[Optional[str]] = mapped_column(
+        String(500),
+        nullable=True,
+        comment="URL вебхука заказчика для уведомлений"
+    )
+
     # Рассчитанные данные от RoutingService
     distance_meters: Mapped[Optional[float]] = mapped_column(
         nullable=True,

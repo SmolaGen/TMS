@@ -167,3 +167,20 @@ class OrderWorkflowService:
             sm.cancel(reason=reason)
             await self.uow.commit()
             await self._notify_all(order)
+
+    async def update_eta(self, order_id: int, eta_minutes: int):
+        """Обновить ETA и уведомить клиента, если он близко."""
+        async with self.uow:
+            order = await self.uow.orders.get(order_id)
+            if not order:
+                raise ValueError(f"Order {order_id} not found")
+
+            # В реальной системе здесь могла бы быть более сложная логика
+            # Например, сохранение ETA в БД. Пока просто уведомляем.
+            logger.info("updating_order_eta", order_id=order_id, eta=eta_minutes)
+
+            if self.notification_service:
+                await self.notification_service.notify_approaching(order, eta_minutes)
+
+            if self.webhook_service:
+                await self.webhook_service.notify_status_change(order, event="eta_updated", extra_data={"eta_minutes": eta_minutes})
