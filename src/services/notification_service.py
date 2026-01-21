@@ -114,3 +114,23 @@ class NotificationService:
                          customer_telegram_id=telegram_id,
                          error=str(e))
             return False
+
+    async def notify_customer_status_change(self, order: Order) -> bool:
+        """Уведомить клиента об изменении статуса заказа."""
+        if not order.customer_telegram_id:
+            return False
+
+        status_messages = {
+            "assigned": f"🚗 Для вашего заказа #{order.id} назначен водитель {order.driver_name}.",
+            "en_route_pickup": f"🚚 Водитель выехал к вам для забора груза по заказу #{order.id}.",
+            "driver_arrived": f"📍 Водитель прибыл на место забора груза по заказу #{order.id}.",
+            "in_progress": f"📦 Ваш заказ #{order.id} принят к перевозке и находится в пути.",
+            "completed": f"✅ Ваш заказ #{order.id} успешно доставлен. Спасибо, что выбрали нас!",
+            "cancelled": f"❌ Ваш заказ #{order.id} был отменен. Причина: {order.cancellation_reason or 'не указана'}."
+        }
+
+        text = status_messages.get(order.status)
+        if not text:
+            return False
+
+        return await self.notify_customer(order.customer_telegram_id, text)
