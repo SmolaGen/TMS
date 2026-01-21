@@ -1,0 +1,30 @@
+{
+  "files_to_modify": {
+    "backend": [
+      "src/database/models.py",
+      "src/services/notification_service.py",
+      "src/services/order_workflow.py",
+      "src/api/dependencies.py"
+    ]
+  },
+  "files_to_reference": [
+    "src/services/notification_service.py",
+    "src/services/webhook_service.py",
+    "src/services/order_workflow.py"
+  ],
+  "patterns": {
+    "notification_pattern": "NotificationService handles Telegram messages via aiogram Bot. Current implementation is driver-focused.",
+    "workflow_pattern": "OrderWorkflowService uses OrderStateMachine to manage transitions and trigger side effects like webhooks.",
+    "model_pattern": "Models use SQLAlchemy 2.0 declarative style. Order has client_id and customer_phone/name fields.",
+    "di_pattern": "FastAPI dependencies in src/api/dependencies.py handle service instantiation."
+  },
+  "existing_implementations": {
+    "description": "NotificationService exists but only for drivers. WebhookService handles external contractor notifications on status changes.",
+    "relevant_files": [
+      "src/services/notification_service.py",
+      "src/services/webhook_service.py",
+      "src/services/order_workflow.py",
+      "src/database/models.py"
+    ]
+  }
+}

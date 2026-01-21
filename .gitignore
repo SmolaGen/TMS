@@ -79,3 +79,6 @@ Check_tg_app.md
 # Ralph state files
 .ralph/state/
 .ralph/logs/
+
+# Auto Claude data directory
+.auto-claude/
