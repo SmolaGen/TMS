@@ -10,6 +10,7 @@ import { StatsPage } from './pages/StatsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { DriverApp } from './pages/DriverApp';
 import { AuthGuard } from './components/AuthGuard';
+import { GlobalErrorBoundary } from './components/GlobalErrorBoundary';
 import { useTelegramAuth } from './hooks/useTelegramAuth';
 import { useTheme } from './hooks/useTheme';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
@@ -21,7 +22,11 @@ const queryClient = new QueryClient({
         queries: {
             retry: 2,
             refetchOnWindowFocus: false,
+            throwOnError: true,
         },
+        mutations: {
+            throwOnError: true,
+        }
     },
 });
 
@@ -38,19 +43,21 @@ function App() {
     ]);
 
     return (
-        <QueryClientProvider client={queryClient}>
-            <ConfigProvider locale={ruRU} theme={themeConfig}>
-                <BrowserRouter>
-                    <AuthGuard>
-                        <AppRoutes
-                            onThemeChange={setMode}
-                            themeMode={mode}
-                            isDark={isDark}
-                        />
-                    </AuthGuard>
-                </BrowserRouter>
-            </ConfigProvider>
-        </QueryClientProvider>
+        <GlobalErrorBoundary>
+            <QueryClientProvider client={queryClient}>
+                <ConfigProvider locale={ruRU} theme={themeConfig}>
+                    <BrowserRouter>
+                        <AuthGuard>
+                            <AppRoutes
+                                onThemeChange={setMode}
+                                themeMode={mode}
+                                isDark={isDark}
+                            />
+                        </AuthGuard>
+                    </BrowserRouter>
+                </ConfigProvider>
+            </QueryClientProvider>
+        </GlobalErrorBoundary>
     );
 }
 

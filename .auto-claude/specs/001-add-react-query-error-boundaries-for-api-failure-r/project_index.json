@@ -1,0 +1,21 @@
+{
+  "project_type": "single",
+  "services": {
+    "frontend": {
+      "path": ".",
+      "tech_stack": ["react", "typescript", "vite"],
+      "port": 5173,
+      "dev_command": "npm run dev",
+      "test_command": "npm test"
+    }
+  },
+  "infrastructure": {
+    "docker": false,
+    "database": null
+  },
+  "conventions": {
+    "linter": "eslint",
+    "formatter": "prettier",
+    "testing": "vitest"
+  }
+}

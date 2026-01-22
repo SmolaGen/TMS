@@ -3,6 +3,7 @@ import time
 import hmac
 import hashlib
 import json
+from typing import Optional
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock
 

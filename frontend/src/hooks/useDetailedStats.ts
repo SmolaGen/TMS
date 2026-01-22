@@ -117,5 +117,6 @@ export const useDetailedStats = (dateRange?: [Dayjs, Dayjs]) => {
         },
         refetchInterval: 60000,
         staleTime: 30000,
+        throwOnError: true,
     });
 };

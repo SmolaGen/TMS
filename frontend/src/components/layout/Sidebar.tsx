@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { Layout, Tooltip } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -31,8 +32,16 @@ interface MenuItemProps {
 const SidebarMenuItem: React.FC<MenuItemProps> = ({ icon, label, collapsed, isActive, onClick }) => {
     return (
         <Tooltip title={collapsed ? label : ''} placement="right">
-            <div
+            <motion.div
                 onClick={onClick}
+                whileHover={{ x: 4, background: isActive ? undefined : 'rgba(255, 255, 255, 0.03)' }}
+                whileTap={{ scale: 0.98 }}
+                initial={false}
+                animate={{
+                    background: isActive
+                        ? 'linear-gradient(90deg, rgba(59, 130, 246, 0.12) 0%, rgba(37, 99, 235, 0.03) 100%)'
+                        : 'transparent',
+                }}
                 style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -40,11 +49,8 @@ const SidebarMenuItem: React.FC<MenuItemProps> = ({ icon, label, collapsed, isAc
                     justifyContent: collapsed ? 'center' : 'flex-start',
                     margin: '4px 0',
                     cursor: 'pointer',
-                    borderRadius: 12,
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    background: isActive
-                        ? 'linear-gradient(90deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.05) 100%)'
-                        : 'transparent',
+                    borderRadius: 14,
+                    transition: 'color 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                     color: isActive ? '#3b82f6' : 'var(--tms-text-secondary)',
                     position: 'relative',
                     overflow: 'hidden',
@@ -52,16 +58,19 @@ const SidebarMenuItem: React.FC<MenuItemProps> = ({ icon, label, collapsed, isAc
                 className={isActive ? 'active-menu-item' : 'menu-item'}
             >
                 {isActive && (
-                    <div style={{
-                        position: 'absolute',
-                        left: 0,
-                        top: '15%',
-                        bottom: '15%',
-                        width: 3,
-                        background: 'var(--tms-gradient-primary)',
-                        borderRadius: '0 4px 4px 0',
-                        boxShadow: '0 0 8px rgba(59, 130, 246, 0.5)'
-                    }} />
+                    <motion.div
+                        layoutId="sidebar-active-indicator"
+                        style={{
+                            position: 'absolute',
+                            left: 0,
+                            top: '20%',
+                            bottom: '20%',
+                            width: 3,
+                            background: '#3b82f6',
+                            borderRadius: '0 4px 4px 0',
+                            boxShadow: '0 0 12px rgba(59, 130, 246, 0.6)'
+                        }}
+                    />
                 )}
 
                 <span style={{
@@ -76,21 +85,31 @@ const SidebarMenuItem: React.FC<MenuItemProps> = ({ icon, label, collapsed, isAc
                 </span>
 
                 {!collapsed && (
-                    <span style={{
-                        marginLeft: 16,
-                        fontWeight: isActive ? 600 : 500,
-                        fontSize: 14,
-                        whiteSpace: 'nowrap',
-                        opacity: 1,
-                        transition: 'opacity 0.2s'
-                    }}>
+                    <motion.span
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        style={{
+                            marginLeft: 16,
+                            fontWeight: isActive ? 600 : 500,
+                            fontSize: 14,
+                            whiteSpace: 'nowrap',
+                        }}
+                    >
                         {label}
-                    </span>
+                    </motion.span>
                 )}
-            </div>
+            </motion.div>
         </Tooltip>
     );
 };
+
+const TMSLogo = () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 11L12 3L20 11V19C20 19.5304 19.7893 20.0391 19.4142 20.4142C19.0391 20.7893 18.5304 21 18 21H6C5.46957 21 4.96086 20.7893 4.58579 20.4142C4.21071 20.0391 4 19.5304 4 19V11Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M9 13H15M9 17H15" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M12 3V21" stroke="white" strokeWidth="1.5" strokeDasharray="2 2" />
+    </svg>
+);
 
 export const Sidebar: React.FC<SidebarProps> = ({
     collapsed,
@@ -128,23 +147,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 marginBottom: 24,
             }}>
                 <div style={{
-                    width: 40,
-                    height: 40,
+                    width: 44,
+                    height: 44,
                     background: 'var(--tms-gradient-primary)',
-                    borderRadius: 12,
+                    borderRadius: 14,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: 24,
-                    boxShadow: 'var(--tms-shadow-glow-primary)',
-                    flexShrink: 0
+                    boxShadow: '0 8px 16px rgba(59, 130, 246, 0.25)',
+                    flexShrink: 0,
+                    transition: 'all 0.3s ease'
                 }}>
-                    🚗
+                    <TMSLogo />
                 </div>
                 {!collapsed && (
-                    <div style={{ marginLeft: 12 }}>
-                        <div className="gradient-text" style={{ fontWeight: 800, fontSize: 18, lineHeight: 1.2 }}>TMS Park</div>
-                        <div style={{ fontSize: 11, color: 'var(--tms-text-tertiary)' }}>Logistics System</div>
+                    <div style={{ marginLeft: 16 }}>
+                        <div className="gradient-text" style={{
+                            fontWeight: 800,
+                            fontSize: 20,
+                            lineHeight: 1.1,
+                            letterSpacing: '-0.02em'
+                        }}>TMS Park</div>
+                        <div style={{
+                            fontSize: 10,
+                            color: 'var(--tms-text-tertiary)',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                            marginTop: 2
+                        }}>Logistics OS</div>
                     </div>
                 )}
             </div>

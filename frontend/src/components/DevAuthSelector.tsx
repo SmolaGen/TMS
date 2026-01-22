@@ -22,7 +22,7 @@ export interface DevUser {
 }
 
 // Предустановленные тестовые пользователи
-const DEV_USERS: DevUser[] = [
+export const DEV_USERS: DevUser[] = [
     {
         id: 1,
         first_name: 'Диспетчер',

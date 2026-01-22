@@ -1,0 +1,112 @@
+{
+  "performance_optimizations": [
+    {
+      "id": "perf-001",
+      "type": "performance_optimizations",
+      "title": "Replace moment.js with dayjs for ~80% bundle size reduction in date utilities",
+      "description": "The project has both dayjs (already in package.json) and moment.js imported in Dashboard.tsx and UnassignedOrdersPanel.tsx. moment.js is ~70KB gzipped vs dayjs at ~2KB. This is unnecessary duplication since dayjs is already available and used elsewhere.",
+      "rationale": "This is low-hanging fruit. The codebase already uses dayjs in OrdersTable.tsx and other files, but Dashboard.tsx and UnassignedOrdersPanel.tsx import moment.js. This causes the entire moment.js library to be bundled, adding ~70KB gzipped to the bundle. Simply replacing these imports with dayjs (which is already in the project) eliminates this duplication entirely.",
+      "category": "bundle_size",
+      "impact": "high",
+      "affectedAreas": [
+        "frontend/src/components/dashboard/Dashboard.tsx",
+        "frontend/src/components/dashboard/UnassignedOrdersPanel.tsx"
+      ],
+      "currentMetric": "Bundle includes both moment.js (~70KB gzipped) and dayjs (~2KB) - duplicate date libraries",
+      "expectedImprovement": "~70KB reduction in bundle size, ~10-15% faster initial load for mobile users",
+      "implementation": "1. Replace `import moment from 'moment'` with `import dayjs from 'dayjs'`\n2. Replace `moment()` calls with `dayjs()` - API is nearly identical\n3. Update `.startOf('day')`, `.endOf('day')`, `.format()` calls (same API)\n4. Remove moment.js from dependencies if not used elsewhere\n5. Verify no moment-specific features are needed",
+      "tradeoffs": "Minimal - dayjs has ~98% API compatibility with moment.js. Some edge cases with locale handling may differ.",
+      "estimatedEffort": "trivial"
+    },
+    {
+      "id": "perf-002",
+      "type": "performance_optimizations",
+      "title": "Convert Array.find() lookups to Map-based O(1) lookups in LiveMap and OrdersTable",
+      "description": "Multiple components use Array.find() inside loops, render cycles, and useEffect hooks - creating O(n) lookups that repeat on every render. LiveMap.tsx has 4 such patterns in lines 33, 59, 75, 106; OrdersTable.tsx has one in line 92. For large datasets (100+ drivers/orders), this causes significant computation per render.",
+      "rationale": "In the LiveMap component, `hookDrivers.find()` is called for each location in a .map() loop (line 106), creating O(n²) complexity when rendering driver markers. This is a hot path that runs frequently due to real-time location updates. Converting to a Map lookup would reduce this to O(n) overall.",
+      "category": "runtime",
+      "impact": "medium",
+      "affectedAreas": [
+        "frontend/src/components/dashboard/LiveMap.tsx",
+        "frontend/src/components/orders/OrdersTable.tsx",
+        "frontend/src/components/drivers/DriverDetailDrawer.tsx"
+      ],
+      "currentMetric": "O(n²) complexity in mappedDrivers useMemo - find() inside map()",
+      "expectedImprovement": "~40-60% faster re-renders with 50+ drivers/orders, noticeable improvement in map responsiveness",
+      "implementation": "1. Create driver/order Maps with useMemo:\n   ```typescript\n   const driversById = useMemo(() => \n     new Map(hookDrivers.map(d => [d.id, d])), \n     [hookDrivers]\n   );\n   ```\n2. Replace `.find(d => d.id === id)` with `.get(id)`\n3. Apply same pattern to OrdersTable driver lookup\n4. Consider memoizing the mapped results separately from the Map creation",
+      "tradeoffs": "Slightly more memory usage for Map storage, but negligible for typical fleet sizes (<1000 drivers)",
+      "estimatedEffort": "small"
+    },
+    {
+      "id": "perf-003",
+      "type": "performance_optimizations",
+      "title": "Memoize OrderRoutes component with React.memo and decode polyline once",
+      "description": "OrderRoutes component decodes polyline geometry on every render for all orders using `polyline.decode(order.route_geometry)`. This is CPU-intensive and runs for each order, even when only selectedOrderId changes. The component should use React.memo and cache decoded geometries.",
+      "rationale": "Polyline decoding is computationally expensive (parsing strings, creating coordinate arrays). With 50+ orders displayed, this adds significant rendering overhead. The route geometries don't change frequently - they should be decoded once and cached, not on every parent re-render.",
+      "category": "rendering",
+      "impact": "medium",
+      "affectedAreas": [
+        "frontend/src/components/dashboard/OrderRoutes.tsx",
+        "frontend/src/components/dashboard/LiveMap.tsx"
+      ],
+      "currentMetric": "Polyline.decode() called for each order on every render cycle",
+      "expectedImprovement": "~30-50% faster map re-renders when orders list is stable, smoother map interactions",
+      "implementation": "1. Wrap OrderRoutes with React.memo for shallow comparison\n2. Create a useMemo hook to cache decoded geometries:\n   ```typescript\n   const decodedRoutes = useMemo(() => \n     orders.map(o => ({\n       ...o,\n       decodedPath: o.route_geometry ? polyline.decode(o.route_geometry) : null\n     })),\n     [orders]\n   );\n   ```\n3. Use decodedPath instead of decoding inline\n4. Consider further optimization with react-leaflet's memoized components",
+      "tradeoffs": "Additional memory for cached decoded paths. For 100 orders with ~50 points each, roughly ~500KB memory overhead.",
+      "estimatedEffort": "small"
+    },
+    {
+      "id": "perf-004",
+      "type": "performance_optimizations",
+      "title": "Implement Vite code splitting for antd and vis-timeline heavy chunks",
+      "description": "The vite.config.ts lacks manual chunk configuration. antd (~500KB), vis-timeline (~300KB), and leaflet (~150KB) are likely bundled into a single vendor chunk. Splitting these into separate chunks enables parallel loading and better caching.",
+      "rationale": "The current Vite config uses defaults without build optimization. Large dependencies should be split into separate chunks so: (1) they can load in parallel, (2) they cache independently when code changes, (3) users who don't visit timeline/map views don't load those chunks initially.",
+      "category": "bundle_size",
+      "impact": "medium",
+      "affectedAreas": [
+        "frontend/vite.config.ts"
+      ],
+      "currentMetric": "All vendor dependencies bundled together (~1MB+ single chunk)",
+      "expectedImprovement": "~20-30% faster initial load via parallel chunk loading, better cache hit rates on updates",
+      "implementation": "1. Add build.rollupOptions.output.manualChunks to vite.config.ts:\n   ```typescript\n   build: {\n     rollupOptions: {\n       output: {\n         manualChunks: {\n           'vendor-antd': ['antd', '@ant-design/icons'],\n           'vendor-map': ['leaflet', 'react-leaflet', 'leaflet.markercluster'],\n           'vendor-timeline': ['vis-timeline', 'vis-data'],\n           'vendor-react': ['react', 'react-dom', 'react-router-dom'],\n         }\n       }\n     }\n   }\n   ```\n2. Consider lazy-loading StatsPage and DriversPage routes\n3. Add `@vitejs/plugin-legacy` if IE11/older browser support needed",
+      "tradeoffs": "More HTTP requests (4-5 instead of 1-2), but modern HTTP/2 handles this well. May need preload hints for critical chunks.",
+      "estimatedEffort": "small"
+    },
+    {
+      "id": "perf-005",
+      "type": "performance_optimizations",
+      "title": "Debounce ClusteredDriverMarkers updates to prevent marker thrashing",
+      "description": "ClusteredDriverMarkers calls clusterGroup.clearLayers() and re-adds all markers whenever drivers array reference changes (line 114-146). With real-time location updates every 3-5 seconds, this causes visible marker flickering and unnecessary DOM operations.",
+      "rationale": "The current implementation clears ALL markers and recreates them on every driver location update. For 50+ drivers with 5-second polling, this creates 10+ full marker refreshes per minute. A smarter approach would diff the changes and only update moved markers, plus debounce rapid successive updates.",
+      "category": "rendering",
+      "impact": "medium",
+      "affectedAreas": [
+        "frontend/src/components/map/ClusteredDriverMarkers.tsx"
+      ],
+      "currentMetric": "Full marker layer rebuild every 3-5 seconds with real-time updates",
+      "expectedImprovement": "~70% reduction in DOM operations during location updates, eliminates marker flickering",
+      "implementation": "1. Add useDebounce hook (already exists in project) for driver updates:\n   ```typescript\n   const debouncedDrivers = useDebounce(drivers, 500);\n   ```\n2. Implement differential updates instead of clearLayers():\n   ```typescript\n   // Track markers by driver ID\n   const markersRef = useRef<Map<number, L.Marker>>(new Map());\n   \n   // Update only changed positions\n   filteredDrivers.forEach(driver => {\n     const existing = markersRef.current.get(driver.id);\n     if (existing) {\n       existing.setLatLng([driver.lat, driver.lon]);\n       existing.setIcon(createDriverIcon(driver));\n     } else {\n       // Create new marker\n     }\n   });\n   ```\n3. Remove markers for drivers no longer in list\n4. Consider requestAnimationFrame for batching updates",
+      "tradeoffs": "Increased complexity in marker management. Need to handle driver removals/additions carefully to avoid stale markers.",
+      "estimatedEffort": "medium"
+    }
+  ],
+  "metadata": {
+    "totalBundleSize": "Estimated 1.5-2MB uncompressed based on dependencies",
+    "largestDependencies": ["antd", "vis-timeline", "leaflet", "moment (should be removed)", "react-leaflet"],
+    "filesAnalyzed": 45,
+    "potentialSavings": "~100KB gzipped (moment removal + code splitting efficiency)",
+    "keyFindings": [
+      "Duplicate date libraries (moment.js and dayjs both imported)",
+      "O(n²) lookup patterns in hot rendering paths",
+      "Missing React.memo and useMemo optimizations for heavy components",
+      "No Vite build optimization for code splitting",
+      "Inefficient marker update strategy causing flickering"
+    ],
+    "performanceBudgetStatus": {
+      "currentEstimate": "~400KB gzipped initial bundle",
+      "target": "<200KB gzipped",
+      "gap": "~200KB reduction needed for optimal mobile performance"
+    },
+    "generatedAt": "2026-01-21T22:00:00Z"
+  }
+}

@@ -75,5 +75,6 @@ export const useKPIStats = () => {
         },
         refetchInterval: 30000,
         staleTime: 10000,
+        throwOnError: true,
     });
 };

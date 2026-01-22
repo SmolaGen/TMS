@@ -85,38 +85,42 @@ const StatItem: React.FC<{
     value: number | string;
     icon: React.ReactNode;
     color: string;
+    gradient: string;
     suffix?: string;
-}> = ({ title, value, icon, color, suffix }) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+}> = ({ title, value, icon, gradient, suffix }) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
         <div style={{
-            width: 36,
-            height: 36,
-            borderRadius: 10,
-            background: color,
+            width: 40,
+            height: 40,
+            borderRadius: 12,
+            background: gradient,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: '#fff',
-            fontSize: 18,
-            boxShadow: `0 4px 10px -2px ${color}60`
+            fontSize: 20,
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
         }}>
             {icon}
         </div>
-        <div>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
             <div style={{
-                fontSize: 18,
-                fontWeight: 700,
+                fontSize: 20,
+                fontWeight: 800,
                 lineHeight: 1,
-                color: 'var(--tms-text-primary)'
+                color: 'var(--tms-text-primary)',
+                letterSpacing: '-0.02em'
             }}>
                 {value}
-                {suffix && <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--tms-text-tertiary)', marginLeft: 2 }}>{suffix}</span>}
+                {suffix && <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--tms-text-tertiary)', marginLeft: 3 }}>{suffix}</span>}
             </div>
             <div style={{
                 fontSize: 10,
-                color: 'var(--tms-text-secondary)',
-                fontWeight: 500,
-                marginTop: 2
+                color: 'var(--tms-text-tertiary)',
+                fontWeight: 600,
+                marginTop: 4,
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em'
             }}>
                 {title}
             </div>
@@ -135,7 +139,7 @@ export const MapControls: React.FC<MapControlsProps> = ({
     const { data: kpiData, isLoading } = useKPIStats();
 
     if (isMobile) {
-        return null; // Mobile has its own controls usually, or simplified
+        return null;
     }
 
     return (
@@ -143,13 +147,15 @@ export const MapControls: React.FC<MapControlsProps> = ({
             className="glass-panel"
             style={{
                 position: 'absolute',
-                top: 16,
-                right: 16,
+                top: 20,
+                right: 20,
                 zIndex: 1000,
                 width: collapsed ? 240 : 280,
-                padding: 16,
-                transform: 'scale(1)',
-                transition: 'all 0.3s ease'
+                padding: '20px',
+                borderRadius: 20,
+                border: '1px solid rgba(255, 255, 255, 0.05)',
+                boxShadow: '0 12px 48px rgba(0, 0, 0, 0.3)',
+                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
             }}
         >
             <div
@@ -157,19 +163,26 @@ export const MapControls: React.FC<MapControlsProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    marginBottom: collapsed ? 0 : 16,
+                    marginBottom: collapsed ? 0 : 20,
                     cursor: 'pointer'
                 }}
                 onClick={() => setCollapsed(!collapsed)}
             >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div style={{
                         width: 4,
-                        height: 16,
+                        height: 18,
                         borderRadius: 2,
-                        background: 'var(--tms-gradient-primary)'
+                        background: 'var(--tms-gradient-primary)',
+                        boxShadow: '0 0 8px rgba(59, 130, 246, 0.5)'
                     }} />
-                    <span style={{ fontWeight: 700, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    <span style={{
+                        fontWeight: 800,
+                        fontSize: 12,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.08em',
+                        color: 'var(--tms-text-secondary)'
+                    }}>
                         Управление
                     </span>
                 </div>
@@ -177,10 +190,7 @@ export const MapControls: React.FC<MapControlsProps> = ({
                     type="text"
                     size="small"
                     icon={collapsed ? <DownOutlined /> : <UpOutlined />}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        setCollapsed(!collapsed);
-                    }}
+                    style={{ color: 'var(--tms-text-tertiary)' }}
                 />
             </div>
 
@@ -188,18 +198,19 @@ export const MapControls: React.FC<MapControlsProps> = ({
                 <>
                     {/* Stats Section */}
                     {isLoading || !kpiData ? (
-                        <div style={{ marginBottom: 16 }}>
+                        <div style={{ marginBottom: 20 }}>
                             <Skeleton active paragraph={{ rows: 2 }} />
                         </div>
                     ) : (
-                        <div style={{ marginBottom: 16 }}>
-                            <Row gutter={[12, 12]}>
+                        <div style={{ marginBottom: 20 }}>
+                            <Row gutter={[16, 16]}>
                                 <Col span={12}>
                                     <StatItem
                                         title="Активных"
                                         value={kpiData.stats.activeOrders}
                                         icon={<ShoppingCartOutlined />}
                                         color="#3b82f6"
+                                        gradient="linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)"
                                     />
                                 </Col>
                                 <Col span={12}>
@@ -208,6 +219,7 @@ export const MapControls: React.FC<MapControlsProps> = ({
                                         value={kpiData.stats.freeDrivers}
                                         icon={<CarOutlined />}
                                         color="#10b981"
+                                        gradient="linear-gradient(135deg, #10b981 0%, #059669 100%)"
                                     />
                                 </Col>
                                 <Col span={12}>
@@ -216,22 +228,24 @@ export const MapControls: React.FC<MapControlsProps> = ({
                                         value={kpiData.stats.completedToday}
                                         icon={<CheckCircleOutlined />}
                                         color="#8b5cf6"
+                                        gradient="linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)"
                                     />
                                 </Col>
                                 <Col span={12}>
                                     <StatItem
                                         title="Ожидание"
                                         value={kpiData.stats.averageWaitTime}
-                                        suffix="мин"
+                                        suffix="м"
                                         icon={<ClockCircleOutlined />}
                                         color="#ec4899"
+                                        gradient="linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)"
                                     />
                                 </Col>
                             </Row>
                         </div>
                     )}
 
-                    <Divider style={{ margin: '12px 0' }} />
+                    <Divider style={{ margin: '16px 0', borderColor: 'rgba(255,255,255,0.06)' }} />
 
                     <ControlItem
                         icon={<EnvironmentOutlined />}

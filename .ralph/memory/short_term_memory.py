@@ -4,10 +4,15 @@ Short-term RAG Memory для Ralph на основе ChromaDB.
 """
 
 import os
-import chromadb
-from chromadb.utils import embedding_functions
-from typing import List, Dict, Any, Optional
 import sys
+from typing import List, Dict, Any
+
+try:
+    import chromadb
+    from chromadb.utils import embedding_functions
+except ImportError:
+    print("❌ Error: 'chromadb' is not installed. Please run: pip install chromadb")
+    sys.exit(1)
 
 # Добавляем родительскую директорию в путь для импорта
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

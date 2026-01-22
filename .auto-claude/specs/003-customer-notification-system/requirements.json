@@ -1,0 +1,4 @@
+{
+  "task_description": "# Customer Notification System\n\nAutomated notifications to customers for key order events: order confirmed, driver assigned, driver en-route, approaching delivery, delivered. Support Telegram and webhook channels.\n\n## Rationale\nEliminates manual phone/SMS communication pain point (pain-4-3). Proactive notifications reduce 'where is my order' calls and improve customer satisfaction.\n\n## User Stories\n- As a customer, I want to receive updates about my delivery so that I don't need to call for status\n- As a dispatcher, I want automatic notifications so that I spend less time on status calls\n\n## Acceptance Criteria\n- [ ] Automatic notification on order status changes\n- [ ] Configurable notification preferences per order or customer\n- [ ] Support for Telegram messaging to customers\n- [ ] Webhook notifications for custom integrations\n- [ ] ETA updates when driver is approaching\n",
+  "workflow_type": "feature"
+}

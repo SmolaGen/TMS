@@ -14,5 +14,6 @@ export const useDrivers = () => {
             return fetchDriversList();
         },
         staleTime: 60_000,
+        throwOnError: true,
     });
 };

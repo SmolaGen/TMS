@@ -1,0 +1,103 @@
+{
+  "ui_ux_improvements": [
+    {
+      "id": "uiux-001",
+      "type": "ui_ux_improvements",
+      "title": "Add ARIA labels for accessibility compliance",
+      "description": "Add aria-label, aria-describedby, and role attributes to interactive elements throughout the application for screen reader support",
+      "rationale": "No ARIA accessibility attributes were found in any component. This significantly impacts users relying on assistive technologies and affects WCAG compliance.",
+      "category": "accessibility",
+      "affected_components": [
+        "src/components/layout/Sidebar.tsx",
+        "src/components/layout/HeaderBar.tsx",
+        "src/components/dashboard/Dashboard.tsx",
+        "src/components/orders/OrdersTable.tsx"
+      ],
+      "screenshots": [],
+      "current_state": "Interactive elements like sidebar menu items, action buttons, and navigation use div elements with onClick handlers but lack aria-label attributes. The SidebarMenuItem component (line 31-92) has no role='button' or aria attributes. The HeaderBar notification badge and profile dropdown lack accessibility context.",
+      "proposed_change": "1. Add role='navigation' to Sidebar component wrapper\n2. Add role='menuitem' and aria-label to SidebarMenuItem divs\n3. Add aria-label='Notifications' to BellOutlined button in HeaderBar\n4. Add aria-label='User menu' to profile dropdown trigger\n5. Add role='status' and aria-live='polite' to WebSocket connection status indicator\n6. Add aria-describedby for form validation errors in CreateOrderModal",
+      "user_benefit": "Users with screen readers can navigate the application effectively, understanding the purpose of interactive elements and receiving proper feedback on actions.",
+      "status": "draft",
+      "created_at": "2026-01-21T19:57:00.000Z"
+    },
+    {
+      "id": "uiux-002",
+      "type": "ui_ux_improvements",
+      "title": "Add keyboard focus indicators across interactive elements",
+      "description": "Implement visible focus states for all interactive elements to support keyboard navigation",
+      "rationale": "Only minimal focus styling exists (tms-search-input:focus). Custom interactive elements like SidebarMenuItem, the FAB button, and profile dropdown trigger have no focus-visible styles, making keyboard navigation difficult.",
+      "category": "accessibility",
+      "affected_components": [
+        "src/App.css",
+        "src/components/layout/Sidebar.tsx",
+        "src/components/dashboard/Dashboard.tsx"
+      ],
+      "screenshots": [],
+      "current_state": "SidebarMenuItem uses div with onClick but no tabIndex or :focus-visible styles. The FAB (Floating Action Button) at line 248-263 in Dashboard.tsx relies on Ant Design's default focus but has custom styling that may override it. Custom hover-lift class has hover states but no focus equivalents.",
+      "proposed_change": "1. Add tabIndex={0} to SidebarMenuItem div elements\n2. Add onKeyDown handler for Enter/Space to trigger navigation\n3. Add CSS focus-visible rule in App.css:\n   .menu-item:focus-visible, .active-menu-item:focus-visible {\n     outline: 2px solid var(--tms-primary);\n     outline-offset: 2px;\n   }\n4. Add .hover-lift:focus-visible with same effect as :hover\n5. Ensure FAB has visible focus ring with box-shadow",
+      "user_benefit": "Keyboard-only users can clearly see which element is focused and navigate the entire application without a mouse.",
+      "status": "draft",
+      "created_at": "2026-01-21T19:57:00.000Z"
+    },
+    {
+      "id": "uiux-003",
+      "type": "ui_ux_improvements",
+      "title": "Add phone number input mask and validation",
+      "description": "Implement proper phone number formatting with input mask in CreateOrderModal customer_phone field",
+      "rationale": "The phone field shows placeholder '+7 (___) ___-__-__' but has no input mask or validation, allowing any text input. This leads to inconsistent data and poor user experience.",
+      "category": "usability",
+      "affected_components": [
+        "src/components/dashboard/CreateOrderModal.tsx"
+      ],
+      "screenshots": [],
+      "current_state": "CreateOrderModal line 151-156 shows a plain Input field with placeholder '+7 (___) ___-__-__' but no pattern validation, input mask, or Form.Item rules for phone format. Users can enter any text including invalid phone numbers.",
+      "proposed_change": "1. Install react-input-mask or use antd's pattern prop\n2. Add input mask for Russian phone format: +7 (999) 999-99-99\n3. Add Form.Item validation rule with regex pattern: /^\\+7 \\(\\d{3}\\) \\d{3}-\\d{2}-\\d{2}$/\n4. Add inputMode='tel' attribute for mobile keyboard optimization\n5. Show validation error message: 'Введите корректный номер телефона'",
+      "user_benefit": "Users can enter phone numbers faster with auto-formatting, and the system receives consistently formatted phone data for reliable customer contact.",
+      "status": "draft",
+      "created_at": "2026-01-21T19:57:00.000Z"
+    },
+    {
+      "id": "uiux-004",
+      "type": "ui_ux_improvements",
+      "title": "Add swipe gestures for driver order cards on mobile",
+      "description": "Implement swipe-to-action gestures on order cards in DriverApp for quick status updates",
+      "rationale": "The DriverApp is designed for mobile Telegram WebApp usage, but order cards (line 96-129) only support tap interaction. Mobile users expect swipe gestures for common actions.",
+      "category": "interaction",
+      "affected_components": [
+        "src/pages/DriverApp.tsx"
+      ],
+      "screenshots": [],
+      "current_state": "DriverApp shows order cards using Ant Design Card with hoverable prop. Each card displays order info but requires navigation to perform actions. There are no touch gestures or quick actions available. The app already has react-dnd installed which could be leveraged.",
+      "proposed_change": "1. Wrap order cards with a SwipeableCard component using touch events or react-swipeable\n2. Swipe right: Reveal 'Start/Complete' action button with green background\n3. Swipe left: Reveal 'Call customer' action with blue background\n4. Add subtle visual indicators (chevrons or dots) hinting at swipe availability\n5. Implement haptic feedback using Telegram WebApp hapticFeedback API\n6. Add spring animation for card return using CSS transitions",
+      "user_benefit": "Drivers can quickly update order status or contact customers with a single gesture, reducing taps and speeding up their workflow while driving.",
+      "status": "draft",
+      "created_at": "2026-01-21T19:57:00.000Z"
+    },
+    {
+      "id": "uiux-005",
+      "type": "ui_ux_improvements",
+      "title": "Add optimistic updates for order status changes",
+      "description": "Implement optimistic UI updates when changing order status to provide instant feedback",
+      "rationale": "Currently, status changes require waiting for API response before UI updates. With React Query's optimistic update capability available, users should see immediate feedback.",
+      "category": "performance",
+      "affected_components": [
+        "src/hooks/useOrders.ts",
+        "src/components/dashboard/OrderDetailDrawer.tsx",
+        "src/components/orders/OrdersTable.tsx"
+      ],
+      "screenshots": [],
+      "current_state": "The app uses @tanstack/react-query (line 21 App.tsx) for data fetching. Order mutations likely wait for server confirmation before updating the UI. OrdersTable shows loading states but no optimistic updates. Status changes cause a brief loading state before the new status appears.",
+      "proposed_change": "1. Add onMutate callback to order update mutation in useOrders hook:\n   - Cancel outgoing queries\n   - Snapshot previous value\n   - Optimistically update cache with new status\n2. Add onError callback to rollback on failure with toast notification\n3. Add onSettled to refetch and ensure consistency\n4. Show subtle 'syncing' indicator (small spinner next to status) during server confirmation\n5. Add success toast with undo option for 5 seconds",
+      "user_benefit": "Dispatchers experience instant feedback when updating orders, making the system feel faster and more responsive. Undo capability prevents accidental changes.",
+      "status": "draft",
+      "created_at": "2026-01-21T19:57:00.000Z"
+    }
+  ],
+  "metadata": {
+    "generated_at": "2026-01-21T19:57:00.000Z",
+    "agent": "ui_ux_improvements_ideation",
+    "max_ideas": 5,
+    "analysis_method": "static_code_analysis",
+    "notes": "Analysis performed via static code review. Visual verification recommended using Puppeteer browser automation when available."
+  }
+}

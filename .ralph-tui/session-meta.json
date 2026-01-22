@@ -1,0 +1,15 @@
+{
+  "id": "2b4c325f-a746-4b14-8769-4707e11bc36b",
+  "status": "completed",
+  "startedAt": "2026-01-20T14:55:28.844Z",
+  "updatedAt": "2026-01-20T15:58:12.208Z",
+  "agentPlugin": "opencode",
+  "trackerPlugin": "json",
+  "prdPath": "prd.json",
+  "currentIteration": 3,
+  "maxIterations": 5,
+  "totalTasks": 0,
+  "tasksCompleted": 3,
+  "cwd": "/Users/alsmolentsev/tms_new",
+  "endedAt": "2026-01-20T15:58:12.207Z"
+}

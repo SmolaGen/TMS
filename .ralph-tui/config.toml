@@ -1,0 +1,30 @@
+configVersion = "2.1"
+defaultAgent = "opencode"
+defaultTracker = "json"
+agent = "opencode"
+maxIterations = 2
+tracker = "json"
+autoCommit = true
+subagentTracingDetail = "off"
+
+[[agents]]
+name = "opencode"
+plugin = "opencode"
+
+[agents.options]
+provider = "quotio"
+model = "gemini-claude-sonnet-4-5-thinking"
+variant = "high"
+
+[[trackers]]
+name = "json"
+plugin = "json"
+
+[trackers.options]
+path = "tasks.json"
+prd_path = "PRD.md"
+
+[agentOptions]
+model = "gemini-2.5-flash"
+
+[trackerOptions]

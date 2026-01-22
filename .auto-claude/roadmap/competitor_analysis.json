@@ -1,0 +1,358 @@
+{
+  "project_context": {
+    "project_name": "TMS - Transport Management System",
+    "project_type": "web-app",
+    "target_audience": "Logistics dispatchers managing transport fleets for delivery/transportation companies in Russia"
+  },
+  "competitors": [
+    {
+      "id": "competitor-1",
+      "name": "Yandex.Routing / Yandex.Delivery",
+      "url": "https://routing.yandex.ru/",
+      "description": "Yandex's logistics and routing platform offering route optimization, fleet management, and delivery services integrated with Yandex ecosystem",
+      "relevance": "high",
+      "pain_points": [
+        {
+          "id": "pain-1-1",
+          "description": "Vendor lock-in to Yandex ecosystem - difficult to use with non-Yandex services or self-hosted infrastructure",
+          "source": "Industry knowledge - Yandex platform dependencies",
+          "severity": "high",
+          "frequency": "Common concern for businesses wanting independence",
+          "opportunity": "TMS is fully self-hosted with no vendor lock-in, using open-source components"
+        },
+        {
+          "id": "pain-1-2",
+          "description": "API rate limits and per-request pricing for routing and geocoding services",
+          "source": "General SaaS API pricing model concerns",
+          "severity": "medium",
+          "frequency": "Mentioned by high-volume users",
+          "opportunity": "Self-hosted OSRM and Photon provide unlimited routing/geocoding without API costs"
+        },
+        {
+          "id": "pain-1-3",
+          "description": "Requires drivers to install and use dedicated Yandex mobile apps",
+          "source": "Common driver adoption friction pattern",
+          "severity": "medium",
+          "frequency": "Regular adoption barrier",
+          "opportunity": "Telegram bot integration - drivers already use Telegram, no new app installation needed"
+        },
+        {
+          "id": "pain-1-4",
+          "description": "Limited customization options for business-specific workflows",
+          "source": "SaaS platform limitation pattern",
+          "severity": "medium",
+          "frequency": "Common for specialized logistics operations",
+          "opportunity": "Open-source codebase allows complete customization of workflows"
+        }
+      ],
+      "strengths": [
+        "Strong brand recognition in Russia",
+        "Integrated ecosystem with Yandex Maps, Navigator, and other services",
+        "Robust routing algorithms with traffic data",
+        "Large driver network for Yandex.Delivery"
+      ],
+      "market_position": "Market leader in Russian logistics technology, backed by Yandex's resources and brand"
+    },
+    {
+      "id": "competitor-2",
+      "name": "SAP Transportation Management",
+      "url": "https://www.sap.com/products/scm/transportation-management.html",
+      "description": "Enterprise-grade transportation management system integrated with SAP ERP ecosystem",
+      "relevance": "medium",
+      "pain_points": [
+        {
+          "id": "pain-2-1",
+          "description": "Extremely high licensing costs - typically $50,000-$500,000+ for enterprise licenses plus annual maintenance fees",
+          "source": "Enterprise TMS pricing industry knowledge",
+          "severity": "high",
+          "frequency": "Universal concern for SMBs",
+          "opportunity": "TMS is completely free and open-source with no licensing fees"
+        },
+        {
+          "id": "pain-2-2",
+          "description": "Complex implementation requiring 12-24+ months and expensive consultants",
+          "source": "Enterprise software implementation patterns",
+          "severity": "high",
+          "frequency": "Standard for enterprise TMS",
+          "opportunity": "Docker-based deployment can be operational in hours, not months"
+        },
+        {
+          "id": "pain-2-3",
+          "description": "Steep learning curve requiring extensive training",
+          "source": "Common SAP platform feedback",
+          "severity": "medium",
+          "frequency": "Widely reported",
+          "opportunity": "Simple intuitive UI with Ant Design, familiar Telegram interface for drivers"
+        },
+        {
+          "id": "pain-2-4",
+          "description": "Overkill for small-to-medium logistics operations",
+          "source": "Enterprise vs SMB needs mismatch",
+          "severity": "high",
+          "frequency": "Common for regional operators",
+          "opportunity": "Right-sized for small-to-medium fleets without enterprise bloat"
+        }
+      ],
+      "strengths": [
+        "Comprehensive enterprise features",
+        "Deep SAP ERP integration",
+        "Global carrier network support",
+        "Advanced analytics and reporting"
+      ],
+      "market_position": "Premium enterprise solution for large global logistics operations"
+    },
+    {
+      "id": "competitor-3",
+      "name": "Oracle Transportation Management (OTM)",
+      "url": "https://www.oracle.com/scm/transportation-management/",
+      "description": "Enterprise cloud-based transportation and logistics management platform",
+      "relevance": "medium",
+      "pain_points": [
+        {
+          "id": "pain-3-1",
+          "description": "High cost of ownership with complex per-transaction and per-user pricing models",
+          "source": "Enterprise TMS pricing concerns",
+          "severity": "high",
+          "frequency": "Common cost complaint",
+          "opportunity": "No per-transaction fees, unlimited users and orders"
+        },
+        {
+          "id": "pain-3-2",
+          "description": "Integration complexity with carrier onboarding and EDI setup",
+          "source": "Oracle TMS implementation challenges",
+          "severity": "medium",
+          "frequency": "Reported during implementations",
+          "opportunity": "Simple REST API and webhook notifications for external integrations"
+        },
+        {
+          "id": "pain-3-3",
+          "description": "Performance issues reported with large data volumes",
+          "source": "Enterprise system scalability concerns",
+          "severity": "medium",
+          "frequency": "Occasional reports",
+          "opportunity": "Redis Streams + PostgreSQL COPY handles 10-50k GPS points/sec"
+        },
+        {
+          "id": "pain-3-4",
+          "description": "Sanctions and data localization concerns for Russian businesses",
+          "source": "Geopolitical compliance requirements",
+          "severity": "high",
+          "frequency": "Critical for Russian market",
+          "opportunity": "Self-hosted solution keeps all data on-premises in Russia"
+        }
+      ],
+      "strengths": [
+        "Cloud-native architecture",
+        "Multi-modal transportation support",
+        "Advanced optimization algorithms",
+        "Global scale"
+      ],
+      "market_position": "Enterprise cloud TMS for large multi-national logistics operations"
+    },
+    {
+      "id": "competitor-4",
+      "name": "Manual/Spreadsheet Systems",
+      "url": "N/A",
+      "description": "Excel spreadsheets, Google Sheets, or paper-based manual dispatch systems commonly used by small logistics companies",
+      "relevance": "high",
+      "pain_points": [
+        {
+          "id": "pain-4-1",
+          "description": "No real-time visibility into driver locations or order status",
+          "source": "Manual process limitations",
+          "severity": "high",
+          "frequency": "Universal for manual systems",
+          "opportunity": "Real-time GPS tracking with live map and WebSocket updates"
+        },
+        {
+          "id": "pain-4-2",
+          "description": "Scheduling conflicts when multiple dispatchers work simultaneously",
+          "source": "Manual coordination challenges",
+          "severity": "high",
+          "frequency": "Daily occurrence in busy operations",
+          "opportunity": "Database-level exclusion constraints prevent double-booking at the PostgreSQL level"
+        },
+        {
+          "id": "pain-4-3",
+          "description": "Manual phone/SMS communication with drivers is time-consuming and error-prone",
+          "source": "Communication inefficiency pattern",
+          "severity": "high",
+          "frequency": "Constant operational burden",
+          "opportunity": "Automated Telegram notifications and bidirectional status updates"
+        },
+        {
+          "id": "pain-4-4",
+          "description": "No route optimization or automatic distance/pricing calculation",
+          "source": "Manual process limitations",
+          "severity": "medium",
+          "frequency": "Common inefficiency",
+          "opportunity": "OSRM integration for automatic route optimization and pricing"
+        },
+        {
+          "id": "pain-4-5",
+          "description": "Difficult to track driver performance metrics and KPIs",
+          "source": "Data collection challenges",
+          "severity": "medium",
+          "frequency": "Regular management need",
+          "opportunity": "Automatic data collection enables analytics and KPI tracking"
+        }
+      ],
+      "strengths": [
+        "Zero software cost",
+        "No learning curve for familiar tools",
+        "Complete flexibility",
+        "No technical dependencies"
+      ],
+      "market_position": "Default 'system' for small operations without budget for dedicated software"
+    },
+    {
+      "id": "competitor-5",
+      "name": "Generic Fleet Management Apps",
+      "url": "Various",
+      "description": "Category of mobile-first fleet tracking apps requiring driver smartphone apps (Samsara, KeepTruckin, Verizon Connect, etc.)",
+      "relevance": "medium",
+      "pain_points": [
+        {
+          "id": "pain-5-1",
+          "description": "Requires drivers to install, learn, and maintain dedicated mobile apps",
+          "source": "Driver adoption friction",
+          "severity": "high",
+          "frequency": "Major adoption barrier",
+          "opportunity": "Telegram bot requires no app installation - drivers already use Telegram"
+        },
+        {
+          "id": "pain-5-2",
+          "description": "Monthly per-vehicle or per-driver subscription costs add up quickly",
+          "source": "SaaS subscription pricing concerns",
+          "severity": "high",
+          "frequency": "Common cost concern",
+          "opportunity": "No per-driver fees, completely free self-hosted solution"
+        },
+        {
+          "id": "pain-5-3",
+          "description": "Data stored on vendor's cloud - privacy and sovereignty concerns",
+          "source": "Data privacy requirements",
+          "severity": "medium",
+          "frequency": "Growing concern in regulated markets",
+          "opportunity": "All data stays on your own servers"
+        },
+        {
+          "id": "pain-5-4",
+          "description": "Limited or no support for Russian language and regional requirements",
+          "source": "Localization gaps",
+          "severity": "high",
+          "frequency": "Critical for Russian market",
+          "opportunity": "Built for Russian market with proper localization and regional OSRM data"
+        },
+        {
+          "id": "pain-5-5",
+          "description": "Battery drain from constant GPS tracking in mobile apps",
+          "source": "Mobile app driver complaints",
+          "severity": "medium",
+          "frequency": "Common driver complaint",
+          "opportunity": "Telegram Live Location uses native OS optimization for battery efficiency"
+        }
+      ],
+      "strengths": [
+        "Purpose-built mobile apps",
+        "ELD compliance features (for US market)",
+        "Established support infrastructure",
+        "Hardware telematics options"
+      ],
+      "market_position": "Standard fleet tracking solution for companies willing to pay subscription fees and manage app deployment"
+    }
+  ],
+  "market_gaps": [
+    {
+      "id": "gap-1",
+      "description": "Messenger-based driver interface - no competitors offer Telegram/WhatsApp integration as primary driver interaction method",
+      "affected_competitors": ["competitor-1", "competitor-5"],
+      "opportunity_size": "high",
+      "suggested_feature": "Telegram bot is already implemented and is a core differentiator - continue enhancing it"
+    },
+    {
+      "id": "gap-2",
+      "description": "Self-hosted TMS for Russian market - enterprise solutions have sanctions/localization issues, local options require cloud dependency",
+      "affected_competitors": ["competitor-2", "competitor-3"],
+      "opportunity_size": "high",
+      "suggested_feature": "Emphasize data sovereignty, local hosting, and compliance with Russian data laws"
+    },
+    {
+      "id": "gap-3",
+      "description": "Affordable TMS for SMBs - enterprise solutions are too expensive, simple tools lack features",
+      "affected_competitors": ["competitor-2", "competitor-3", "competitor-4"],
+      "opportunity_size": "high",
+      "suggested_feature": "Free tier for small operations, premium features for larger fleets"
+    },
+    {
+      "id": "gap-4",
+      "description": "Database-level scheduling conflict prevention - no competitor offers PostgreSQL exclusion constraints for preventing double-booking",
+      "affected_competitors": ["competitor-1", "competitor-4", "competitor-5"],
+      "opportunity_size": "medium",
+      "suggested_feature": "Already implemented - highlight in marketing as technical differentiator"
+    },
+    {
+      "id": "gap-5",
+      "description": "High-throughput GPS ingestion without external API costs - most solutions rely on expensive location APIs",
+      "affected_competitors": ["competitor-1", "competitor-5"],
+      "opportunity_size": "medium",
+      "suggested_feature": "Already implemented with Redis Streams + COPY - document performance benchmarks"
+    },
+    {
+      "id": "gap-6",
+      "description": "Client-facing delivery tracking - recipients cannot track their deliveries in real-time",
+      "affected_competitors": ["competitor-4"],
+      "opportunity_size": "medium",
+      "suggested_feature": "Add customer tracking portal or Telegram bot for delivery recipients"
+    }
+  ],
+  "insights_summary": {
+    "top_pain_points": [
+      "High licensing/subscription costs for professional TMS solutions",
+      "Vendor lock-in and data sovereignty concerns (especially in Russian market)",
+      "Driver adoption friction due to required mobile app installations",
+      "Complex implementation requiring months and expensive consultants",
+      "Scheduling conflicts and lack of real-time visibility in manual systems"
+    ],
+    "differentiator_opportunities": [
+      "Telegram-native driver experience eliminates app installation barrier",
+      "Self-hosted with zero licensing costs vs expensive enterprise alternatives",
+      "Database-level conflict prevention is technically unique",
+      "Built for Russian market with proper localization and regional data",
+      "Docker-based deployment enables quick setup vs months-long enterprise implementations"
+    ],
+    "market_trends": [
+      "Growing demand for data sovereignty and on-premises solutions",
+      "Shift toward messenger-based interfaces over dedicated apps",
+      "SMB logistics companies seeking affordable alternatives to enterprise TMS",
+      "Increasing importance of real-time tracking and visibility",
+      "Open-source solutions gaining traction as alternative to expensive SaaS"
+    ]
+  },
+  "research_metadata": {
+    "search_queries_used": [
+      "transport management system TMS software alternatives 2024 2025",
+      "Yandex Routing Yandex Delivery problems complaints reviews",
+      "fleet management software Russia logistics complaints issues",
+      "SAP Transportation Management user complaints reddit 2024",
+      "Oracle TMS problems implementation issues",
+      "delivery dispatch software driver app frustration",
+      "TMS software high cost licensing fees complaints"
+    ],
+    "sources_consulted": [
+      "roadmap_discovery.json project context (provided competitors list)",
+      "project_index.json technical stack analysis",
+      "Industry knowledge about TMS/fleet management software",
+      "General patterns of enterprise software pain points",
+      "Russian logistics market understanding"
+    ],
+    "limitations": [
+      "WebSearch tool returned API errors or non-functional responses - unable to retrieve live search results",
+      "Pain points are based on industry knowledge rather than real-time user feedback",
+      "Russian-specific competitor reviews were not accessible",
+      "App store and forum reviews could not be directly accessed",
+      "Additional research with working search capability is recommended"
+    ]
+  },
+  "created_at": "2026-01-21T12:30:00Z"
+}

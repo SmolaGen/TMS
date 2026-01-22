@@ -1,0 +1,160 @@
+{
+  "code_quality": [
+    {
+      "id": "cq-001",
+      "type": "code_quality",
+      "title": "Извлечь дублирующиеся конфигурации статусов в общие константы",
+      "description": "Объекты statusConfig и statusColors для заказов и водителей дублируются в 7 различных файлах: OrdersTable.tsx, OrderDetailDrawer.tsx, DriverDetailDrawer.tsx, DriversTable.tsx, DriverCard.tsx, OrdersBreakdown.tsx, ClusteredDriverMarkers.tsx. Каждый компонент определяет свою версию маппинга статусов на цвета и текст, что приводит к несогласованности и усложняет поддержку.",
+      "rationale": "Дублирование кода нарушает принцип DRY и создаёт риск несогласованности при обновлениях. При изменении цвета или текста статуса нужно вносить изменения в 7 местах, что увеличивает вероятность ошибок и забытых мест.",
+      "category": "duplication",
+      "severity": "minor",
+      "affectedFiles": [
+        "frontend/src/components/orders/OrdersTable.tsx",
+        "frontend/src/components/dashboard/OrderDetailDrawer.tsx",
+        "frontend/src/components/drivers/DriverDetailDrawer.tsx",
+        "frontend/src/components/drivers/DriversTable.tsx",
+        "frontend/src/components/drivers/DriverCard.tsx",
+        "frontend/src/components/stats/OrdersBreakdown.tsx",
+        "frontend/src/components/map/ClusteredDriverMarkers.tsx"
+      ],
+      "currentState": "7 файлов содержат независимые определения statusConfig/statusColors с похожим, но не идентичным кодом (15-20 строк в каждом)",
+      "proposedChange": "Создать frontend/src/constants/status.ts с экспортами ORDER_STATUS_CONFIG и DRIVER_STATUS_CONFIG, содержащими цвета, текстовые метки и иконки. Импортировать эти константы во всех компонентах.",
+      "codeExample": "// Текущее (в 7 файлах):\nconst statusConfig: Record<string, { color: string; text: string }> = {\n    pending: { color: 'orange', text: 'Ожидает' },\n    // ...\n};\n\n// Предлагаемое:\n// constants/status.ts\nexport const ORDER_STATUS_CONFIG = {\n    pending: { color: 'orange', text: 'Ожидает', tagColor: 'default' },\n    // ...\n} as const;\n\n// В компонентах:\nimport { ORDER_STATUS_CONFIG } from '@/constants/status';",
+      "bestPractice": "DRY (Don't Repeat Yourself) — централизация конфигурации для единообразия и простоты поддержки",
+      "metrics": {
+        "lineCount": null,
+        "complexity": null,
+        "duplicateLines": 105,
+        "testCoverage": null
+      },
+      "estimatedEffort": "small",
+      "breakingChange": false,
+      "prerequisites": null
+    },
+    {
+      "id": "cq-002",
+      "type": "code_quality",
+      "title": "Добавить ESLint и Prettier для обеспечения качества кода",
+      "description": "В проекте отсутствует конфигурация ESLint и Prettier. В package.json нет соответствующих devDependencies, нет файлов .eslintrc или eslint.config.js в корне проекта. Это приводит к отсутствию автоматической проверки качества кода и неконсистентному форматированию.",
+      "rationale": "Линтинг и автоформатирование — стандартные инструменты для современных JavaScript/TypeScript проектов. Они предотвращают типичные ошибки, обеспечивают единообразие стиля кода и упрощают code review. Отсутствие этих инструментов увеличивает когнитивную нагрузку при чтении кода разных авторов.",
+      "category": "linting",
+      "severity": "major",
+      "affectedFiles": [
+        "frontend/package.json",
+        "frontend/"
+      ],
+      "currentState": "Нет конфигурации ESLint/Prettier. Код форматируется вручную без проверки стиля",
+      "proposedChange": "Добавить @eslint/js, typescript-eslint, eslint-plugin-react-hooks, prettier и eslint-config-prettier. Создать eslint.config.js с правилами для React и TypeScript. Добавить скрипты lint и format в package.json",
+      "codeExample": "// package.json (добавить):\n\"devDependencies\": {\n  \"eslint\": \"^9.x\",\n  \"@eslint/js\": \"^9.x\",\n  \"typescript-eslint\": \"^8.x\",\n  \"eslint-plugin-react-hooks\": \"^5.x\",\n  \"prettier\": \"^3.x\"\n},\n\"scripts\": {\n  \"lint\": \"eslint src --fix\",\n  \"format\": \"prettier --write src\"\n}",
+      "bestPractice": "Использование статического анализа кода для раннего обнаружения ошибок и поддержания единого стиля",
+      "metrics": {
+        "lineCount": null,
+        "complexity": null,
+        "duplicateLines": null,
+        "testCoverage": null
+      },
+      "estimatedEffort": "small",
+      "breakingChange": false,
+      "prerequisites": null
+    },
+    {
+      "id": "cq-003",
+      "type": "code_quality",
+      "title": "Устранить использование типа any в TypeScript коде",
+      "description": "В проекте обнаружено 16 использований типа any в 12 файлах: useOrders.ts (3 раза), StatsPage.tsx, OrdersPage.tsx, api/orders.ts, Dashboard.tsx, LiveMap.tsx и других. Это снижает type safety и противоречит преимуществам TypeScript.",
+      "rationale": "Использование any отключает проверку типов TypeScript в конкретных местах, что может привести к runtime ошибкам. Строгая типизация — главное преимущество TypeScript, и чрезмерное использование any сводит его на нет.",
+      "category": "types",
+      "severity": "minor",
+      "affectedFiles": [
+        "frontend/src/hooks/useOrders.ts",
+        "frontend/src/pages/StatsPage.tsx",
+        "frontend/src/pages/OrdersPage.tsx",
+        "frontend/src/api/orders.ts",
+        "frontend/src/components/dashboard/Dashboard.tsx",
+        "frontend/src/components/dashboard/LiveMap.tsx",
+        "frontend/src/hooks/useBatchAssignment.ts",
+        "frontend/src/components/common/AddressPicker.tsx",
+        "frontend/src/hooks/useTelegramAuth.ts",
+        "frontend/src/components/dashboard/UnassignedOrdersPanel.tsx",
+        "frontend/src/components/orders/ExcelImportModal.tsx",
+        "frontend/src/types/api.ts"
+      ],
+      "currentState": "16 использований : any в 12 файлах, в основном для ошибок API и callback-параметров",
+      "proposedChange": "Заменить any на конкретные типы: AxiosError для ошибок API, unknown с type guards для внешних данных, определить интерфейсы для callback-параметров. В types/api.ts расширить ApiError для покрытия всех случаев",
+      "codeExample": "// Текущее:\nonError: (error: any) => {\n    notification.error({ message: error.response?.data?.detail });\n}\n\n// Предлагаемое:\nimport { AxiosError } from 'axios';\n\ninterface ApiErrorResponse {\n    detail?: string;\n    message?: string;\n}\n\nonError: (error: AxiosError<ApiErrorResponse>) => {\n    notification.error({ message: error.response?.data?.detail });\n}",
+      "bestPractice": "Использовать unknown вместо any для неизвестных типов, с последующим type narrowing",
+      "metrics": {
+        "lineCount": null,
+        "complexity": null,
+        "duplicateLines": null,
+        "testCoverage": null
+      },
+      "estimatedEffort": "medium",
+      "breakingChange": false,
+      "prerequisites": null
+    },
+    {
+      "id": "cq-004",
+      "type": "code_quality",
+      "title": "Добавить модульные тесты для критических компонентов и хуков",
+      "description": "В проекте полностью отсутствуют unit-тесты для frontend-кода. Не найдено файлов *.test.tsx или *.spec.tsx. Критические хуки (useOrders, useDrivers, useMoveOrder) и компоненты (Dashboard, OrderDetailDrawer) не покрыты тестами.",
+      "rationale": "Отсутствие тестов увеличивает риск регрессий при рефакторинге и добавлении новых функций. Хуки с optimistic updates (useMoveOrder) и сложной логикой состояний особенно требуют тестирования для обеспечения надёжности.",
+      "category": "testing",
+      "severity": "major",
+      "affectedFiles": [
+        "frontend/src/hooks/useOrders.ts",
+        "frontend/src/hooks/useDrivers.ts",
+        "frontend/src/hooks/useMoveOrder.ts",
+        "frontend/src/components/dashboard/Dashboard.tsx",
+        "frontend/src/components/dashboard/OrderDetailDrawer.tsx"
+      ],
+      "currentState": "0% покрытие тестами на frontend. Нет конфигурации Vitest или Jest",
+      "proposedChange": "Добавить Vitest с @testing-library/react. Начать с тестирования хуков useOrders и useMoveOrder, затем добавить snapshot-тесты для ключевых компонентов. Настроить CI для запуска тестов",
+      "codeExample": "// vitest.config.ts\nimport { defineConfig } from 'vitest/config';\n\nexport default defineConfig({\n  test: {\n    environment: 'jsdom',\n    setupFiles: ['./src/test/setup.ts'],\n  },\n});\n\n// useOrders.test.ts\nimport { renderHook, waitFor } from '@testing-library/react';\nimport { useOrdersRaw } from './useOrders';\n\ntest('fetches orders for date range', async () => {\n  const { result } = renderHook(() => useOrdersRaw([new Date(), new Date()]));\n  await waitFor(() => expect(result.current.data).toBeDefined());\n});",
+      "bestPractice": "Тестирование критических бизнес-логик для предотвращения регрессий",
+      "metrics": {
+        "lineCount": null,
+        "complexity": null,
+        "duplicateLines": null,
+        "testCoverage": 0
+      },
+      "estimatedEffort": "large",
+      "breakingChange": false,
+      "prerequisites": ["Добавить Vitest и @testing-library/react в devDependencies"]
+    },
+    {
+      "id": "cq-005",
+      "type": "code_quality",
+      "title": "Вынести конфигурацию карт в отдельный модуль",
+      "description": "Константы TILE_LIGHT, TILE_DARK и TILE_ATTRIBUTION дублируются в LiveMap.tsx и DriverDetailDrawer.tsx. Также DEFAULT_CENTER и DEFAULT_ZOOM определены только в LiveMap.tsx, хотя используются концептуально в нескольких местах.",
+      "rationale": "Дублирование конфигурации карт затрудняет централизованное изменение тайловых серверов или добавление новых тем карты. При смене провайдера карт нужно будет искать и обновлять все места использования.",
+      "category": "duplication",
+      "severity": "suggestion",
+      "affectedFiles": [
+        "frontend/src/components/dashboard/LiveMap.tsx",
+        "frontend/src/components/drivers/DriverDetailDrawer.tsx"
+      ],
+      "currentState": "URL тайлов и атрибуция дублируются в 2 компонентах (6 строк дублирования)",
+      "proposedChange": "Создать frontend/src/config/map.ts с экспортом MAP_TILES, DEFAULT_CENTER, DEFAULT_ZOOM и MAP_ATTRIBUTION. Добавить функцию getMapTileUrl(theme: 'light' | 'dark') для удобства использования",
+      "codeExample": "// config/map.ts\nexport const MAP_CONFIG = {\n  defaultCenter: [43.1155, 131.8855] as [number, number],\n  defaultZoom: 12,\n  tiles: {\n    light: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',\n    dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',\n  },\n  attribution: '© OpenStreetMap contributors © CARTO',\n} as const;\n\nexport const getMapTileUrl = (isDark: boolean) =>\n  isDark ? MAP_CONFIG.tiles.dark : MAP_CONFIG.tiles.light;",
+      "bestPractice": "Централизация конфигурации для упрощения изменений и тестирования",
+      "metrics": {
+        "lineCount": null,
+        "complexity": null,
+        "duplicateLines": 6,
+        "testCoverage": null
+      },
+      "estimatedEffort": "small",
+      "breakingChange": false,
+      "prerequisites": null
+    }
+  ],
+  "metadata": {
+    "filesAnalyzed": 68,
+    "largeFilesFound": 0,
+    "duplicateBlocksFound": 8,
+    "lintingConfigured": false,
+    "testsPresent": false,
+    "generatedAt": "2026-01-21T23:55:00Z"
+  }
+}

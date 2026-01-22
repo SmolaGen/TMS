@@ -2,6 +2,7 @@
 Сервис для отправки уведомлений водителям через Telegram.
 """
 
+from typing import Optional
 from aiogram import Bot
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -19,7 +20,7 @@ class NotificationService:
         self.bot = bot
         self.session = session
 
-    async def _get_driver_telegram_id(self, driver_id: int) -> int:
+    async def _get_driver_telegram_id(self, driver_id: int) -> Optional[int]:
         """Получить telegram_id по внутреннему id водителя."""
         query = select(Driver.telegram_id).where(Driver.id == driver_id)
         result = await self.session.execute(query)
@@ -53,8 +54,8 @@ class NotificationService:
         pickup = order.pickup_address or "Не указан"
         dropoff = order.dropoff_address or "Не указан"
         time_str = "Не указано"
-        if order.time_start and order.time_end:
-            time_str = f"{order.time_start.strftime('%H:%M')} - {order.time_end.strftime('%H:%M')}"
+        if order.time_range and order.time_range.lower and order.time_range.upper:
+            time_str = f"{order.time_range.lower.strftime('%H:%M')} - {order.time_range.upper.strftime('%H:%M')}"
 
         text = (
             f"<b>🚗 Новый заказ #{order.id}</b>\n\n"
@@ -84,7 +85,7 @@ class NotificationService:
         """Напоминание за 15 минут до начала заказа."""
         pickup = order.pickup_address or "Не указан"
         time_str = ""
-        if order.time_range:
+        if order.time_range and order.time_range.lower:
             time_str = f" в {order.time_range.lower.strftime('%H:%M')}"
             
         text = (

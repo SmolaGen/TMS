@@ -31,30 +31,33 @@ src/
 
 ---
 
-## Frontend (TypeScript)
+## Frontend (TypeScript + Vite)
 
 | Компонент | Технология | Версия |
 |-----------|------------|--------|
-| Framework | Next.js | 14+ (App Router) |
+| Build Tool | Vite | 7+ |
+| Framework | React | 18+ |
 | Язык | TypeScript | 5+ |
-| Стили | CSS Modules + Tailwind | 3.4+ |
-| State | React Query (TanStack) | 5+ |
-| Формы | React Hook Form | 7+ |
-| Тесты | Jest + Testing Library | latest |
+| UI Library | Ant Design | 6+ |
+| State | Zustand | 5+ |
+| API Query | TanStack Query | 5+ |
+| Maps | Leaflet | 1.9+ |
 
 ### Структура Frontend
 
 ```
 frontend/
 ├── src/
-│   ├── app/           # Next.js App Router
-│   ├── components/    # React компоненты
+│   ├── api/           # API методы (Axios)
+│   ├── components/    # UI компоненты
 │   ├── hooks/         # Кастомные хуки
-│   ├── lib/           # Утилиты, API клиент
+│   ├── pages/         # Страницы приложения
 │   ├── stores/        # Zustand stores
-│   └── types/         # TypeScript типы
+│   ├── types/         # TypeScript типы
+│   ├── App.tsx        # Корневой компонент
+│   └── main.tsx       # Точка входа
 ├── public/            # Статика
-└── tests/             # Тесты
+└── package.json       # Зависимости
 ```
 
 ---

@@ -138,6 +138,7 @@ export const useBatchPreview = (
             return response.json();
         },
         enabled: !!targetDate,
+        throwOnError: true,
     });
 };
 
@@ -160,6 +161,7 @@ export const useUnassignedOrders = (targetDate: string) => {
             return response.json();
         },
         enabled: !!targetDate,
+        throwOnError: true,
     });
 };
 
@@ -185,5 +187,6 @@ export const useDriverSchedule = (driverId: number, targetDate: string) => {
             return response.json();
         },
         enabled: !!driverId && !!targetDate,
+        throwOnError: true,
     });
 };

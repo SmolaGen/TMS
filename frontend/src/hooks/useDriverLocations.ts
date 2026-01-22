@@ -15,5 +15,6 @@ export const useDriverLocations = () => {
         },
         staleTime: 3_000,       // 3 сек
         refetchInterval: 5_000, // Fallback polling если WS недоступен
+        throwOnError: true,
     });
 };

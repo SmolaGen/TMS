@@ -1,0 +1,16 @@
+# Wait Time Analytics
+
+Calculate and display average wait times for orders, including pickup wait times and delivery wait times. Track and analyze wait time patterns for operational improvement.
+
+## Rationale
+Completes TODO placeholder in stats endpoint. Wait time data is critical for operational efficiency measurement - a key success metric. Manual systems cannot track this (pain-4-5).
+
+## User Stories
+- As a fleet manager, I want to track average dispatch time so that I can measure team efficiency
+- As a dispatcher, I want to see current wait times so that I can prioritize unassigned orders
+
+## Acceptance Criteria
+- [ ] Wait time is calculated from order creation to driver assignment
+- [ ] Stats endpoint returns actual wait time averages
+- [ ] Wait time can be filtered by time period (today, week, month)
+- [ ] Historical wait time trends are available for analysis

@@ -44,6 +44,10 @@ class VibeProxyClient:
         
         data = json.dumps(payload).encode("utf-8")
         
+        # DEBUG: Print payload to see what's wrong
+        # print(f"[DEBUG] URL: {self.url}/chat/completions")
+        # print(f"[DEBUG] Payload: {json.dumps(payload, indent=2)}")
+        
         attempt = 1
         current_interval = self.retry_policy.initial_interval
         
@@ -55,7 +59,16 @@ class VibeProxyClient:
                     return res_data['choices'][0]['message']['content']
             
             except self.retry_policy.retry_on as e:
-                # Специальная обработка 429 Rate Limit
+                # Fatal errors that shouldn't be retried
+                if isinstance(e, urllib.error.HTTPError):
+                    if e.code == 401:
+                        print(f"[RALPH] ❌ LLM Call Unauthorized (401). Check your VIBEPROXY_API_KEY.")
+                        raise e
+                    if e.code == 400:
+                        print(f"[RALPH] ❌ LLM Call Bad Request (400). Check model name or payload.")
+                        raise e
+
+                # Rate limiting or other retryable errors
                 is_rate_limit = isinstance(e, urllib.error.HTTPError) and e.code == 429
                 
                 if attempt == self.retry_policy.max_attempts:

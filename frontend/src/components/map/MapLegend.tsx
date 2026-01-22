@@ -24,38 +24,42 @@ export const MapLegend: React.FC = () => {
                 bottom: 24,
                 left: 24,
                 zIndex: 1000,
-                padding: '8px 16px',
-                borderRadius: 30, // Pill shape
+                padding: '10px 20px',
+                borderRadius: 40,
+                border: '1px solid rgba(255, 255, 255, 0.05)',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
                 display: 'flex',
                 alignItems: 'center',
             }}
         >
-            <Space size="large">
+            <Space size={24}>
                 {legendItems.map((item) => (
-                    <Space key={item.status} size="small" align="center">
+                    <Space key={item.status} size={8} align="center">
                         <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                             <div style={{
-                                width: 10,
-                                height: 10,
+                                width: 8,
+                                height: 8,
                                 borderRadius: '50%',
                                 backgroundColor: item.color,
-                                boxShadow: `0 0 8px ${item.color}80`,
+                                boxShadow: `0 0 10px ${item.color}`,
                             }} />
                             {item.pulse && (
                                 <div style={{
                                     position: 'absolute',
-                                    width: 10,
-                                    height: 10,
+                                    width: 8,
+                                    height: 8,
                                     borderRadius: '50%',
                                     backgroundColor: item.color,
-                                    opacity: 0.5,
+                                    opacity: 0.4,
                                     animation: 'markerPulse 2s infinite'
                                 }} />
                             )}
                         </div>
                         <span style={{
-                            fontSize: 12,
-                            fontWeight: 600,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            letterSpacing: '0.02em',
+                            textTransform: 'uppercase',
                             color: 'var(--tms-text-secondary)'
                         }}>
                             {item.label}

@@ -1,0 +1,143 @@
+import os
+import re
+
+def analyze_python_files(src_dir):
+    report = []
+    all_src_modules = set()
+
+    # First, collect all potential module paths within src/
+    for root, dirs, files in os.walk(src_dir):
+        relative_path = os.path.relpath(root, src_dir)
+        if relative_path == '.':
+            relative_path = ''
+        
+        # Add packages (directories with __init__.py)
+        if '__init__.py' in files and relative_path:
+            all_src_modules.add(relative_path.replace(os.sep, '.'))
+        
+        # Add modules (files)
+        for file in files:
+            if file.endswith('.py') and file != '__init__.py':
+                module_name = file[:-3]
+                if relative_path:
+                    all_src_modules.add(f"{relative_path.replace(os.sep, '.')}.{module_name}")
+                else:
+                    all_src_modules.add(module_name)
+            elif file == '__init__.py' and not relative_path: # src/__init__.py
+                all_src_modules.add('src')
+
+
+    # Now, analyze each file
+    for root, dirs, files in os.walk(src_dir):
+        for file in files:
+            if file.endswith('.py'):
+                filepath = os.path.join(root, file)
+                relative_filepath = os.path.relpath(filepath, src_dir)
+                
+                internal_imports = set()
+                external_imports = set()
+
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    content = f.read()
+
+                # Regex for import statements
+                # import X, import X as Y
+                # from X import Y, from X import Y as Z
+                # This regex captures the module/package name being imported.
+                import_pattern = re.compile(r'^(?:from\s+([a-zA-Z_][a-zA-Z0-9_.]*|\.[a-zA-Z_][a-zA-Z0-9_.]*|\.+)\s+import|import\s+([a-zA-Z_][a-zA-Z0-9_.]*))', re.MULTILINE)
+                
+                for match in import_pattern.finditer(content):
+                    imported_module_raw = None
+                    if match.group(1): # from X import Y
+                        imported_module_raw = match.group(1)
+                    elif match.group(2): # import X
+                        imported_module_raw = match.group(2)
+                    
+                    if not imported_module_raw:
+                        continue
+
+                    is_internal = False
+                    
+                    # Handle relative imports
+                    if imported_module_raw.startswith('.'):
+                        current_module_dir = os.path.dirname(relative_filepath)
+                        current_module_parts = current_module_dir.split(os.sep) if current_module_dir else []
+                        
+                        dots = 0
+                        for char in imported_module_raw:
+                            if char == '.':
+                                dots += 1
+                            else:
+                                break
+                        
+                        # Adjust for relative path
+                        resolved_parts = current_module_parts[:len(current_module_parts) - (dots - 1)]
+                        
+                        if imported_module_raw[dots:]:
+                            resolved_module_name = ".".join(resolved_parts + [imported_module_raw[dots:]])
+                        else: # e.g. from . import X, from .. import X
+                            resolved_module_name = ".".join(resolved_parts)
+
+                        # Check if the resolved module is within our src modules
+                        if resolved_module_name in all_src_modules or \
+                           any(m.startswith(resolved_module_name + '.') for m in all_src_modules):
+                            is_internal = True
+                        
+                    # Handle absolute imports within src/ (e.g., import src.module or from src.package import module)
+                    elif imported_module_raw.startswith('src.'):
+                        check_module = imported_module_raw[4:] # Remove 'src.' prefix
+                        if check_module in all_src_modules or any(m.startswith(check_module + '.') for m in all_src_modules):
+                            is_internal = True
+                    else:
+                        # Check if the top-level part of the import is a src module
+                        top_level_module = imported_module_raw.split('.')[0]
+                        if top_level_module in all_src_modules or any(m.startswith(top_level_module + '.') for m in all_src_modules):
+                            is_internal = True
+
+                    if is_internal:
+                        internal_imports.add(imported_module_raw)
+                    else:
+                        external_imports.add(imported_module_raw)
+
+                report.append({
+                    'file': relative_filepath,
+                    'internal_imports': sorted(list(internal_imports)),
+                    'external_imports': sorted(list(external_imports))
+                })
+    return report
+
+def generate_markdown_report(analysis_results):
+    md_report = "# Project Analysis Report: `src/` Directory\n\n"
+    md_report += "This report details the Python files found in the `src/` directory and their identified internal and external dependencies.\n\n"
+    
+    for item in analysis_results:
+        md_report += f"## File: `{item['file']}`\n"
+        
+        if item['internal_imports']:
+            md_report += "### Internal Imports:\n"
+            for imp in item['internal_imports']:
+                md_report += f"- `{imp}`\n"
+        else:
+            md_report += "### Internal Imports:\n- *None*\n"
+        
+        if item['external_imports']:
+            md_report += "### External Imports:\n"
+            for imp in item['external_imports']:
+                md_report += f"- `{imp}`\n"
+        else:
+            md_report += "### External Imports:\n- *None*\n"
+        md_report += "\n"
+    
+    return md_report
+
+if __name__ == "__main__":
+    src_directory = "src"
+    analysis_results = analyze_python_files(src_directory)
+    markdown_report = generate_markdown_report(analysis_results)
+    
+    output_path = ".ralph/memory/project_analysis.md"
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with open(output_path, 'w', encoding='utf-8') as f:
+        f.write(markdown_report)
+    
+    print(f"Project analysis report generated at {output_path}")

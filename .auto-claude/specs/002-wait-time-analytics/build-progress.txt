@@ -1,0 +1,12 @@
+# Build Progress - Wait Time Analytics
+
+## Subtasks
+- [x] subtask-1-1: Add assigned_at column to Order model
+- [x] subtask-1-2: Create and apply Alembic migration for assigned_at
+- [x] subtask-2-1: Update OrderStateMachine to set assigned_at on assignment
+- [x] subtask-2-2: Update stats schemas to include wait time metrics
+- [x] subtask-2-3: Create StatsService for wait time calculations
+- [x] subtask-3-1: Create stats API endpoints
+- [x] subtask-4-1: Update useDetailedStats hook with new data fields
+- [x] subtask-4-2: Add Wait Time section to StatsPage UI
+- [ ] subtask-5-1: End-to-end verification of wait time analytics

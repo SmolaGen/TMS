@@ -42,7 +42,8 @@ class Task:
         return self.status == 'done' or self.stage == TaskStage.DONE
     
     def is_pending(self) -> bool:
-        return self.status == 'pending' and self.stage != TaskStage.DONE
+        """Задача считается доступной, если она не завершена и не заблокирована."""
+        return self.status in ['pending', 'in_progress'] and self.stage not in [TaskStage.DONE, TaskStage.BLOCKED]
 
 
 class FlowManager:
@@ -127,7 +128,8 @@ class FlowManager:
                 status=status,
                 depends_on=depends_on,
                 parallel_with=parallel_with,
-                stage=stage
+                stage=stage,
+                current_role=HandoffManager.get_role_for_stage(stage)
             )
             
             if task_id is not None:
@@ -147,6 +149,10 @@ class FlowManager:
                     handoff = self.handoff.handoff(TaskStage.PENDING, "start", {})
                     task.stage = handoff.next_stage
                     task.current_role = handoff.next_role
+                
+                # Защита: если роль почему-то не задана, восстанавливаем её по стадии
+                if task.current_role is None and task.stage != TaskStage.DONE:
+                    task.current_role = HandoffManager.get_role_for_stage(task.stage)
                 
                 return task.index, task.text
         

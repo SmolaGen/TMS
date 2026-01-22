@@ -7,9 +7,11 @@ import {
     MenuOutlined,
     BellOutlined,
     SettingOutlined,
+    SwapOutlined
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useTelegramAuth } from '../../hooks/useTelegramAuth';
+import { isDevMode, setDevUser, DEV_USERS } from '../DevAuthSelector';
 import { AlertCenter } from '../dashboard/AlertCenter';
 import { ThemeToggle } from '../common/ThemeToggle';
 import type { ThemeMode } from '../../theme';
@@ -35,6 +37,14 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
 }) => {
     const { user, logout } = useTelegramAuth();
 
+    const switchRole = () => {
+        const driver = DEV_USERS.find(u => u.role === 'driver');
+        if (driver) {
+            setDevUser(driver);
+            window.location.reload();
+        }
+    };
+
     const profileMenuItems: MenuProps['items'] = [
         {
             key: 'profile',
@@ -46,6 +56,12 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             icon: <SettingOutlined />,
             label: 'Настройки',
         },
+        ...(isDevMode() ? [{
+            key: 'switch_role',
+            icon: <SwapOutlined />,
+            label: 'Водитель (Dev)',
+            onClick: switchRole,
+        }] : []),
         {
             type: 'divider',
         },
@@ -110,25 +126,26 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
                         }}>
                             <Input
                                 placeholder="Поиск заказов, водителей..."
-                                prefix={<SearchOutlined style={{ color: 'var(--tms-text-tertiary)' }} />}
+                                prefix={<SearchOutlined style={{ color: 'var(--tms-text-tertiary)', fontSize: 16 }} />}
                                 style={{
-                                    borderRadius: 12,
-                                    background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
-                                    border: '1px solid transparent',
-                                    padding: '8px 12px',
+                                    borderRadius: 14,
+                                    background: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.03)',
+                                    border: '1px solid rgba(255,255,255,0.05)',
+                                    padding: '10px 16px',
                                     fontSize: 14,
+                                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                                 }}
                                 className="tms-search-input"
                                 allowClear
                                 onFocus={(e) => {
-                                    e.target.style.background = isDark ? 'rgba(0,0,0,0.2)' : '#fff';
-                                    e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.05)';
-                                    e.target.style.border = '1px solid var(--tms-primary)';
+                                    e.target.style.background = isDark ? 'rgba(0, 0, 0, 0.4)' : '#fff';
+                                    e.target.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.12)';
+                                    e.target.style.borderColor = 'var(--tms-primary)';
                                 }}
                                 onBlur={(e) => {
-                                    e.target.style.background = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)';
+                                    e.target.style.background = isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.03)';
                                     e.target.style.boxShadow = 'none';
-                                    e.target.style.border = '1px solid transparent';
+                                    e.target.style.borderColor = 'rgba(255,255,255,0.05)';
                                 }}
                             />
                         </div>

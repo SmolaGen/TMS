@@ -50,17 +50,23 @@ export const OrderFilters: React.FC<OrderFiltersProps> = ({
 
     return (
         <div className="glass-card" style={{
-            padding: '12px 16px',
-            marginBottom: 16,
+            padding: '16px 20px',
+            marginBottom: 20,
+            border: '1px solid rgba(255,255,255,0.05)',
         }}>
-            <Space wrap size="middle">
+            <Space wrap size="middle" style={{ width: '100%', justifyContent: 'flex-start' }}>
                 {/* Поиск */}
                 <Input
                     placeholder="Поиск по адресу, ID..."
-                    prefix={<SearchOutlined />}
+                    prefix={<SearchOutlined style={{ color: 'var(--tms-text-tertiary)' }} />}
                     value={filters.search}
                     onChange={(e) => onChange({ search: e.target.value })}
-                    style={{ width: 220 }}
+                    style={{
+                        width: 240,
+                        borderRadius: 14,
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.05)'
+                    }}
                     allowClear
                 />
 
@@ -71,7 +77,10 @@ export const OrderFilters: React.FC<OrderFiltersProps> = ({
                     value={filters.status}
                     onChange={(value) => onChange({ status: value })}
                     options={statusOptions}
-                    style={{ minWidth: 180 }}
+                    style={{
+                        minWidth: 180,
+                    }}
+                    dropdownStyle={{ borderRadius: 12 }}
                     allowClear
                     maxTagCount="responsive"
                 />
@@ -83,7 +92,10 @@ export const OrderFilters: React.FC<OrderFiltersProps> = ({
                     value={filters.driverIds}
                     onChange={(value) => onChange({ driverIds: value })}
                     options={driverOptions}
-                    style={{ minWidth: 180 }}
+                    style={{
+                        minWidth: 180,
+                    }}
+                    dropdownStyle={{ borderRadius: 12 }}
                     allowClear
                     maxTagCount="responsive"
                     showSearch
@@ -97,6 +109,11 @@ export const OrderFilters: React.FC<OrderFiltersProps> = ({
                     value={filters.dateRange}
                     onChange={(dates) => onChange({ dateRange: dates as any })}
                     format="DD.MM.YYYY"
+                    style={{
+                        borderRadius: 14,
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.05)'
+                    }}
                 />
 
                 {/* Приоритет */}
@@ -106,7 +123,10 @@ export const OrderFilters: React.FC<OrderFiltersProps> = ({
                     value={filters.priority}
                     onChange={(value) => onChange({ priority: value })}
                     options={priorityOptions}
-                    style={{ minWidth: 150 }}
+                    style={{
+                        minWidth: 150,
+                    }}
+                    dropdownStyle={{ borderRadius: 12 }}
                     allowClear
                 />
 
@@ -114,6 +134,7 @@ export const OrderFilters: React.FC<OrderFiltersProps> = ({
                 <Button
                     icon={<ReloadOutlined />}
                     onClick={onReset}
+                    style={{ borderRadius: 12 }}
                 >
                     Сбросить
                 </Button>

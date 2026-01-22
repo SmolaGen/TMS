@@ -66,30 +66,6 @@ mock_bot.py
 init_osrm.sh
 
 # IDE & Agents
-# IDE & Agents
-.ralph/backups/
-.ralph/logs/
-.ralph/state/
-.ralph/memory/chroma_db/
-.ralph/memory/long_term.db
-.ralph/memory/patterns.json
-.ralph/LOG.md
-.ralph/test_prd.md
-!.ralph/
-!.ralph/*.py
-!.ralph/**/*.py
-!.ralph/prompts/
-!.ralph/flow/
-!.ralph/agents/
-!.ralph/tools/
-!.ralph/memory/
-!.ralph/learning.py
-!.ralph/*.sh
-!.ralph/ARCHITECTURE.md
-!.ralph/Dockerfile.sandbox
-!.ralph/QUICKSTART.md
-!.ralph/README.md
-!.ralph/ralph_config.json
 .augment/
 .cursor/
 .kilocode/
@@ -100,13 +76,12 @@ AGENTS.md
 Check_tg_app.md
 .env.example
 
-# Auto Claude data directory
-.auto-claude/
+# Ralph state files
+.ralph/state/
+.ralph/logs/
 
-# Auto Claude generated files
-.auto-claude-security.json
-.auto-claude-status
-.claude_settings.json
-.worktrees/
-.security-key
-logs/security/
+# Auto Claude data directory
+.auto-claude/*
+!.auto-claude/specs/
+!.auto-claude/roadmap/
+!.auto-claude/ideation/
