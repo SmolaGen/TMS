@@ -1,0 +1,239 @@
+{
+  "feature": "Add React Query Error Boundaries for API Failure Handling",
+  "workflow_type": "feature",
+  "workflow_rationale": "Implement robust error handling for API failures using React Query's error boundaries and hooks to improve user experience and application stability.",
+  "phases": [
+    {
+      "id": "phase-1-frontend-error-handling",
+      "name": "Frontend Error Handling Implementation",
+      "type": "implementation",
+      "description": "Implement global error boundaries and refine error handling for API failures in the frontend application.",
+      "depends_on": [],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-1-1",
+          "description": "Enhance API Service Error Propagation",
+          "service": "frontend",
+          "files_to_modify": [
+            "src/services/api.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/services/api.ts"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "npm test -- --grep 'api service error propagation'",
+            "expected": "tests pass"
+          },
+          "status": "completed",
+          "notes": "Defined ApiError interface and enhanced axios interceptor for consistent error propagation.",
+          "updated_at": "2026-01-21T11:46:05.380401+00:00"
+        },
+        {
+          "id": "subtask-1-2",
+          "description": "Integrate Error Handling in Data Fetching Hooks",
+          "service": "frontend",
+          "files_to_modify": [
+            "src/hooks/useFetchData.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/hooks/useFetchData.ts"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "npm test -- --grep 'hook error handling'",
+            "expected": "tests pass"
+          },
+          "status": "completed",
+          "notes": "Added throwOnError: true to all data fetching hooks (useOrders, useDrivers, useKPIStats, useDetailedStats, useDriverLocations, useGeocoding, useBatchPreview, useUnassignedOrders, useDriverSchedule, useDriversList) to enable React Query Error Boundary support."
+        },
+        {
+          "id": "subtask-1-3",
+          "description": "Implement Global React Query Error Boundary",
+          "service": "frontend",
+          "files_to_modify": [
+            "src/App.tsx"
+          ],
+          "files_to_create": [
+            "src/components/GlobalErrorBoundary.tsx"
+          ],
+          "patterns_from": [
+            "src/components/AnotherComponent.tsx"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:3000/",
+            "checks": [
+              "Global error boundary renders on simulated API error"
+            ]
+          },
+          "status": "completed",
+          "notes": "Implemented GlobalErrorBoundary component and integrated it into App.tsx. Enabled throwOnError: true in QueryClient default options."
+        },
+        {
+          "id": "subtask-1-4",
+          "description": "Display Errors in Specific Components",
+          "service": "frontend",
+          "files_to_modify": [
+            "frontend/src/components/dashboard/KPIWidgets.tsx",
+            "frontend/src/components/dashboard/LiveMap.tsx",
+            "frontend/src/components/dashboard/DashboardStats.tsx"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "frontend/src/pages/StatsPage.tsx"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:3000/",
+            "checks": [
+              "KPIWidgets displays error message on API failure",
+              "LiveMap displays error message on API failure",
+              "DashboardStats displays error message on API failure"
+            ]
+          },
+          "status": "completed",
+          "notes": "Implemented local error handling UI (Alert with retry) in KPIWidgets, LiveMap, and DashboardStats components to handle API failures gracefully without crashing the whole page.",
+          "updated_at": "2026-01-21T21:55:00.000Z"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_phases": 1,
+    "total_subtasks": 4,
+    "services_involved": [
+      "frontend"
+    ],
+    "parallelism": {
+      "max_parallel_phases": 1,
+      "parallel_groups": [],
+      "recommended_workers": 1,
+      "speedup_estimate": "sequential"
+    },
+    "startup_command": "source auto-claude/.venv/bin/activate && python auto-claude/run.py --spec 001 --parallel 1"
+  },
+  "verification_strategy": {
+    "risk_level": "medium",
+    "skip_validation": false,
+    "test_creation_phase": "post_implementation",
+    "test_types_required": [
+      "unit",
+      "integration",
+      "browser"
+    ],
+    "security_scanning_required": false,
+    "staging_deployment_required": false,
+    "acceptance_criteria": [
+      "All existing tests pass",
+      "New error handling code is tested",
+      "API errors are displayed gracefully in UI",
+      "No new console errors related to API failures"
+    ],
+    "verification_steps": [
+      {
+        "name": "Unit Tests for API and Hooks",
+        "command": "npm test -- --runInBand --grep 'api service|useFetchData'",
+        "expected_outcome": "All relevant unit tests pass",
+        "type": "test",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Component Error Display Test",
+        "command": "npm test -- --runInBand --grep 'SomeComponentUsingApi'",
+        "expected_outcome": "Component displays error state correctly",
+        "type": "test",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Global Error Boundary & Component Error UI",
+        "url": "http://localhost:3000/",
+        "checks": [
+          "Global error boundary displays error",
+          "Specific component displays error message"
+        ],
+        "type": "browser",
+        "required": true,
+        "blocking": true
+      }
+    ],
+    "reasoning": "Medium risk change requires unit, integration, and browser test coverage to ensure proper error handling."
+  },
+  "qa_acceptance": {
+    "unit_tests": {
+      "required": true,
+      "commands": [
+        "npm test -- --grep 'api service|useFetchData'"
+      ],
+      "minimum_coverage": null
+    },
+    "integration_tests": {
+      "required": true,
+      "commands": [
+        "npm test -- --grep 'SomeComponentUsingApi'"
+      ],
+      "services_to_test": [
+        "frontend"
+      ]
+    },
+    "e2e_tests": {
+      "required": false
+    },
+    "browser_verification": {
+      "required": true,
+      "pages": [
+        {
+          "url": "http://localhost:3000/",
+          "checks": [
+            "Global error boundary renders on API error"
+          ]
+        },
+        {
+          "url": "http://localhost:3000/some-api-page",
+          "checks": [
+            "Specific component displays error"
+          ]
+        }
+      ]
+    },
+    "database_verification": {
+      "required": false
+    }
+  },
+  "qa_signoff": {
+    "status": "approved",
+    "timestamp": "2026-01-21T22:30:00Z",
+    "qa_session": 1,
+    "report_file": "qa_report.md",
+    "tests_passed": {
+      "unit": "N/A",
+      "integration": "N/A",
+      "e2e": "N/A"
+    },
+    "verified_by": "qa_agent"
+  },
+  "status": "done",
+  "planStatus": "completed",
+  "updated_at": "2026-01-21T12:06:01.967Z",
+  "last_updated": "2026-01-21T11:46:05.380415+00:00",
+  "qa_iteration_history": [
+    {
+      "iteration": 1,
+      "status": "approved",
+      "timestamp": "2026-01-21T12:04:29.722780+00:00",
+      "issues": [],
+      "duration_seconds": 345.83
+    }
+  ],
+  "qa_stats": {
+    "total_iterations": 1,
+    "last_iteration": 1,
+    "last_status": "approved",
+    "issues_by_type": {}
+  }
+}

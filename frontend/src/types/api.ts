@@ -159,3 +159,11 @@ export interface DriverStats {
   total_revenue: number;
   total_distance_km: number;
 }
+
+// Стандартная ошибка API
+export interface ApiError {
+  message: string;
+  status?: number;
+  data?: any;
+  originalError?: any;
+}

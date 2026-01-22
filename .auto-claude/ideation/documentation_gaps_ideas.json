@@ -1,0 +1,127 @@
+{
+  "documentation_gaps": [
+    {
+      "id": "doc-001",
+      "type": "documentation_gaps",
+      "title": "Complete Orders API documentation in docs/API.md",
+      "description": "The API.md file documents only Routing and basic Drivers endpoints but completely lacks Orders API documentation. The Orders module is the core of the TMS with 9+ endpoints (create, move, cancel, complete, arrive, start, assign, import/excel, get by id) that handle the entire order lifecycle. None of these are documented.",
+      "rationale": "Orders are the central feature of the TMS system. Dispatchers and external contractors need clear API documentation to integrate with the system. Currently, developers must read source code in src/api/v1/orders.py and frontend/src/api/orders.ts to understand the API, which slows down onboarding and integration.",
+      "category": "api_docs",
+      "targetAudience": "developers",
+      "affectedAreas": [
+        "docs/API.md",
+        "src/api/v1/orders.py",
+        "src/api/contractors.py",
+        "frontend/src/api/orders.ts"
+      ],
+      "currentDocumentation": "No Orders API endpoints documented in docs/API.md. Only GET /routing/route and basic GET /drivers endpoints exist.",
+      "proposedContent": "Add comprehensive Orders API section documenting: POST /orders (create with geocoding), PATCH /orders/{id}/move (drag-drop), POST /orders/{id}/cancel, POST /orders/{id}/complete, POST /orders/{id}/arrive, POST /orders/{id}/start, POST /orders/{id}/assign/{driver_id}, POST /orders/import/excel. Include request/response schemas, error codes (409 for time conflicts), and authentication requirements.",
+      "priority": "high",
+      "estimatedEffort": "medium"
+    },
+    {
+      "id": "doc-002",
+      "type": "documentation_gaps",
+      "title": "Document Telegram Bot commands and driver workflow",
+      "description": "The TMS includes a sophisticated Telegram bot for drivers with commands /start, /orders, /shift, /current, and admin commands, but there is zero documentation for bot usage. Bot handlers exist in src/bot/handlers/ but users and administrators have no reference guide.",
+      "rationale": "The Telegram bot is the primary interface for drivers to manage shifts, view orders, and update order statuses. Without documentation, new drivers cannot effectively use the system, and administrators don't know about admin commands in src/bot/handlers/admin.py. This creates onboarding friction for every new driver.",
+      "category": "examples",
+      "targetAudience": "users",
+      "affectedAreas": [
+        "src/bot/handlers/orders.py",
+        "src/bot/handlers/admin.py",
+        "src/bot/handlers/location.py"
+      ],
+      "currentDocumentation": "Only brief mention of 'Telegram bot for drivers' in README.md. No dedicated bot documentation or user guide.",
+      "proposedContent": "Create docs/telegram-bot.md with: 1) Driver commands reference (/start, /orders, /shift, /current) with screenshots, 2) Order lifecycle flow (viewing orders -> marking departed -> arrived -> started -> completed), 3) Live location sharing workflow, 4) Admin commands for user management, 5) WebApp button integration.",
+      "priority": "high",
+      "estimatedEffort": "medium"
+    },
+    {
+      "id": "doc-003",
+      "type": "documentation_gaps",
+      "title": "Add JSDoc comments to frontend custom hooks",
+      "description": "The frontend has 15+ custom hooks (useOrders, useDrivers, useWebSocketSync, useGeoTracking, useBatchAssignment, etc.) in frontend/src/hooks/ with zero JSDoc documentation. These hooks encapsulate complex business logic including optimistic updates, WebSocket sync, and query caching patterns.",
+      "rationale": "Custom hooks are the API layer for frontend developers. Without documentation, new team members cannot understand the data flow, mutation patterns (optimistic UI in useMoveOrder), or caching strategies. The useWebSocketSync hook in particular handles real-time driver location updates with complex Redis Streams integration that needs explanation.",
+      "category": "api_docs",
+      "targetAudience": "developers",
+      "affectedAreas": [
+        "frontend/src/hooks/useOrders.ts",
+        "frontend/src/hooks/useDrivers.ts",
+        "frontend/src/hooks/useWebSocketSync.ts",
+        "frontend/src/hooks/useBatchAssignment.ts",
+        "frontend/src/hooks/useGeoTracking.ts"
+      ],
+      "currentDocumentation": "Only inline comments explaining specific logic. No function-level JSDoc with @param, @returns, @example.",
+      "proposedContent": "Add JSDoc blocks to all exported hooks documenting: purpose, parameters, return values, usage examples, and integration notes. For useMoveOrder, document the optimistic update pattern with rollback. For useWebSocketSync, document the Redis Streams integration and reconnection handling.",
+      "priority": "medium",
+      "estimatedEffort": "medium"
+    },
+    {
+      "id": "doc-004",
+      "type": "documentation_gaps",
+      "title": "Document environment variables with descriptions",
+      "description": "The project uses 19+ environment variables (per project_index.json) spanning database, Redis, OSRM, Photon, Telegram, JWT, and logging configuration. The .env.example exists but environment variables lack descriptions explaining their purpose, valid values, and dependencies.",
+      "rationale": "Environment configuration is the first blocker for new deployments. Variables like OSRM_URL, PHOTON_URL, TELEGRAM_WEBHOOK_URL have interdependencies and specific requirements (e.g., vm.max_map_count for Photon). Clear documentation prevents misconfiguration and reduces support burden.",
+      "category": "readme",
+      "targetAudience": "contributors",
+      "affectedAreas": [
+        ".env.example",
+        "docs/deployment.md",
+        "docs/setup.md",
+        "docker-compose.yml"
+      ],
+      "currentDocumentation": "README mentions copying .env.example but doesn't explain variables. setup.md has partial coverage.",
+      "proposedContent": "Create docs/environment.md or enhance .env.example with: 1) Grouped variables by service (Database, Redis, Telegram, Geo-services), 2) Required vs optional designation, 3) Default values and valid ranges, 4) Dependencies (e.g., TELEGRAM_WEBHOOK_URL requires SSL), 5) Security notes for sensitive values.",
+      "priority": "medium",
+      "estimatedEffort": "low"
+    },
+    {
+      "id": "doc-005",
+      "type": "documentation_gaps",
+      "title": "Add architecture diagram for real-time location tracking",
+      "description": "The system has a complex real-time location pipeline: Telegram Live Location -> Bot -> Redis Streams -> ingest_worker -> PostgreSQL/PostGIS -> WebSocket -> Frontend Map. This data flow spans 6+ components but has no visual documentation explaining the architecture.",
+      "rationale": "Real-time driver tracking is a key feature involving high-throughput ingestion patterns, Redis Streams for buffering, and WebSocket push to clients. Without architecture documentation, developers cannot debug issues or extend the system. The ingest_worker in src/workers/ingest_worker.py uses PostgreSQL COPY for bulk inserts - a non-obvious optimization that needs documentation.",
+      "category": "architecture",
+      "targetAudience": "developers",
+      "affectedAreas": [
+        "src/workers/ingest_worker.py",
+        "src/services/location_manager.py",
+        "frontend/src/hooks/useWebSocketSync.ts",
+        "frontend/src/hooks/useDriverLocations.ts"
+      ],
+      "currentDocumentation": "docs/backend.md mentions Redis for live coordinates but no data flow explanation. No diagrams exist.",
+      "proposedContent": "Add docs/architecture/location-tracking.md with: 1) Mermaid/ASCII diagram showing data flow, 2) Component responsibilities (LocationManager, ingest_worker, WebSocket endpoint), 3) Redis Streams consumer group pattern explanation, 4) PostgreSQL COPY bulk insert rationale, 5) Frontend polling vs WebSocket modes, 6) Scaling considerations.",
+      "priority": "medium",
+      "estimatedEffort": "medium"
+    }
+  ],
+  "metadata": {
+    "filesAnalyzed": 147,
+    "documentedFunctions": 28,
+    "undocumentedFunctions": 85,
+    "readmeLastUpdated": "unknown",
+    "docsFilesCount": 15,
+    "backendPyFiles": 47,
+    "frontendTsFiles": 22,
+    "frontendTsxFiles": 45,
+    "existingDocsTopics": [
+      "setup",
+      "backend overview",
+      "frontend overview",
+      "deployment",
+      "testing",
+      "API (partial)",
+      "developer rules"
+    ],
+    "missingDocsTopics": [
+      "Complete API reference",
+      "Telegram bot user guide",
+      "Environment variables reference",
+      "Architecture diagrams",
+      "Troubleshooting/FAQ",
+      "Frontend hooks documentation"
+    ],
+    "generatedAt": "2026-01-21T20:15:00Z"
+  }
+}

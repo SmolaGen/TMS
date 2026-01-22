@@ -1,4 +1,5 @@
 import axios from 'axios';
+import type { ApiError } from '../types/api';
 
 const TOKEN_KEY = 'tms_auth_token';
 
@@ -27,6 +28,13 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
     (response) => response,
     (error) => {
+        const apiError: ApiError = {
+            message: error.response?.data?.detail || error.message || 'Unknown API Error',
+            status: error.response?.status,
+            data: error.response?.data,
+            originalError: error
+        };
+
         if (error.response?.status === 401) {
             const detail = error.response.data?.detail;
             // Если токен истек или невалиден - очищаем его
@@ -36,7 +44,8 @@ apiClient.interceptors.response.use(
                 window.dispatchEvent(new CustomEvent('auth:token-expired'));
             }
         }
-        console.error('[API Error]', error.response?.status, error.response?.data);
-        return Promise.reject(error);
+
+        console.error('[API Error]', apiError.status, apiError.message);
+        return Promise.reject(apiError);
     }
 );

@@ -1,0 +1,211 @@
+{
+  "project_root": "/Users/alsmolentsev/tms_new",
+  "project_type": "monorepo",
+  "services": {
+    "frontend": {
+      "name": "frontend",
+      "path": "/Users/alsmolentsev/tms_new/frontend",
+      "language": "TypeScript",
+      "framework": null,
+      "type": "frontend",
+      "package_manager": "npm",
+      "build_tool": "Vite",
+      "default_port": 5173,
+      "state_management": "Zustand",
+      "dev_command": "npm run dev",
+      "key_directories": {
+        "src": {
+          "path": "src",
+          "purpose": "Source code"
+        }
+      },
+      "entry_point": "src/App.tsx",
+      "dependencies": [
+        "@mapbox/polyline",
+        "@tanstack/react-query",
+        "@telegram-apps/sdk-react",
+        "@types/leaflet",
+        "@types/leaflet.markercluster",
+        "@types/mapbox__polyline",
+        "antd",
+        "axios",
+        "dayjs",
+        "leaflet",
+        "leaflet.markercluster",
+        "react-dnd",
+        "react-dnd-html5-backend",
+        "react-leaflet",
+        "react-router-dom",
+        "vis-data",
+        "vis-timeline",
+        "zustand"
+      ],
+      "dev_dependencies": [
+        "@types/node",
+        "@types/react",
+        "@types/react-dom",
+        "@vitejs/plugin-react",
+        "typescript",
+        "vite"
+      ],
+      "environment": {
+        "variables": {
+          "VITE_API_URL": {
+            "value": "/api/v1",
+            "source": ".env",
+            "type": "path",
+            "sensitive": false,
+            "required": true
+          },
+          "VITE_WS_URL": {
+            "value": "wss://myappnf.ru/ws",
+            "source": ".env",
+            "type": "path",
+            "sensitive": false,
+            "required": true
+          },
+          "POSTGRES_USER": {
+            "value": "tms",
+            "source": "../.env",
+            "type": "string",
+            "sensitive": false,
+            "required": false
+          },
+          "POSTGRES_PASSWORD": {
+            "value": "<REDACTED>",
+            "source": "../.env",
+            "type": "string",
+            "sensitive": true,
+            "required": false
+          },
+          "POSTGRES_DB": {
+            "value": "tms_db",
+            "source": "../.env",
+            "type": "string",
+            "sensitive": false,
+            "required": false
+          },
+          "DATABASE_URL": {
+            "value": "postgresql+asyncpg://tms:tms_secret_change_me@localhost:5432/tms_db",
+            "source": "../.env",
+            "type": "path",
+            "sensitive": false,
+            "required": false
+          },
+          "REDIS_URL": {
+            "value": "redis://localhost:6379/0",
+            "source": "../.env",
+            "type": "url",
+            "sensitive": false,
+            "required": false
+          },
+          "OSRM_URL": {
+            "value": "http://osrm:5000",
+            "source": "../.env",
+            "type": "url",
+            "sensitive": false,
+            "required": false
+          },
+          "PHOTON_URL": {
+            "value": "http://photon:2322",
+            "source": "../.env",
+            "type": "url",
+            "sensitive": false,
+            "required": false
+          },
+          "APP_ENV": {
+            "value": "development",
+            "source": "../.env",
+            "type": "string",
+            "sensitive": false,
+            "required": false
+          },
+          "DEBUG": {
+            "value": "true",
+            "source": "../.env",
+            "type": "boolean",
+            "sensitive": false,
+            "required": false
+          },
+          "SECRET_KEY": {
+            "value": "<REDACTED>",
+            "source": "../.env",
+            "type": "string",
+            "sensitive": true,
+            "required": false
+          },
+          "JWT_SECRET_KEY": {
+            "value": "<REDACTED>",
+            "source": "../.env",
+            "type": "string",
+            "sensitive": true,
+            "required": false
+          },
+          "LOG_LEVEL": {
+            "value": "INFO",
+            "source": "../.env",
+            "type": "string",
+            "sensitive": false,
+            "required": false
+          },
+          "TELEGRAM_BOT_TOKEN": {
+            "value": "<REDACTED>",
+            "source": "../.env",
+            "type": "string",
+            "sensitive": true,
+            "required": false
+          },
+          "TELEGRAM_WEBHOOK_URL": {
+            "value": "https://myappnf.ru/bot/webhook",
+            "source": "../.env",
+            "type": "url",
+            "sensitive": false,
+            "required": false
+          },
+          "WEBAPP_URL": {
+            "value": "https://myappnf.ru/webapp",
+            "source": "../.env",
+            "type": "url",
+            "sensitive": false,
+            "required": false
+          },
+          "JAVA_OPTS": {
+            "value": null,
+            "source": "../docker-compose.yml",
+            "type": "string",
+            "sensitive": false,
+            "required": false
+          },
+          "REGION": {
+            "value": null,
+            "source": "../docker-compose.yml",
+            "type": "string",
+            "sensitive": false,
+            "required": false
+          }
+        },
+        "required_count": 2,
+        "optional_count": 0,
+        "detected_count": 19
+      }
+    }
+  },
+  "infrastructure": {
+    "docker_compose": "docker-compose.yml",
+    "docker_services": [
+      "postgis",
+      "redis",
+      "osrm",
+      "photon",
+      "backend",
+      "ingest-worker",
+      "nginx"
+    ],
+    "dockerfile": "Dockerfile",
+    "ci": "GitHub Actions",
+    "ci_workflows": [
+      "ci.yml"
+    ]
+  },
+  "conventions": {}
+}

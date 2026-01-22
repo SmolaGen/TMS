@@ -7,6 +7,7 @@ export const useGeocoding = (query: string) => {
         queryFn: () => searchAddress(query),
         enabled: !!query && query.length >= 3,
         staleTime: 300_000, // 5 min
+        throwOnError: true,
     });
 };
 
@@ -16,5 +17,6 @@ export const useReverseGeocoding = (lat?: number, lon?: number) => {
         queryFn: () => (lat && lon ? reverseGeocode(lat, lon) : null),
         enabled: !!lat && !!lon,
         staleTime: 300_000,
+        throwOnError: true,
     });
 };

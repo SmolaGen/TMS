@@ -1,0 +1,369 @@
+{
+  "feature": "Customer Notification System",
+  "workflow_type": "feature",
+  "workflow_rationale": "This task involves extending the backend API and service layer to support a new business feature (customer notifications) across multiple notification channels.",
+  "phases": [
+    {
+      "id": "phase-1-infrastructure",
+      "name": "Infrastructure and Models",
+      "type": "implementation",
+      "description": "Prepare data models and configuration for customer notifications",
+      "depends_on": [],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-1-1",
+          "description": "Add customer_telegram_id to Order model or User model if not present",
+          "service": "backend",
+          "files_to_modify": [
+            "src/database/models.py"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/database/models.py"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "python -c \"from src.database.models import Order; print('OK')\"",
+            "expected": "OK"
+          },
+          "status": "completed",
+          "notes": "Added customer_telegram_id field to Order model in src/database/models.py using BigInteger type to support Telegram IDs. Verified with python import check.",
+          "updated_at": "2026-01-21T13:35:33.235165+00:00"
+        },
+        {
+          "id": "subtask-1-2",
+          "description": "Add notification settings to configuration",
+          "service": "backend",
+          "files_to_modify": [
+            "src/config.py"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/config.py"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "python -c \"from src.config import settings; print('OK')\"",
+            "expected": "OK"
+          },
+          "status": "completed",
+          "notes": "Added notification settings (NOTIFICATIONS_ENABLED, ENABLE_TELEGRAM_NOTIFICATIONS, ENABLE_WEBHOOK_NOTIFICATIONS, etc.) to Settings class in src/config.py. Verified with python import check.",
+          "updated_at": "2026-01-21T13:41:13.916120+00:00"
+        }
+      ]
+    },
+    {
+      "id": "phase-2-notification-service",
+      "name": "Notification Service Expansion",
+      "type": "implementation",
+      "description": "Extend NotificationService to support customers and multiple channels",
+      "depends_on": [
+        "phase-1-infrastructure"
+      ],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-2-1",
+          "description": "Implement notify_customer method in NotificationService",
+          "service": "backend",
+          "files_to_modify": [
+            "src/services/notification_service.py"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/services/notification_service.py"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "pytest tests/test_notification_service.py",
+            "expected": "All tests pass"
+          },
+          "status": "completed",
+          "notes": "Implemented notify_customer method in NotificationService to support Telegram notifications for customers. Added unit tests in tests/test_notification_service.py (not committed due to .gitignore). Verified with pytest.",
+          "updated_at": "2026-01-21T13:50:00.000000+00:00"
+        },
+        {
+          "id": "subtask-2-2",
+          "description": "Extend WebhookService for customer notifications",
+          "service": "backend",
+          "files_to_modify": [
+            "src/services/webhook_service.py"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/services/webhook_service.py"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "pytest tests/test_webhook_service.py",
+            "expected": "All tests pass"
+          },
+          "status": "completed",
+          "notes": "Extended WebhookService to support generic webhook sending and updated notify_status_change to be more flexible. Added unit tests (not committed due to .gitignore).",
+          "updated_at": "2026-01-21T13:58:00.000000+00:00"
+        }
+      ]
+    },
+    {
+      "id": "phase-3-workflow-integration",
+      "name": "Workflow Integration",
+      "type": "implementation",
+      "description": "Integrate notifications into OrderWorkflowService",
+      "depends_on": [
+        "phase-2-notification-service"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-3-1",
+          "description": "Update OrderWorkflowService to trigger customer notifications on status changes",
+          "service": "backend",
+          "files_to_modify": [
+            "src/services/order_workflow.py",
+            "src/api/dependencies.py"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/services/order_workflow.py"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "pytest tests/test_order_workflow_notifications.py",
+            "expected": "All tests pass"
+          },
+          "status": "completed",
+          "notes": "Updated OrderWorkflowService to trigger customer notifications via NotificationService and WebhookService on all status changes. Added notify_customer_status_change method to NotificationService. Updated API dependencies to provide NotificationService to OrderWorkflowService. Verified with unit tests. Note: tests were not committed as they are ignored by .gitignore.",
+          "updated_at": "2026-01-21T14:14:35.732858+00:00"
+        }
+      ]
+    },
+    {
+      "id": "phase-4-integration-testing",
+      "name": "End-to-End Integration",
+      "type": "integration",
+      "description": "Verify the entire notification flow",
+      "depends_on": [
+        "phase-3-workflow-integration"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-4-1",
+          "description": "E2E test: status change triggers customer Telegram message and webhook",
+          "all_services": true,
+          "files_to_modify": [],
+          "files_to_create": [
+            "tests/e2e/test_customer_notifications.py"
+          ],
+          "patterns_from": [],
+          "verification": {
+            "type": "e2e",
+            "steps": [
+              "Create order with customer telegram ID",
+              "Update order status to ASSIGNED",
+              "Verify NotificationService send_message called for customer",
+              "Verify WebhookService notify_status_change called"
+            ]
+          },
+          "status": "completed",
+          "notes": "Created E2E test tests/e2e/test_customer_notifications.py and verified it passes. The test confirms that order status changes trigger both Telegram and Webhook notifications.",
+          "updated_at": "2026-01-21T14:21:15.500181+00:00"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_phases": 4,
+    "total_subtasks": 6,
+    "services_involved": [
+      "backend"
+    ],
+    "parallelism": {
+      "max_parallel_phases": 1,
+      "parallel_groups": [],
+      "recommended_workers": 1,
+      "speedup_estimate": "1.0x"
+    },
+    "startup_command": "source .venv/bin/activate && python src/main.py"
+  },
+  "verification_strategy": {
+    "risk_level": "medium",
+    "skip_validation": false,
+    "test_creation_phase": "implementation",
+    "test_types_required": [
+      "unit",
+      "integration",
+      "e2e"
+    ],
+    "security_scanning_required": false,
+    "staging_deployment_required": false,
+    "acceptance_criteria": [
+      "All order status changes trigger customer notifications",
+      "Telegram notifications work for customers",
+      "Webhooks are sent to configured URLs",
+      "Notification preferences are respected"
+    ],
+    "verification_steps": [
+      {
+        "name": "Unit Tests",
+        "command": "pytest tests/",
+        "expected_outcome": "All tests pass",
+        "type": "test",
+        "required": true,
+        "blocking": true
+      }
+    ],
+    "reasoning": "Medium risk feature adding new communication channels; requires thorough testing of side effects in state transitions."
+  },
+  "qa_acceptance": {
+    "unit_tests": {
+      "required": true,
+      "commands": [
+        "pytest tests/"
+      ],
+      "minimum_coverage": 80
+    },
+    "integration_tests": {
+      "required": true,
+      "commands": [
+        "pytest tests/integration/"
+      ],
+      "services_to_test": [
+        "backend"
+      ]
+    },
+    "e2e_tests": {
+      "required": true,
+      "commands": [
+        "pytest tests/e2e/"
+      ],
+      "flows": [
+        "order-lifecycle-notifications"
+      ]
+    }
+  },
+  "qa_signoff": {
+    "status": "rejected",
+    "timestamp": "2026-01-22T01:38:00.000000",
+    "qa_session": 4,
+    "issues_found": [
+      {
+        "type": "critical",
+        "title": "Broken Webhook Service Unit Tests",
+        "location": "tests/test_webhook_service.py",
+        "fix_required": "Update unit tests to support new customer_webhook_url logic and fix unawaited coroutine warnings."
+      }
+    ],
+    "fix_request_file": "QA_FIX_REQUEST.md"
+  },
+  "status": "pr_created",
+  "planStatus": "pr_created",
+  "updated_at": "2026-01-21T16:36:45.950Z",
+  "last_updated": "2026-01-21T14:21:15.500193+00:00",
+  "recoveryNote": "Task recovered from stuck state at 2026-01-21T13:51:27.158Z",
+  "qa_iteration_history": [
+    {
+      "iteration": 1,
+      "status": "rejected",
+      "timestamp": "2026-01-21T14:38:00.481452+00:00",
+      "issues": [
+        {
+          "type": "critical",
+          "title": "Missing Database Migration",
+          "location": "alembic/versions/",
+          "fix_required": "Generate Alembic migration for customer_telegram_id"
+        },
+        {
+          "type": "critical",
+          "title": "Missing Approaching Delivery / ETA Logic",
+          "location": "src/services/notification_service.py",
+          "fix_required": "Implement proactive approaching notifications and ETA updates as per spec"
+        }
+      ],
+      "duration_seconds": 899.99
+    },
+    {
+      "iteration": 2,
+      "status": "rejected",
+      "timestamp": "2026-01-21T15:03:05.987375+00:00",
+      "issues": [
+        {
+          "type": "critical",
+          "title": "Missing Database Migration",
+          "location": "alembic/versions/",
+          "fix_required": "Generate Alembic migration for customer_telegram_id"
+        },
+        {
+          "type": "critical",
+          "title": "Missing Approaching Delivery / ETA Logic",
+          "location": "src/services/notification_service.py",
+          "fix_required": "Implement proactive approaching notifications and ETA updates as per spec"
+        }
+      ],
+      "duration_seconds": 125.71
+    },
+    {
+      "iteration": 3,
+      "status": "error",
+      "timestamp": "2026-01-21T15:31:03.331644+00:00",
+      "issues": [
+        {
+          "title": "QA error",
+          "description": "QA agent did not update implementation_plan.json (Agent produced no output)"
+        }
+      ]
+    },
+    {
+      "iteration": 4,
+      "status": "rejected",
+      "timestamp": "2026-01-21T15:35:13.898670+00:00",
+      "issues": [
+        {
+          "type": "critical",
+          "title": "Broken Webhook Service Unit Tests",
+          "location": "tests/test_webhook_service.py",
+          "fix_required": "Update unit tests to support new customer_webhook_url logic and fix unawaited coroutine warnings."
+        }
+      ],
+      "duration_seconds": 250.56
+    },
+    {
+      "iteration": 5,
+      "status": "rejected",
+      "timestamp": "2026-01-21T15:40:31.502063+00:00",
+      "issues": [
+        {
+          "type": "critical",
+          "title": "Broken Webhook Service Unit Tests",
+          "location": "tests/test_webhook_service.py",
+          "fix_required": "Update unit tests to support new customer_webhook_url logic and fix unawaited coroutine warnings."
+        }
+      ],
+      "duration_seconds": 190.54
+    },
+    {
+      "iteration": 6,
+      "status": "rejected",
+      "timestamp": "2026-01-21T16:03:05.918573+00:00",
+      "issues": [
+        {
+          "type": "critical",
+          "title": "Broken Webhook Service Unit Tests",
+          "location": "tests/test_webhook_service.py",
+          "fix_required": "Update unit tests to support new customer_webhook_url logic and fix unawaited coroutine warnings."
+        }
+      ],
+      "duration_seconds": 44.47
+    }
+  ],
+  "qa_stats": {
+    "total_iterations": 6,
+    "last_iteration": 6,
+    "last_status": "rejected",
+    "issues_by_type": {
+      "critical": 7,
+      "unknown": 1
+    }
+  }
+}

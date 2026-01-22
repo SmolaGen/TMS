@@ -1,0 +1,88 @@
+{
+  "name": "Этап 2: Реализация бизнес-логики TMS",
+  "branchName": "feature/business-logic-phase-2",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Рефакторинг main.py: Разделение логики FastAPI и Telegram Бота",
+      "description": "Разделить логику инициализации FastAPI и Telegram Бота. Вынести настройку роутов и middleware в отдельные модули.",
+      "acceptanceCriteria": [
+        "FastAPI app инициализируется в отдельном модуле (напр. src/app.py)",
+        "Telegram Bot логика вынесена в src/bot.py или аналогичный модуль",
+        "Роуты подключаются через APIRouter",
+        "Проект запускается без ошибок"
+      ],
+      "priority": 1,
+      "passes": true,
+      "dependsOn": [],
+      "completionNotes": "Completed in Phase 1"
+    },
+    {
+      "id": "US-002",
+      "title": "Стабилизация асинхронных сессий SQLAlchemy в lifespan",
+      "description": "Стабилизировать работу асинхронных сессий SQLAlchemy в lifespan (main.py).",
+      "acceptanceCriteria": [
+        "Lifespan корректно управляет созданием и закрытием engine/sessionmaker",
+        "Асинхронные сессии доступны во время работы приложения",
+        "Нет утечек соединений в БД"
+      ],
+      "priority": 1,
+      "passes": true,
+      "dependsOn": [
+        "US-001"
+      ],
+      "completionNotes": "Completed in Phase 1"
+    },
+    {
+      "id": "US-004",
+      "title": "Улучшение управления заказами",
+      "description": "Реализовать расчет стоимости поездки и автоматический геокодинг.",
+      "acceptanceCriteria": [
+        "Стоимость заказа рассчитывается исходя из дистанции (OSRM) и тарифа (src/services/routing.py)",
+        "При создании заказа координаты определяются автоматически по адресу, если они не указаны",
+        "Интеграция с GeocodingService работает корректно"
+      ],
+      "priority": 1,
+      "passes": true,
+      "dependsOn": [
+        "US-002"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-005",
+      "title": "Работа с водителями и статусами",
+      "description": "Реализовать личный кабинет и управление статусами.",
+      "acceptanceCriteria": [
+        "Добавлен эндпоинт для переключения статуса водителя (Online/Offline/Busy)",
+        "Геопозиция водителя сохраняется в Redis с TTL 5 минут",
+        "Mini App корректно отображает текущий статус"
+      ],
+      "priority": 1,
+      "passes": true,
+      "dependsOn": [
+        "US-002"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-006",
+      "title": "Модульная архитектура API (Refinement)",
+      "description": "Разделить src/api/routes.py на тематические модули.",
+      "acceptanceCriteria": [
+        "Эндпоинты разделены по файлам: auth.py, orders.py, drivers.py в src/api/v1/",
+        "В src/api/routes.py только подключение роутеров",
+        "Все импорты и зависимости корректно работают"
+      ],
+      "priority": 2,
+      "passes": true,
+      "dependsOn": [
+        "US-002"
+      ],
+      "completionNotes": "Completed by agent"
+    }
+  ],
+  "metadata": {
+    "updatedAt": "2026-01-20T15:58:10.878Z"
+  }
+}

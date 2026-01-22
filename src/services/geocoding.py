@@ -23,6 +23,8 @@ class GeocodingService:
             "limit": limit,
             "lang": lang
         }
+        params = {k: v for k, v in params.items() if v is not None}
+
 
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"}
         try:
@@ -38,6 +40,7 @@ class GeocodingService:
                     public_params = params.copy()
                     if "lang" in public_params:
                         del public_params["lang"]
+                    public_params = {k: v for k, v in public_params.items() if v is not None}
                     
                     response = await client.get(public_url, params=public_params)
                     response.raise_for_status()
@@ -83,6 +86,8 @@ class GeocodingService:
             "lon": lon,
             "lang": lang
         }
+        params = {k: v for k, v in params.items() if v is not None}
+
 
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"}
         try:
@@ -97,6 +102,7 @@ class GeocodingService:
                     public_params = params.copy()
                     if "lang" in public_params:
                         del public_params["lang"]
+                    public_params = {k: v for k, v in public_params.items() if v is not None}
                         
                     response = await client.get(public_url, params=public_params)
                     response.raise_for_status()

@@ -1,10 +1,11 @@
 import React, { useMemo } from 'react';
-import { Row, Col, Card, Statistic, Progress, Space } from 'antd';
+import { Row, Col, Card, Statistic, Progress, Space, Alert, Button } from 'antd';
 import {
     CheckCircleOutlined,
     SyncOutlined,
     CloseCircleOutlined,
-    ShoppingOutlined
+    ShoppingOutlined,
+    ReloadOutlined
 } from '@ant-design/icons';
 import { useOrdersRaw } from '../../hooks/useOrders';
 import type { OrderResponse } from '../../types/api';
@@ -15,7 +16,7 @@ interface DashboardStatsProps {
 }
 
 export const DashboardStats: React.FC<DashboardStatsProps> = ({ dateRange }) => {
-    const { data: orders = [] } = useOrdersRaw(dateRange);
+    const { data: orders = [], error, refetch } = useOrdersRaw(dateRange);
 
     const stats = useMemo(() => {
         const total = orders.length;
@@ -32,6 +33,24 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ dateRange }) => 
 
         return { total, completed, inProgress, cancelled, pending, completionRate };
     }, [orders]);
+
+    if (error) {
+        return (
+            <div style={{ marginBottom: 16 }}>
+                <Alert
+                    message="Ошибка статистики"
+                    description="Не удалось загрузить данные заказов для расчета статистики."
+                    type="error"
+                    showIcon
+                    action={
+                        <Button size="small" icon={<ReloadOutlined />} onClick={() => refetch()}>
+                            Повторить
+                        </Button>
+                    }
+                />
+            </div>
+        );
+    }
 
     return (
         <div style={{ marginBottom: 16 }}>

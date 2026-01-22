@@ -1,0 +1,684 @@
+{
+  "id": "ideation-20260122-004825",
+  "project_id": "/Users/alsmolentsev/tms_new",
+  "config": {
+    "enabled_types": [
+      "code_quality",
+      "ui_ux_improvements",
+      "performance_optimizations",
+      "security_hardening",
+      "documentation_gaps",
+      "code_improvements"
+    ],
+    "include_roadmap_context": true,
+    "include_kanban_context": true,
+    "max_ideas_per_type": 5
+  },
+  "ideas": [
+    {
+      "id": "cq-001",
+      "type": "code_quality",
+      "title": "Извлечь дублирующиеся конфигурации статусов в общие константы",
+      "description": "Объекты statusConfig и statusColors для заказов и водителей дублируются в 7 различных файлах: OrdersTable.tsx, OrderDetailDrawer.tsx, DriverDetailDrawer.tsx, DriversTable.tsx, DriverCard.tsx, OrdersBreakdown.tsx, ClusteredDriverMarkers.tsx. Каждый компонент определяет свою версию маппинга статусов на цвета и текст, что приводит к несогласованности и усложняет поддержку.",
+      "rationale": "Дублирование кода нарушает принцип DRY и создаёт риск несогласованности при обновлениях. При изменении цвета или текста статуса нужно вносить изменения в 7 местах, что увеличивает вероятность ошибок и забытых мест.",
+      "category": "duplication",
+      "severity": "minor",
+      "affectedFiles": [
+        "frontend/src/components/orders/OrdersTable.tsx",
+        "frontend/src/components/dashboard/OrderDetailDrawer.tsx",
+        "frontend/src/components/drivers/DriverDetailDrawer.tsx",
+        "frontend/src/components/drivers/DriversTable.tsx",
+        "frontend/src/components/drivers/DriverCard.tsx",
+        "frontend/src/components/stats/OrdersBreakdown.tsx",
+        "frontend/src/components/map/ClusteredDriverMarkers.tsx"
+      ],
+      "currentState": "7 файлов содержат независимые определения statusConfig/statusColors с похожим, но не идентичным кодом (15-20 строк в каждом)",
+      "proposedChange": "Создать frontend/src/constants/status.ts с экспортами ORDER_STATUS_CONFIG и DRIVER_STATUS_CONFIG, содержащими цвета, текстовые метки и иконки. Импортировать эти константы во всех компонентах.",
+      "codeExample": "// Текущее (в 7 файлах):\nconst statusConfig: Record<string, { color: string; text: string }> = {\n    pending: { color: 'orange', text: 'Ожидает' },\n    // ...\n};\n\n// Предлагаемое:\n// constants/status.ts\nexport const ORDER_STATUS_CONFIG = {\n    pending: { color: 'orange', text: 'Ожидает', tagColor: 'default' },\n    // ...\n} as const;\n\n// В компонентах:\nimport { ORDER_STATUS_CONFIG } from '@/constants/status';",
+      "bestPractice": "DRY (Don't Repeat Yourself) — централизация конфигурации для единообразия и простоты поддержки",
+      "metrics": {
+        "lineCount": null,
+        "complexity": null,
+        "duplicateLines": 105,
+        "testCoverage": null
+      },
+      "estimatedEffort": "small",
+      "breakingChange": false,
+      "prerequisites": null
+    },
+    {
+      "id": "cq-002",
+      "type": "code_quality",
+      "title": "Добавить ESLint и Prettier для обеспечения качества кода",
+      "description": "В проекте отсутствует конфигурация ESLint и Prettier. В package.json нет соответствующих devDependencies, нет файлов .eslintrc или eslint.config.js в корне проекта. Это приводит к отсутствию автоматической проверки качества кода и неконсистентному форматированию.",
+      "rationale": "Линтинг и автоформатирование — стандартные инструменты для современных JavaScript/TypeScript проектов. Они предотвращают типичные ошибки, обеспечивают единообразие стиля кода и упрощают code review. Отсутствие этих инструментов увеличивает когнитивную нагрузку при чтении кода разных авторов.",
+      "category": "linting",
+      "severity": "major",
+      "affectedFiles": [
+        "frontend/package.json",
+        "frontend/"
+      ],
+      "currentState": "Нет конфигурации ESLint/Prettier. Код форматируется вручную без проверки стиля",
+      "proposedChange": "Добавить @eslint/js, typescript-eslint, eslint-plugin-react-hooks, prettier и eslint-config-prettier. Создать eslint.config.js с правилами для React и TypeScript. Добавить скрипты lint и format в package.json",
+      "codeExample": "// package.json (добавить):\n\"devDependencies\": {\n  \"eslint\": \"^9.x\",\n  \"@eslint/js\": \"^9.x\",\n  \"typescript-eslint\": \"^8.x\",\n  \"eslint-plugin-react-hooks\": \"^5.x\",\n  \"prettier\": \"^3.x\"\n},\n\"scripts\": {\n  \"lint\": \"eslint src --fix\",\n  \"format\": \"prettier --write src\"\n}",
+      "bestPractice": "Использование статического анализа кода для раннего обнаружения ошибок и поддержания единого стиля",
+      "metrics": {
+        "lineCount": null,
+        "complexity": null,
+        "duplicateLines": null,
+        "testCoverage": null
+      },
+      "estimatedEffort": "small",
+      "breakingChange": false,
+      "prerequisites": null
+    },
+    {
+      "id": "cq-003",
+      "type": "code_quality",
+      "title": "Устранить использование типа any в TypeScript коде",
+      "description": "В проекте обнаружено 16 использований типа any в 12 файлах: useOrders.ts (3 раза), StatsPage.tsx, OrdersPage.tsx, api/orders.ts, Dashboard.tsx, LiveMap.tsx и других. Это снижает type safety и противоречит преимуществам TypeScript.",
+      "rationale": "Использование any отключает проверку типов TypeScript в конкретных местах, что может привести к runtime ошибкам. Строгая типизация — главное преимущество TypeScript, и чрезмерное использование any сводит его на нет.",
+      "category": "types",
+      "severity": "minor",
+      "affectedFiles": [
+        "frontend/src/hooks/useOrders.ts",
+        "frontend/src/pages/StatsPage.tsx",
+        "frontend/src/pages/OrdersPage.tsx",
+        "frontend/src/api/orders.ts",
+        "frontend/src/components/dashboard/Dashboard.tsx",
+        "frontend/src/components/dashboard/LiveMap.tsx",
+        "frontend/src/hooks/useBatchAssignment.ts",
+        "frontend/src/components/common/AddressPicker.tsx",
+        "frontend/src/hooks/useTelegramAuth.ts",
+        "frontend/src/components/dashboard/UnassignedOrdersPanel.tsx",
+        "frontend/src/components/orders/ExcelImportModal.tsx",
+        "frontend/src/types/api.ts"
+      ],
+      "currentState": "16 использований : any в 12 файлах, в основном для ошибок API и callback-параметров",
+      "proposedChange": "Заменить any на конкретные типы: AxiosError для ошибок API, unknown с type guards для внешних данных, определить интерфейсы для callback-параметров. В types/api.ts расширить ApiError для покрытия всех случаев",
+      "codeExample": "// Текущее:\nonError: (error: any) => {\n    notification.error({ message: error.response?.data?.detail });\n}\n\n// Предлагаемое:\nimport { AxiosError } from 'axios';\n\ninterface ApiErrorResponse {\n    detail?: string;\n    message?: string;\n}\n\nonError: (error: AxiosError<ApiErrorResponse>) => {\n    notification.error({ message: error.response?.data?.detail });\n}",
+      "bestPractice": "Использовать unknown вместо any для неизвестных типов, с последующим type narrowing",
+      "metrics": {
+        "lineCount": null,
+        "complexity": null,
+        "duplicateLines": null,
+        "testCoverage": null
+      },
+      "estimatedEffort": "medium",
+      "breakingChange": false,
+      "prerequisites": null
+    },
+    {
+      "id": "cq-004",
+      "type": "code_quality",
+      "title": "Добавить модульные тесты для критических компонентов и хуков",
+      "description": "В проекте полностью отсутствуют unit-тесты для frontend-кода. Не найдено файлов *.test.tsx или *.spec.tsx. Критические хуки (useOrders, useDrivers, useMoveOrder) и компоненты (Dashboard, OrderDetailDrawer) не покрыты тестами.",
+      "rationale": "Отсутствие тестов увеличивает риск регрессий при рефакторинге и добавлении новых функций. Хуки с optimistic updates (useMoveOrder) и сложной логикой состояний особенно требуют тестирования для обеспечения надёжности.",
+      "category": "testing",
+      "severity": "major",
+      "affectedFiles": [
+        "frontend/src/hooks/useOrders.ts",
+        "frontend/src/hooks/useDrivers.ts",
+        "frontend/src/hooks/useMoveOrder.ts",
+        "frontend/src/components/dashboard/Dashboard.tsx",
+        "frontend/src/components/dashboard/OrderDetailDrawer.tsx"
+      ],
+      "currentState": "0% покрытие тестами на frontend. Нет конфигурации Vitest или Jest",
+      "proposedChange": "Добавить Vitest с @testing-library/react. Начать с тестирования хуков useOrders и useMoveOrder, затем добавить snapshot-тесты для ключевых компонентов. Настроить CI для запуска тестов",
+      "codeExample": "// vitest.config.ts\nimport { defineConfig } from 'vitest/config';\n\nexport default defineConfig({\n  test: {\n    environment: 'jsdom',\n    setupFiles: ['./src/test/setup.ts'],\n  },\n});\n\n// useOrders.test.ts\nimport { renderHook, waitFor } from '@testing-library/react';\nimport { useOrdersRaw } from './useOrders';\n\ntest('fetches orders for date range', async () => {\n  const { result } = renderHook(() => useOrdersRaw([new Date(), new Date()]));\n  await waitFor(() => expect(result.current.data).toBeDefined());\n});",
+      "bestPractice": "Тестирование критических бизнес-логик для предотвращения регрессий",
+      "metrics": {
+        "lineCount": null,
+        "complexity": null,
+        "duplicateLines": null,
+        "testCoverage": 0
+      },
+      "estimatedEffort": "large",
+      "breakingChange": false,
+      "prerequisites": [
+        "Добавить Vitest и @testing-library/react в devDependencies"
+      ]
+    },
+    {
+      "id": "cq-005",
+      "type": "code_quality",
+      "title": "Вынести конфигурацию карт в отдельный модуль",
+      "description": "Константы TILE_LIGHT, TILE_DARK и TILE_ATTRIBUTION дублируются в LiveMap.tsx и DriverDetailDrawer.tsx. Также DEFAULT_CENTER и DEFAULT_ZOOM определены только в LiveMap.tsx, хотя используются концептуально в нескольких местах.",
+      "rationale": "Дублирование конфигурации карт затрудняет централизованное изменение тайловых серверов или добавление новых тем карты. При смене провайдера карт нужно будет искать и обновлять все места использования.",
+      "category": "duplication",
+      "severity": "suggestion",
+      "affectedFiles": [
+        "frontend/src/components/dashboard/LiveMap.tsx",
+        "frontend/src/components/drivers/DriverDetailDrawer.tsx"
+      ],
+      "currentState": "URL тайлов и атрибуция дублируются в 2 компонентах (6 строк дублирования)",
+      "proposedChange": "Создать frontend/src/config/map.ts с экспортом MAP_TILES, DEFAULT_CENTER, DEFAULT_ZOOM и MAP_ATTRIBUTION. Добавить функцию getMapTileUrl(theme: 'light' | 'dark') для удобства использования",
+      "codeExample": "// config/map.ts\nexport const MAP_CONFIG = {\n  defaultCenter: [43.1155, 131.8855] as [number, number],\n  defaultZoom: 12,\n  tiles: {\n    light: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',\n    dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',\n  },\n  attribution: '© OpenStreetMap contributors © CARTO',\n} as const;\n\nexport const getMapTileUrl = (isDark: boolean) =>\n  isDark ? MAP_CONFIG.tiles.dark : MAP_CONFIG.tiles.light;",
+      "bestPractice": "Централизация конфигурации для упрощения изменений и тестирования",
+      "metrics": {
+        "lineCount": null,
+        "complexity": null,
+        "duplicateLines": 6,
+        "testCoverage": null
+      },
+      "estimatedEffort": "small",
+      "breakingChange": false,
+      "prerequisites": null
+    },
+    {
+      "id": "uiux-001",
+      "type": "ui_ux_improvements",
+      "title": "Add ARIA labels for accessibility compliance",
+      "description": "Add aria-label, aria-describedby, and role attributes to interactive elements throughout the application for screen reader support",
+      "rationale": "No ARIA accessibility attributes were found in any component. This significantly impacts users relying on assistive technologies and affects WCAG compliance.",
+      "category": "accessibility",
+      "affected_components": [
+        "src/components/layout/Sidebar.tsx",
+        "src/components/layout/HeaderBar.tsx",
+        "src/components/dashboard/Dashboard.tsx",
+        "src/components/orders/OrdersTable.tsx"
+      ],
+      "screenshots": [],
+      "current_state": "Interactive elements like sidebar menu items, action buttons, and navigation use div elements with onClick handlers but lack aria-label attributes. The SidebarMenuItem component (line 31-92) has no role='button' or aria attributes. The HeaderBar notification badge and profile dropdown lack accessibility context.",
+      "proposed_change": "1. Add role='navigation' to Sidebar component wrapper\n2. Add role='menuitem' and aria-label to SidebarMenuItem divs\n3. Add aria-label='Notifications' to BellOutlined button in HeaderBar\n4. Add aria-label='User menu' to profile dropdown trigger\n5. Add role='status' and aria-live='polite' to WebSocket connection status indicator\n6. Add aria-describedby for form validation errors in CreateOrderModal",
+      "user_benefit": "Users with screen readers can navigate the application effectively, understanding the purpose of interactive elements and receiving proper feedback on actions.",
+      "status": "draft",
+      "created_at": "2026-01-21T19:57:00.000Z"
+    },
+    {
+      "id": "uiux-002",
+      "type": "ui_ux_improvements",
+      "title": "Add keyboard focus indicators across interactive elements",
+      "description": "Implement visible focus states for all interactive elements to support keyboard navigation",
+      "rationale": "Only minimal focus styling exists (tms-search-input:focus). Custom interactive elements like SidebarMenuItem, the FAB button, and profile dropdown trigger have no focus-visible styles, making keyboard navigation difficult.",
+      "category": "accessibility",
+      "affected_components": [
+        "src/App.css",
+        "src/components/layout/Sidebar.tsx",
+        "src/components/dashboard/Dashboard.tsx"
+      ],
+      "screenshots": [],
+      "current_state": "SidebarMenuItem uses div with onClick but no tabIndex or :focus-visible styles. The FAB (Floating Action Button) at line 248-263 in Dashboard.tsx relies on Ant Design's default focus but has custom styling that may override it. Custom hover-lift class has hover states but no focus equivalents.",
+      "proposed_change": "1. Add tabIndex={0} to SidebarMenuItem div elements\n2. Add onKeyDown handler for Enter/Space to trigger navigation\n3. Add CSS focus-visible rule in App.css:\n   .menu-item:focus-visible, .active-menu-item:focus-visible {\n     outline: 2px solid var(--tms-primary);\n     outline-offset: 2px;\n   }\n4. Add .hover-lift:focus-visible with same effect as :hover\n5. Ensure FAB has visible focus ring with box-shadow",
+      "user_benefit": "Keyboard-only users can clearly see which element is focused and navigate the entire application without a mouse.",
+      "status": "draft",
+      "created_at": "2026-01-21T19:57:00.000Z"
+    },
+    {
+      "id": "uiux-003",
+      "type": "ui_ux_improvements",
+      "title": "Add phone number input mask and validation",
+      "description": "Implement proper phone number formatting with input mask in CreateOrderModal customer_phone field",
+      "rationale": "The phone field shows placeholder '+7 (___) ___-__-__' but has no input mask or validation, allowing any text input. This leads to inconsistent data and poor user experience.",
+      "category": "usability",
+      "affected_components": [
+        "src/components/dashboard/CreateOrderModal.tsx"
+      ],
+      "screenshots": [],
+      "current_state": "CreateOrderModal line 151-156 shows a plain Input field with placeholder '+7 (___) ___-__-__' but no pattern validation, input mask, or Form.Item rules for phone format. Users can enter any text including invalid phone numbers.",
+      "proposed_change": "1. Install react-input-mask or use antd's pattern prop\n2. Add input mask for Russian phone format: +7 (999) 999-99-99\n3. Add Form.Item validation rule with regex pattern: /^\\+7 \\(\\d{3}\\) \\d{3}-\\d{2}-\\d{2}$/\n4. Add inputMode='tel' attribute for mobile keyboard optimization\n5. Show validation error message: 'Введите корректный номер телефона'",
+      "user_benefit": "Users can enter phone numbers faster with auto-formatting, and the system receives consistently formatted phone data for reliable customer contact.",
+      "status": "draft",
+      "created_at": "2026-01-21T19:57:00.000Z"
+    },
+    {
+      "id": "uiux-004",
+      "type": "ui_ux_improvements",
+      "title": "Add swipe gestures for driver order cards on mobile",
+      "description": "Implement swipe-to-action gestures on order cards in DriverApp for quick status updates",
+      "rationale": "The DriverApp is designed for mobile Telegram WebApp usage, but order cards (line 96-129) only support tap interaction. Mobile users expect swipe gestures for common actions.",
+      "category": "interaction",
+      "affected_components": [
+        "src/pages/DriverApp.tsx"
+      ],
+      "screenshots": [],
+      "current_state": "DriverApp shows order cards using Ant Design Card with hoverable prop. Each card displays order info but requires navigation to perform actions. There are no touch gestures or quick actions available. The app already has react-dnd installed which could be leveraged.",
+      "proposed_change": "1. Wrap order cards with a SwipeableCard component using touch events or react-swipeable\n2. Swipe right: Reveal 'Start/Complete' action button with green background\n3. Swipe left: Reveal 'Call customer' action with blue background\n4. Add subtle visual indicators (chevrons or dots) hinting at swipe availability\n5. Implement haptic feedback using Telegram WebApp hapticFeedback API\n6. Add spring animation for card return using CSS transitions",
+      "user_benefit": "Drivers can quickly update order status or contact customers with a single gesture, reducing taps and speeding up their workflow while driving.",
+      "status": "draft",
+      "created_at": "2026-01-21T19:57:00.000Z"
+    },
+    {
+      "id": "uiux-005",
+      "type": "ui_ux_improvements",
+      "title": "Add optimistic updates for order status changes",
+      "description": "Implement optimistic UI updates when changing order status to provide instant feedback",
+      "rationale": "Currently, status changes require waiting for API response before UI updates. With React Query's optimistic update capability available, users should see immediate feedback.",
+      "category": "performance",
+      "affected_components": [
+        "src/hooks/useOrders.ts",
+        "src/components/dashboard/OrderDetailDrawer.tsx",
+        "src/components/orders/OrdersTable.tsx"
+      ],
+      "screenshots": [],
+      "current_state": "The app uses @tanstack/react-query (line 21 App.tsx) for data fetching. Order mutations likely wait for server confirmation before updating the UI. OrdersTable shows loading states but no optimistic updates. Status changes cause a brief loading state before the new status appears.",
+      "proposed_change": "1. Add onMutate callback to order update mutation in useOrders hook:\n   - Cancel outgoing queries\n   - Snapshot previous value\n   - Optimistically update cache with new status\n2. Add onError callback to rollback on failure with toast notification\n3. Add onSettled to refetch and ensure consistency\n4. Show subtle 'syncing' indicator (small spinner next to status) during server confirmation\n5. Add success toast with undo option for 5 seconds",
+      "user_benefit": "Dispatchers experience instant feedback when updating orders, making the system feel faster and more responsive. Undo capability prevents accidental changes.",
+      "status": "draft",
+      "created_at": "2026-01-21T19:57:00.000Z"
+    },
+    {
+      "id": "perf-001",
+      "type": "performance_optimizations",
+      "title": "Replace moment.js with dayjs for ~80% bundle size reduction in date utilities",
+      "description": "The project has both dayjs (already in package.json) and moment.js imported in Dashboard.tsx and UnassignedOrdersPanel.tsx. moment.js is ~70KB gzipped vs dayjs at ~2KB. This is unnecessary duplication since dayjs is already available and used elsewhere.",
+      "rationale": "This is low-hanging fruit. The codebase already uses dayjs in OrdersTable.tsx and other files, but Dashboard.tsx and UnassignedOrdersPanel.tsx import moment.js. This causes the entire moment.js library to be bundled, adding ~70KB gzipped to the bundle. Simply replacing these imports with dayjs (which is already in the project) eliminates this duplication entirely.",
+      "category": "bundle_size",
+      "impact": "high",
+      "affectedAreas": [
+        "frontend/src/components/dashboard/Dashboard.tsx",
+        "frontend/src/components/dashboard/UnassignedOrdersPanel.tsx"
+      ],
+      "currentMetric": "Bundle includes both moment.js (~70KB gzipped) and dayjs (~2KB) - duplicate date libraries",
+      "expectedImprovement": "~70KB reduction in bundle size, ~10-15% faster initial load for mobile users",
+      "implementation": "1. Replace `import moment from 'moment'` with `import dayjs from 'dayjs'`\n2. Replace `moment()` calls with `dayjs()` - API is nearly identical\n3. Update `.startOf('day')`, `.endOf('day')`, `.format()` calls (same API)\n4. Remove moment.js from dependencies if not used elsewhere\n5. Verify no moment-specific features are needed",
+      "tradeoffs": "Minimal - dayjs has ~98% API compatibility with moment.js. Some edge cases with locale handling may differ.",
+      "estimatedEffort": "trivial"
+    },
+    {
+      "id": "perf-002",
+      "type": "performance_optimizations",
+      "title": "Convert Array.find() lookups to Map-based O(1) lookups in LiveMap and OrdersTable",
+      "description": "Multiple components use Array.find() inside loops, render cycles, and useEffect hooks - creating O(n) lookups that repeat on every render. LiveMap.tsx has 4 such patterns in lines 33, 59, 75, 106; OrdersTable.tsx has one in line 92. For large datasets (100+ drivers/orders), this causes significant computation per render.",
+      "rationale": "In the LiveMap component, `hookDrivers.find()` is called for each location in a .map() loop (line 106), creating O(n²) complexity when rendering driver markers. This is a hot path that runs frequently due to real-time location updates. Converting to a Map lookup would reduce this to O(n) overall.",
+      "category": "runtime",
+      "impact": "medium",
+      "affectedAreas": [
+        "frontend/src/components/dashboard/LiveMap.tsx",
+        "frontend/src/components/orders/OrdersTable.tsx",
+        "frontend/src/components/drivers/DriverDetailDrawer.tsx"
+      ],
+      "currentMetric": "O(n²) complexity in mappedDrivers useMemo - find() inside map()",
+      "expectedImprovement": "~40-60% faster re-renders with 50+ drivers/orders, noticeable improvement in map responsiveness",
+      "implementation": "1. Create driver/order Maps with useMemo:\n   ```typescript\n   const driversById = useMemo(() => \n     new Map(hookDrivers.map(d => [d.id, d])), \n     [hookDrivers]\n   );\n   ```\n2. Replace `.find(d => d.id === id)` with `.get(id)`\n3. Apply same pattern to OrdersTable driver lookup\n4. Consider memoizing the mapped results separately from the Map creation",
+      "tradeoffs": "Slightly more memory usage for Map storage, but negligible for typical fleet sizes (<1000 drivers)",
+      "estimatedEffort": "small"
+    },
+    {
+      "id": "perf-003",
+      "type": "performance_optimizations",
+      "title": "Memoize OrderRoutes component with React.memo and decode polyline once",
+      "description": "OrderRoutes component decodes polyline geometry on every render for all orders using `polyline.decode(order.route_geometry)`. This is CPU-intensive and runs for each order, even when only selectedOrderId changes. The component should use React.memo and cache decoded geometries.",
+      "rationale": "Polyline decoding is computationally expensive (parsing strings, creating coordinate arrays). With 50+ orders displayed, this adds significant rendering overhead. The route geometries don't change frequently - they should be decoded once and cached, not on every parent re-render.",
+      "category": "rendering",
+      "impact": "medium",
+      "affectedAreas": [
+        "frontend/src/components/dashboard/OrderRoutes.tsx",
+        "frontend/src/components/dashboard/LiveMap.tsx"
+      ],
+      "currentMetric": "Polyline.decode() called for each order on every render cycle",
+      "expectedImprovement": "~30-50% faster map re-renders when orders list is stable, smoother map interactions",
+      "implementation": "1. Wrap OrderRoutes with React.memo for shallow comparison\n2. Create a useMemo hook to cache decoded geometries:\n   ```typescript\n   const decodedRoutes = useMemo(() => \n     orders.map(o => ({\n       ...o,\n       decodedPath: o.route_geometry ? polyline.decode(o.route_geometry) : null\n     })),\n     [orders]\n   );\n   ```\n3. Use decodedPath instead of decoding inline\n4. Consider further optimization with react-leaflet's memoized components",
+      "tradeoffs": "Additional memory for cached decoded paths. For 100 orders with ~50 points each, roughly ~500KB memory overhead.",
+      "estimatedEffort": "small"
+    },
+    {
+      "id": "perf-004",
+      "type": "performance_optimizations",
+      "title": "Implement Vite code splitting for antd and vis-timeline heavy chunks",
+      "description": "The vite.config.ts lacks manual chunk configuration. antd (~500KB), vis-timeline (~300KB), and leaflet (~150KB) are likely bundled into a single vendor chunk. Splitting these into separate chunks enables parallel loading and better caching.",
+      "rationale": "The current Vite config uses defaults without build optimization. Large dependencies should be split into separate chunks so: (1) they can load in parallel, (2) they cache independently when code changes, (3) users who don't visit timeline/map views don't load those chunks initially.",
+      "category": "bundle_size",
+      "impact": "medium",
+      "affectedAreas": [
+        "frontend/vite.config.ts"
+      ],
+      "currentMetric": "All vendor dependencies bundled together (~1MB+ single chunk)",
+      "expectedImprovement": "~20-30% faster initial load via parallel chunk loading, better cache hit rates on updates",
+      "implementation": "1. Add build.rollupOptions.output.manualChunks to vite.config.ts:\n   ```typescript\n   build: {\n     rollupOptions: {\n       output: {\n         manualChunks: {\n           'vendor-antd': ['antd', '@ant-design/icons'],\n           'vendor-map': ['leaflet', 'react-leaflet', 'leaflet.markercluster'],\n           'vendor-timeline': ['vis-timeline', 'vis-data'],\n           'vendor-react': ['react', 'react-dom', 'react-router-dom'],\n         }\n       }\n     }\n   }\n   ```\n2. Consider lazy-loading StatsPage and DriversPage routes\n3. Add `@vitejs/plugin-legacy` if IE11/older browser support needed",
+      "tradeoffs": "More HTTP requests (4-5 instead of 1-2), but modern HTTP/2 handles this well. May need preload hints for critical chunks.",
+      "estimatedEffort": "small"
+    },
+    {
+      "id": "perf-005",
+      "type": "performance_optimizations",
+      "title": "Debounce ClusteredDriverMarkers updates to prevent marker thrashing",
+      "description": "ClusteredDriverMarkers calls clusterGroup.clearLayers() and re-adds all markers whenever drivers array reference changes (line 114-146). With real-time location updates every 3-5 seconds, this causes visible marker flickering and unnecessary DOM operations.",
+      "rationale": "The current implementation clears ALL markers and recreates them on every driver location update. For 50+ drivers with 5-second polling, this creates 10+ full marker refreshes per minute. A smarter approach would diff the changes and only update moved markers, plus debounce rapid successive updates.",
+      "category": "rendering",
+      "impact": "medium",
+      "affectedAreas": [
+        "frontend/src/components/map/ClusteredDriverMarkers.tsx"
+      ],
+      "currentMetric": "Full marker layer rebuild every 3-5 seconds with real-time updates",
+      "expectedImprovement": "~70% reduction in DOM operations during location updates, eliminates marker flickering",
+      "implementation": "1. Add useDebounce hook (already exists in project) for driver updates:\n   ```typescript\n   const debouncedDrivers = useDebounce(drivers, 500);\n   ```\n2. Implement differential updates instead of clearLayers():\n   ```typescript\n   // Track markers by driver ID\n   const markersRef = useRef<Map<number, L.Marker>>(new Map());\n   \n   // Update only changed positions\n   filteredDrivers.forEach(driver => {\n     const existing = markersRef.current.get(driver.id);\n     if (existing) {\n       existing.setLatLng([driver.lat, driver.lon]);\n       existing.setIcon(createDriverIcon(driver));\n     } else {\n       // Create new marker\n     }\n   });\n   ```\n3. Remove markers for drivers no longer in list\n4. Consider requestAnimationFrame for batching updates",
+      "tradeoffs": "Increased complexity in marker management. Need to handle driver removals/additions carefully to avoid stale markers.",
+      "estimatedEffort": "medium"
+    },
+    {
+      "id": "sec-001",
+      "type": "security_hardening",
+      "title": "Remove hardcoded secrets from source code",
+      "description": "The src/config.py file contains hardcoded default values for critical secrets including JWT_SECRET_KEY, TELEGRAM_BOT_TOKEN, SECRET_KEY, and database credentials. These secrets are visible in source code and will be committed to version control, exposing production credentials.",
+      "rationale": "Hardcoded secrets are a critical security vulnerability (OWASP A07). Anyone with access to the repository can extract these credentials and gain unauthorized access to the Telegram bot, impersonate users via JWT tokens, or access the database directly.",
+      "category": "secrets_management",
+      "severity": "critical",
+      "affectedFiles": [
+        "src/config.py",
+        ".env"
+      ],
+      "vulnerability": "CWE-798: Use of Hard-coded Credentials",
+      "currentRisk": "Active production secrets (Telegram bot token, JWT key) are exposed in source code. Attackers can: 1) Control the Telegram bot, 2) Forge valid JWT tokens, 3) Access the database",
+      "remediation": "1) Remove all default secret values from config.py - replace with placeholder strings like 'CHANGE_ME' that cause explicit failures. 2) Ensure .env is in .gitignore (verified). 3) Add a startup check that validates no default/placeholder secrets are being used. 4) Rotate all exposed credentials immediately. 5) Use environment variables without fallback defaults for sensitive values.",
+      "references": [
+        "https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/",
+        "https://cwe.mitre.org/data/definitions/798.html"
+      ],
+      "compliance": [
+        "SOC2",
+        "PCI-DSS",
+        "GDPR"
+      ],
+      "status": "archived",
+      "linked_task_id": "004-remove-hardcoded-secrets-from-source-code"
+    },
+    {
+      "id": "sec-002",
+      "type": "security_hardening",
+      "title": "Fix sensitive data logging in auth service",
+      "description": "The auth_service.py logs partial bot tokens and hash information during authentication: 'Using bot_token: {self.bot_token[:10]}...{self.bot_token[-5:]}' and 'Received hash: {received_hash[:20]}...'. This exposes sensitive cryptographic material in application logs.",
+      "rationale": "Logging sensitive authentication data violates data protection best practices (OWASP A09). Log files often have weaker access controls than application code and may be retained for extended periods, aggregated in log management systems, or accidentally exposed.",
+      "category": "data_protection",
+      "severity": "high",
+      "affectedFiles": [
+        "src/services/auth_service.py"
+      ],
+      "vulnerability": "CWE-532: Insertion of Sensitive Information into Log File",
+      "currentRisk": "Partial secrets in logs could aid brute-force attacks. Hash prefixes provide information about valid authentication attempts. Logs may be accessible to operators, third-party logging services, or attackers who compromise log storage.",
+      "remediation": "1) Remove all logging of bot_token fragments. 2) Remove logging of hash values - only log success/failure status. 3) Replace sensitive data with '[REDACTED]' or remove entirely. 4) Use structured logging with explicit field exclusions. 5) Audit all logging statements for PII and secrets.",
+      "references": [
+        "https://owasp.org/Top10/A09_2021-Security_Logging_and_Monitoring_Failures/",
+        "https://cwe.mitre.org/data/definitions/532.html"
+      ],
+      "compliance": [
+        "SOC2",
+        "GDPR"
+      ]
+    },
+    {
+      "id": "sec-003",
+      "type": "security_hardening",
+      "title": "Reduce Telegram initData expiration window",
+      "description": "TELEGRAM_INIT_DATA_EXPIRE_SECONDS is set to 86400 (24 hours), which is excessively long. Telegram's official recommendation is to validate initData within a few minutes of generation, as it's intended for immediate authentication, not persistent sessions.",
+      "rationale": "A 24-hour validity window significantly increases the attack window for replay attacks. If an attacker captures initData (via MITM, XSS, or log exposure), they have a full day to use it for unauthorized authentication.",
+      "category": "authentication",
+      "severity": "high",
+      "affectedFiles": [
+        "src/config.py",
+        "src/services/auth_service.py"
+      ],
+      "vulnerability": "CWE-613: Insufficient Session Expiration",
+      "currentRisk": "Captured initData strings can be replayed for 24 hours to impersonate users and generate valid JWT tokens. Combined with the logging vulnerability, this creates a significant authentication bypass risk.",
+      "remediation": "1) Reduce TELEGRAM_INIT_DATA_EXPIRE_SECONDS to 300-600 (5-10 minutes). 2) Implement nonce/one-time-use tracking for initData via Redis to prevent replay attacks. 3) Consider adding additional client fingerprinting. 4) Document that the JWT token (24hr validity) is for session persistence, not the initData.",
+      "references": [
+        "https://core.telegram.org/bots/webapps#validating-data-received-via-the-web-app",
+        "https://cwe.mitre.org/data/definitions/613.html"
+      ],
+      "compliance": [
+        "SOC2"
+      ]
+    },
+    {
+      "id": "sec-004",
+      "type": "security_hardening",
+      "title": "Disable API documentation in production",
+      "description": "The nginx configuration exposes /docs, /redoc, and /openapi.json endpoints in production without access controls. These endpoints reveal the entire API structure, including all endpoints, parameters, and data models to potential attackers.",
+      "rationale": "API documentation endpoints provide attackers with a complete map of the application's attack surface. This information aids in discovering hidden endpoints, understanding data structures, and crafting targeted attacks.",
+      "category": "configuration",
+      "severity": "medium",
+      "affectedFiles": [
+        "nginx/nginx.conf",
+        "src/fastapi_core.py"
+      ],
+      "vulnerability": "CWE-200: Exposure of Sensitive Information",
+      "currentRisk": "Attackers can enumerate all API endpoints, understand authentication requirements, and discover potentially vulnerable endpoints without any trial-and-error.",
+      "remediation": "1) Add conditional logic in FastAPI to disable docs in production: `docs_url=None if APP_ENV=='production' else '/docs'`. 2) Alternatively, add HTTP Basic Auth to nginx for /docs, /redoc, /openapi.json locations. 3) Block these paths entirely in production nginx config. 4) If docs must be accessible, restrict by IP to internal networks only.",
+      "references": [
+        "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/",
+        "https://cwe.mitre.org/data/definitions/200.html"
+      ],
+      "compliance": [
+        "SOC2"
+      ]
+    },
+    {
+      "id": "sec-005",
+      "type": "security_hardening",
+      "title": "Add Content-Security-Policy header",
+      "description": "The nginx configuration includes X-Frame-Options, X-Content-Type-Options, and X-XSS-Protection, but lacks a Content-Security-Policy (CSP) header. CSP is the primary defense against XSS attacks and provides defense-in-depth for the React frontend.",
+      "rationale": "CSP is the most effective browser-side protection against XSS attacks. The current headers are legacy protections that modern browsers are deprecating in favor of CSP. Without CSP, any XSS vulnerability can execute arbitrary JavaScript.",
+      "category": "configuration",
+      "severity": "medium",
+      "affectedFiles": [
+        "nginx/nginx.conf"
+      ],
+      "vulnerability": "CWE-1021: Improper Restriction of Rendered UI Layers or Frames",
+      "currentRisk": "If an XSS vulnerability exists in the React app or is introduced in future code, there's no browser-level protection against script execution. This could lead to session hijacking, credential theft, or complete account takeover.",
+      "remediation": "1) Add a CSP header: `add_header Content-Security-Policy \"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.tile.openstreetmap.org; connect-src 'self' wss://myappnf.ru; frame-ancestors 'self';\" always;` 2) Test thoroughly with CSP reporting first (`Content-Security-Policy-Report-Only`). 3) Adjust for Telegram WebApp SDK requirements. 4) Consider adding nonce-based script loading for stricter CSP.",
+      "references": [
+        "https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP",
+        "https://owasp.org/www-project-secure-headers/"
+      ],
+      "compliance": [
+        "SOC2",
+        "PCI-DSS"
+      ]
+    },
+    {
+      "id": "doc-001",
+      "type": "documentation_gaps",
+      "title": "Complete Orders API documentation in docs/API.md",
+      "description": "The API.md file documents only Routing and basic Drivers endpoints but completely lacks Orders API documentation. The Orders module is the core of the TMS with 9+ endpoints (create, move, cancel, complete, arrive, start, assign, import/excel, get by id) that handle the entire order lifecycle. None of these are documented.",
+      "rationale": "Orders are the central feature of the TMS system. Dispatchers and external contractors need clear API documentation to integrate with the system. Currently, developers must read source code in src/api/v1/orders.py and frontend/src/api/orders.ts to understand the API, which slows down onboarding and integration.",
+      "category": "api_docs",
+      "targetAudience": "developers",
+      "affectedAreas": [
+        "docs/API.md",
+        "src/api/v1/orders.py",
+        "src/api/contractors.py",
+        "frontend/src/api/orders.ts"
+      ],
+      "currentDocumentation": "No Orders API endpoints documented in docs/API.md. Only GET /routing/route and basic GET /drivers endpoints exist.",
+      "proposedContent": "Add comprehensive Orders API section documenting: POST /orders (create with geocoding), PATCH /orders/{id}/move (drag-drop), POST /orders/{id}/cancel, POST /orders/{id}/complete, POST /orders/{id}/arrive, POST /orders/{id}/start, POST /orders/{id}/assign/{driver_id}, POST /orders/import/excel. Include request/response schemas, error codes (409 for time conflicts), and authentication requirements.",
+      "priority": "high",
+      "estimatedEffort": "medium"
+    },
+    {
+      "id": "doc-002",
+      "type": "documentation_gaps",
+      "title": "Document Telegram Bot commands and driver workflow",
+      "description": "The TMS includes a sophisticated Telegram bot for drivers with commands /start, /orders, /shift, /current, and admin commands, but there is zero documentation for bot usage. Bot handlers exist in src/bot/handlers/ but users and administrators have no reference guide.",
+      "rationale": "The Telegram bot is the primary interface for drivers to manage shifts, view orders, and update order statuses. Without documentation, new drivers cannot effectively use the system, and administrators don't know about admin commands in src/bot/handlers/admin.py. This creates onboarding friction for every new driver.",
+      "category": "examples",
+      "targetAudience": "users",
+      "affectedAreas": [
+        "src/bot/handlers/orders.py",
+        "src/bot/handlers/admin.py",
+        "src/bot/handlers/location.py"
+      ],
+      "currentDocumentation": "Only brief mention of 'Telegram bot for drivers' in README.md. No dedicated bot documentation or user guide.",
+      "proposedContent": "Create docs/telegram-bot.md with: 1) Driver commands reference (/start, /orders, /shift, /current) with screenshots, 2) Order lifecycle flow (viewing orders -> marking departed -> arrived -> started -> completed), 3) Live location sharing workflow, 4) Admin commands for user management, 5) WebApp button integration.",
+      "priority": "high",
+      "estimatedEffort": "medium"
+    },
+    {
+      "id": "doc-003",
+      "type": "documentation_gaps",
+      "title": "Add JSDoc comments to frontend custom hooks",
+      "description": "The frontend has 15+ custom hooks (useOrders, useDrivers, useWebSocketSync, useGeoTracking, useBatchAssignment, etc.) in frontend/src/hooks/ with zero JSDoc documentation. These hooks encapsulate complex business logic including optimistic updates, WebSocket sync, and query caching patterns.",
+      "rationale": "Custom hooks are the API layer for frontend developers. Without documentation, new team members cannot understand the data flow, mutation patterns (optimistic UI in useMoveOrder), or caching strategies. The useWebSocketSync hook in particular handles real-time driver location updates with complex Redis Streams integration that needs explanation.",
+      "category": "api_docs",
+      "targetAudience": "developers",
+      "affectedAreas": [
+        "frontend/src/hooks/useOrders.ts",
+        "frontend/src/hooks/useDrivers.ts",
+        "frontend/src/hooks/useWebSocketSync.ts",
+        "frontend/src/hooks/useBatchAssignment.ts",
+        "frontend/src/hooks/useGeoTracking.ts"
+      ],
+      "currentDocumentation": "Only inline comments explaining specific logic. No function-level JSDoc with @param, @returns, @example.",
+      "proposedContent": "Add JSDoc blocks to all exported hooks documenting: purpose, parameters, return values, usage examples, and integration notes. For useMoveOrder, document the optimistic update pattern with rollback. For useWebSocketSync, document the Redis Streams integration and reconnection handling.",
+      "priority": "medium",
+      "estimatedEffort": "medium"
+    },
+    {
+      "id": "doc-004",
+      "type": "documentation_gaps",
+      "title": "Document environment variables with descriptions",
+      "description": "The project uses 19+ environment variables (per project_index.json) spanning database, Redis, OSRM, Photon, Telegram, JWT, and logging configuration. The .env.example exists but environment variables lack descriptions explaining their purpose, valid values, and dependencies.",
+      "rationale": "Environment configuration is the first blocker for new deployments. Variables like OSRM_URL, PHOTON_URL, TELEGRAM_WEBHOOK_URL have interdependencies and specific requirements (e.g., vm.max_map_count for Photon). Clear documentation prevents misconfiguration and reduces support burden.",
+      "category": "readme",
+      "targetAudience": "contributors",
+      "affectedAreas": [
+        ".env.example",
+        "docs/deployment.md",
+        "docs/setup.md",
+        "docker-compose.yml"
+      ],
+      "currentDocumentation": "README mentions copying .env.example but doesn't explain variables. setup.md has partial coverage.",
+      "proposedContent": "Create docs/environment.md or enhance .env.example with: 1) Grouped variables by service (Database, Redis, Telegram, Geo-services), 2) Required vs optional designation, 3) Default values and valid ranges, 4) Dependencies (e.g., TELEGRAM_WEBHOOK_URL requires SSL), 5) Security notes for sensitive values.",
+      "priority": "medium",
+      "estimatedEffort": "low"
+    },
+    {
+      "id": "doc-005",
+      "type": "documentation_gaps",
+      "title": "Add architecture diagram for real-time location tracking",
+      "description": "The system has a complex real-time location pipeline: Telegram Live Location -> Bot -> Redis Streams -> ingest_worker -> PostgreSQL/PostGIS -> WebSocket -> Frontend Map. This data flow spans 6+ components but has no visual documentation explaining the architecture.",
+      "rationale": "Real-time driver tracking is a key feature involving high-throughput ingestion patterns, Redis Streams for buffering, and WebSocket push to clients. Without architecture documentation, developers cannot debug issues or extend the system. The ingest_worker in src/workers/ingest_worker.py uses PostgreSQL COPY for bulk inserts - a non-obvious optimization that needs documentation.",
+      "category": "architecture",
+      "targetAudience": "developers",
+      "affectedAreas": [
+        "src/workers/ingest_worker.py",
+        "src/services/location_manager.py",
+        "frontend/src/hooks/useWebSocketSync.ts",
+        "frontend/src/hooks/useDriverLocations.ts"
+      ],
+      "currentDocumentation": "docs/backend.md mentions Redis for live coordinates but no data flow explanation. No diagrams exist.",
+      "proposedContent": "Add docs/architecture/location-tracking.md with: 1) Mermaid/ASCII diagram showing data flow, 2) Component responsibilities (LocationManager, ingest_worker, WebSocket endpoint), 3) Redis Streams consumer group pattern explanation, 4) PostgreSQL COPY bulk insert rationale, 5) Frontend polling vs WebSocket modes, 6) Scaling considerations.",
+      "priority": "medium",
+      "estimatedEffort": "medium"
+    },
+    {
+      "id": "ci-001",
+      "type": "code_improvements",
+      "title": "Add React Query error boundaries for API failure resilience",
+      "description": "Implement error boundaries around React Query hooks to gracefully handle API failures and provide user-friendly error messages instead of crashing the application.",
+      "priority": "high",
+      "effort": "medium",
+      "impact": "high",
+      "status": "proposed",
+      "affected_files": [
+        "frontend/src/App.tsx",
+        "frontend/src/components/"
+      ],
+      "rationale": "Improves user experience and application stability when backend services are unavailable or return errors."
+    },
+    {
+      "id": "ci-002",
+      "type": "code_improvements",
+      "title": "Implement Leaflet map component lazy loading",
+      "description": "Add code splitting for Leaflet map components to reduce initial bundle size and improve first contentful paint metrics.",
+      "priority": "medium",
+      "effort": "low",
+      "impact": "medium",
+      "status": "proposed",
+      "affected_files": [
+        "frontend/src/components/"
+      ],
+      "rationale": "Leaflet and its plugins add significant weight to the bundle. Lazy loading can improve initial load performance."
+    },
+    {
+      "id": "ci-003",
+      "type": "code_improvements",
+      "title": "Add TypeScript strict mode and improve type coverage",
+      "description": "Enable strict mode in tsconfig.json and add proper type definitions for API responses and Zustand stores to catch potential runtime errors at compile time.",
+      "priority": "medium",
+      "effort": "medium",
+      "impact": "high",
+      "status": "proposed",
+      "affected_files": [
+        "frontend/tsconfig.json",
+        "frontend/src/"
+      ],
+      "rationale": "Strict TypeScript catches more bugs during development and improves code maintainability."
+    },
+    {
+      "id": "ci-004",
+      "type": "code_improvements",
+      "title": "Implement WebSocket reconnection logic with exponential backoff",
+      "description": "Add robust reconnection handling for WebSocket connections (VITE_WS_URL) with exponential backoff to handle network interruptions gracefully.",
+      "priority": "high",
+      "effort": "medium",
+      "impact": "high",
+      "status": "proposed",
+      "affected_files": [
+        "frontend/src/"
+      ],
+      "rationale": "WebSocket connections can drop due to network issues. Proper reconnection logic ensures continuous real-time updates."
+    },
+    {
+      "id": "ci-005",
+      "type": "code_improvements",
+      "title": "Add React Query cache persistence for offline support",
+      "description": "Implement cache persistence using @tanstack/react-query-persist-client to enable basic offline functionality and faster app startup.",
+      "priority": "low",
+      "effort": "low",
+      "impact": "medium",
+      "status": "proposed",
+      "affected_files": [
+        "frontend/src/",
+        "frontend/package.json"
+      ],
+      "rationale": "Improves user experience in areas with poor connectivity and provides faster subsequent app loads."
+    }
+  ],
+  "project_context": {
+    "existing_features": [],
+    "tech_stack": [
+      "TypeScript"
+    ],
+    "target_audience": "Logistics dispatchers managing transport fleets for delivery/transportation companies in Russia",
+    "planned_features": [
+      "Invoice & Document Generation",
+      "Production Error Handling & Monitoring",
+      "Comprehensive API Documentation",
+      "Vehicle Fuel Tracking",
+      "Wait Time Analytics",
+      "Driver Navigation Integration",
+      "Driver Rating Calculation System",
+      "Customer Notification System",
+      "Customer Delivery Tracking Portal",
+      "Multi-Stop Route Optimizer (TSP Solver)",
+      "Driver Performance Leaderboard",
+      "Enhanced Telegram Notifications",
+      "Enhanced Contractor Order API",
+      "Smart Auto-Assignment Engine",
+      "Data Sovereignty & Self-Hosting Documentation",
+      "Driver Shift Planning & Preferences",
+      "1C Accounting Integration",
+      "Vehicle Maintenance Scheduler",
+      "Add React Query error boundaries for API failure resilience",
+      "Photo Proof of Delivery",
+      "KPI Dashboard for Fleet Managers"
+    ]
+  },
+  "summary": {
+    "total_ideas": 30,
+    "by_type": {
+      "code_quality": 5,
+      "ui_ux_improvements": 5,
+      "performance_optimizations": 5,
+      "security_hardening": 5,
+      "documentation_gaps": 5,
+      "code_improvements": 5
+    },
+    "by_status": {
+      "draft": 25,
+      "proposed": 5
+    }
+  },
+  "generated_at": "2026-01-22T00:48:25.026486",
+  "updated_at": "2026-01-21T14:48:54.645Z"
+}

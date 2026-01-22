@@ -12,8 +12,15 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.orm import DeclarativeBase
 
 from src.config import settings
+
+
+# Базовый класс для моделей
+class Base(DeclarativeBase):
+    """Базовый класс для всех моделей SQLAlchemy."""
+    pass
 
 
 # Создаём async engine
@@ -39,7 +46,7 @@ async_session_factory = async_sessionmaker(
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     """
     Контекстный менеджер для получения async сессии.
-    
+
     Использование:
         async with get_session() as session:
             result = await session.execute(query)
@@ -56,7 +63,7 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """
     Dependency для FastAPI.
-    
+
     Использование:
         @app.get("/items")
         async def get_items(db: AsyncSession = Depends(get_db)):
@@ -77,8 +84,8 @@ async def init_db() -> None:
     Используется для создания таблиц при первом запуске (только для разработки).
     В продакшене используйте Alembic миграции.
     """
-    from src.database.models import Base
-    
+    # Импорт Base здесь не нужен, он уже определён в этом модуле
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 

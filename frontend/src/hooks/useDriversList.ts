@@ -11,5 +11,6 @@ export const useDriversList = () => {
         },
         staleTime: 30_000, // 30 секунд
         refetchInterval: 60_000, // Обновление каждую минуту
+        throwOnError: true,
     });
 };

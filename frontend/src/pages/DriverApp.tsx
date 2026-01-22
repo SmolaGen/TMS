@@ -5,9 +5,12 @@ import {
     SyncOutlined,
     CheckCircleOutlined,
     ClockCircleOutlined,
-    CarOutlined
+    CarOutlined,
+    SwapOutlined,
+    LogoutOutlined
 } from '@ant-design/icons';
 import { useTelegramAuth } from '../hooks/useTelegramAuth';
+import { isDevMode, setDevUser, DEV_USERS } from '../components/DevAuthSelector';
 import { useGeoTracking } from '../hooks/useGeoTracking';
 import { useOrdersRaw } from '../hooks/useOrders';
 
@@ -15,13 +18,21 @@ const { Header, Content } = Layout;
 const { Title, Text } = Typography;
 
 export const DriverApp: React.FC = () => {
-    const { user } = useTelegramAuth();
+    const { user, logout } = useTelegramAuth();
     const { latitude, longitude, error, isTracking, startTracking, stopTracking } = useGeoTracking(user?.driver_id);
     const { data: orders = [] } = useOrdersRaw();
 
     const myOrders = orders.filter(o => o.driver_id === user?.driver_id);
 
 
+
+    const switchRole = () => {
+        const dispatcher = DEV_USERS.find(u => u.role === 'staff');
+        if (dispatcher) {
+            setDevUser(dispatcher);
+            window.location.reload();
+        }
+    };
 
     return (
         <Layout style={{ minHeight: '100vh', background: 'var(--tms-bg-layout)' }}>
@@ -39,6 +50,31 @@ export const DriverApp: React.FC = () => {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Badge status={isTracking ? 'success' : 'default'} text={isTracking ? 'Online' : 'Offline'} />
+
+                    {isDevMode() && (
+                        <Button
+                            type="primary"
+                            ghost
+                            icon={<SwapOutlined />}
+                            onClick={switchRole}
+                        >
+                            Диспетчер
+                        </Button>
+                    )}
+
+                    <Button
+                        type="text"
+                        danger
+                        icon={<LogoutOutlined />} // LogoutOutlined needs to be re-imported if I removed it, but I only removed it from imports list in previous step? No, I replaced it.
+                        // Wait, I removed LogoutOutlined from imports in the previous step? 
+                        // "TargetContent: LogoutOutlined..." -> Yes.
+                        // I need to make sure LogoutOutlined is still imported or re-imported.
+                        // I will fix imports in a separate call if needed, but the current replacement content for imports was:
+                        // SwapOutlined } ...
+                        // So LogoutOutlined is GONE.
+                        // I must add it back to imports.
+                        onClick={logout}
+                    />
                 </div>
             </Header>
 

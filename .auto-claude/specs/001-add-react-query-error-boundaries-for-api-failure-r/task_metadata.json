@@ -1,0 +1,11 @@
+{
+  "sourceType": "ideation",
+  "ideationType": "code_improvements",
+  "ideaId": "ci-001",
+  "rationale": "Improves user experience and application stability when backend services are unavailable or return errors.",
+  "category": "feature",
+  "affectedFiles": [
+    "frontend/src/App.tsx",
+    "frontend/src/components/"
+  ]
+}

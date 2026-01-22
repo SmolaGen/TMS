@@ -1,0 +1,51 @@
+{
+  "existing_features": [],
+  "tech_stack": [
+    "TypeScript"
+  ],
+  "target_audience": "Logistics dispatchers managing transport fleets for delivery/transportation companies in Russia",
+  "planned_features": [
+    "Invoice & Document Generation",
+    "Production Error Handling & Monitoring",
+    "Comprehensive API Documentation",
+    "Vehicle Fuel Tracking",
+    "Wait Time Analytics",
+    "Driver Navigation Integration",
+    "Driver Rating Calculation System",
+    "Customer Notification System",
+    "Customer Delivery Tracking Portal",
+    "Multi-Stop Route Optimizer (TSP Solver)",
+    "Driver Performance Leaderboard",
+    "Enhanced Telegram Notifications",
+    "Enhanced Contractor Order API",
+    "Smart Auto-Assignment Engine",
+    "Data Sovereignty & Self-Hosting Documentation",
+    "Driver Shift Planning & Preferences",
+    "1C Accounting Integration",
+    "Vehicle Maintenance Scheduler",
+    "Add React Query error boundaries for API failure resilience",
+    "Photo Proof of Delivery",
+    "KPI Dashboard for Fleet Managers"
+  ],
+  "graph_hints": {
+    "code_improvements": [],
+    "ui_ux_improvements": [],
+    "security_hardening": [],
+    "documentation_gaps": [],
+    "code_quality": []
+  },
+  "config": {
+    "enabled_types": [
+      "code_quality",
+      "ui_ux_improvements",
+      "performance_optimizations",
+      "security_hardening",
+      "documentation_gaps",
+      "code_improvements"
+    ],
+    "include_roadmap_context": true,
+    "include_kanban_context": true,
+    "max_ideas_per_type": 5
+  },
+  "created_at": "2026-01-22T00:47:50.418957"
+}

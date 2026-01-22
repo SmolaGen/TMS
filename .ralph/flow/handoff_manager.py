@@ -69,3 +69,14 @@ class HandoffManager:
             context=context,
             rollback_to=rollback_to
         )
+
+    @staticmethod
+    def get_role_for_stage(stage: TaskStage) -> Optional[AgentRole]:
+        """Возвращает роль по умолчанию для заданной стадии."""
+        return {
+            TaskStage.PLANNING: AgentRole.ARCHITECT,
+            TaskStage.RESEARCHING: AgentRole.RESEARCHER,
+            TaskStage.CODING: AgentRole.DEVELOPER,
+            TaskStage.TESTING: AgentRole.TESTER,
+            TaskStage.REVIEWING: AgentRole.REVIEWER,
+        }.get(stage)

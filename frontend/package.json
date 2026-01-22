@@ -26,6 +26,7 @@
     "antd": "^6.1.2",
     "axios": "^1.13.2",
     "dayjs": "^1.11.19",
+    "framer-motion": "^12.28.1",
     "leaflet": "^1.9.4",
     "leaflet.markercluster": "^1.5.3",
     "react-dnd": "^16.0.1",

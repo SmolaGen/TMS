@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
+import { Alert, Button } from 'antd';
+import { ReloadOutlined } from '@ant-design/icons';
 import { useDriverLocations } from '../../hooks/useDriverLocations';
 import { useDrivers } from '../../hooks/useDrivers';
 import { useTheme } from '../../hooks/useTheme';
@@ -94,9 +96,11 @@ export const LiveMap: React.FC<LiveMapProps> = ({
     orders: propOrders
 }) => {
     const { isDark } = useTheme();
-    const { data: hookDriverLocations = [] } = useDriverLocations();
-    const { data: hookDrivers = [] } = useDrivers();
-    const { data: hookOrders = [] } = useOrdersRaw();
+    const { data: hookDriverLocations = [], error: locError, refetch: refetchLoc } = useDriverLocations();
+    const { data: hookDrivers = [], error: driversError, refetch: refetchDrivers } = useDrivers();
+    const { data: hookOrders = [], error: ordersError, refetch: refetchOrders } = useOrdersRaw();
+
+    const error = locError || driversError || ordersError;
 
     const orders = propOrders || hookOrders;
 
@@ -127,12 +131,45 @@ export const LiveMap: React.FC<LiveMapProps> = ({
         setControlsState((prev) => ({ ...prev, ...newState }));
     };
 
+    if (error) {
+        return (
+            <div style={{
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'var(--tms-bg-container)',
+                padding: 20
+            }}>
+                <Alert
+                    message="Ошибка карты"
+                    description="Не удалось загрузить данные для отображения на карте."
+                    type="error"
+                    showIcon
+                    action={
+                        <Button
+                            size="small"
+                            icon={<ReloadOutlined />}
+                            onClick={() => {
+                                refetchLoc();
+                                refetchDrivers();
+                                refetchOrders();
+                            }}
+                        >
+                            Обновить
+                        </Button>
+                    }
+                />
+            </div>
+        );
+    }
+
     return (
         <div style={{ height: '100%', position: 'relative' }}>
             <MapContainer
                 center={DEFAULT_CENTER}
                 zoom={DEFAULT_ZOOM}
-                style={{ height: '100%', width: '100%' }}
+                style={{ height: '100%', width: '100%', background: '#0a0f18' }}
                 scrollWheelZoom={true}
             >
                 <TileLayer

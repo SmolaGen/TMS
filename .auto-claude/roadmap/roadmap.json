@@ -1,0 +1,735 @@
+{
+  "id": "roadmap-2026-01-21-002",
+  "project_name": "TMS - Transport Management System",
+  "version": "1.1",
+  "vision": "A comprehensive transport management system with real-time GPS tracking and Telegram bot integration for efficient logistics operations",
+  "target_audience": {
+    "primary": "Logistics dispatchers managing transport fleets for delivery/transportation companies in Russia",
+    "secondary": [
+      "Drivers using Telegram bot for shift management and order updates",
+      "Fleet managers analyzing KPIs and driver performance",
+      "External contractors integrating via API for order creation"
+    ]
+  },
+  "phases": [
+    {
+      "id": "phase-1",
+      "name": "Foundation & Technical Debt",
+      "description": "Complete MVP polish, fix technical debt items, and ensure production stability for core operations",
+      "order": 1,
+      "status": "planned",
+      "features": [
+        "feature-1",
+        "feature-2",
+        "feature-3",
+        "feature-4",
+        "feature-5"
+      ],
+      "milestones": [
+        {
+          "id": "milestone-1-1",
+          "title": "Core Metrics Complete",
+          "description": "All placeholder TODO calculations replaced with real implementations, providing accurate KPIs",
+          "features": [
+            "feature-1",
+            "feature-2"
+          ],
+          "status": "planned"
+        },
+        {
+          "id": "milestone-1-2",
+          "title": "Contractor API Complete",
+          "description": "External contractors can fully utilize API with all required fields and documentation",
+          "features": [
+            "feature-3",
+            "feature-4"
+          ],
+          "status": "planned"
+        },
+        {
+          "id": "milestone-1-3",
+          "title": "Production Hardening",
+          "description": "System is stable and reliable with comprehensive error handling and monitoring",
+          "features": [
+            "feature-5"
+          ],
+          "status": "planned"
+        }
+      ]
+    },
+    {
+      "id": "phase-2",
+      "name": "Customer Experience & Visibility",
+      "description": "Add client-facing tracking and enhance real-time communication for all stakeholders",
+      "order": 2,
+      "status": "planned",
+      "features": [
+        "feature-6",
+        "feature-7",
+        "feature-8",
+        "feature-9",
+        "feature-10"
+      ],
+      "milestones": [
+        {
+          "id": "milestone-2-1",
+          "title": "Customer Delivery Tracking",
+          "description": "Recipients can track their deliveries in real-time without app installation",
+          "features": [
+            "feature-6",
+            "feature-7"
+          ],
+          "status": "planned"
+        },
+        {
+          "id": "milestone-2-2",
+          "title": "Enhanced Driver Experience",
+          "description": "Drivers have improved Telegram bot functionality with navigation and preferences",
+          "features": [
+            "feature-8",
+            "feature-9",
+            "feature-10"
+          ],
+          "status": "planned"
+        }
+      ]
+    },
+    {
+      "id": "phase-3",
+      "name": "Advanced Operations & Analytics",
+      "description": "Route optimization, smart assignment, and comprehensive KPI dashboards",
+      "order": 3,
+      "status": "planned",
+      "features": [
+        "feature-11",
+        "feature-12",
+        "feature-13",
+        "feature-14",
+        "feature-15"
+      ],
+      "milestones": [
+        {
+          "id": "milestone-3-1",
+          "title": "Route Optimization Live",
+          "description": "Multi-stop route planning with TSP solver and auto-assignment engine",
+          "features": [
+            "feature-11",
+            "feature-12"
+          ],
+          "status": "planned"
+        },
+        {
+          "id": "milestone-3-2",
+          "title": "Fleet Analytics Dashboard",
+          "description": "Comprehensive KPI dashboards and performance tracking for fleet managers",
+          "features": [
+            "feature-13",
+            "feature-14",
+            "feature-15"
+          ],
+          "status": "planned"
+        }
+      ]
+    },
+    {
+      "id": "phase-4",
+      "name": "Enterprise & Integration",
+      "description": "Accounting integration, fleet maintenance, and enterprise-grade features",
+      "order": 4,
+      "status": "planned",
+      "features": [
+        "feature-16",
+        "feature-17",
+        "feature-18",
+        "feature-19",
+        "feature-20"
+      ],
+      "milestones": [
+        {
+          "id": "milestone-4-1",
+          "title": "Financial Integration",
+          "description": "1C accounting integration and professional invoice generation",
+          "features": [
+            "feature-16",
+            "feature-17"
+          ],
+          "status": "planned"
+        },
+        {
+          "id": "milestone-4-2",
+          "title": "Fleet Maintenance Complete",
+          "description": "Vehicle maintenance and fuel tracking operational",
+          "features": [
+            "feature-18",
+            "feature-19",
+            "feature-20"
+          ],
+          "status": "planned"
+        }
+      ]
+    }
+  ],
+  "features": [
+    {
+      "id": "feature-1",
+      "title": "Driver Rating Calculation System",
+      "description": "Implement real calculation for average driver ratings based on order completion, on-time delivery, and customer feedback. Replace current TODO placeholder with actual aggregation logic.",
+      "rationale": "Addresses technical debt (TODO in stats endpoint) and enables fleet managers to identify top-performing drivers. Manual systems lack performance tracking entirely (pain-4-5).",
+      "priority": "must",
+      "complexity": "low",
+      "impact": "high",
+      "phase_id": "phase-1",
+      "dependencies": [],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "Average rating is calculated from actual order completion data",
+        "Rating considers on-time delivery percentage",
+        "Rating displays correctly on driver profile and stats endpoints",
+        "Rating updates in real-time as orders are completed"
+      ],
+      "user_stories": [
+        "As a fleet manager, I want to see accurate driver ratings so that I can identify and reward high-performing drivers",
+        "As a dispatcher, I want to know driver reliability so that I can assign critical orders appropriately"
+      ],
+      "competitor_insight_ids": [
+        "pain-4-5"
+      ]
+    },
+    {
+      "id": "feature-2",
+      "title": "Wait Time Analytics",
+      "description": "Calculate and display average wait times for orders, including pickup wait times and delivery wait times. Track and analyze wait time patterns for operational improvement.",
+      "rationale": "Completes TODO placeholder in stats endpoint. Wait time data is critical for operational efficiency measurement - a key success metric. Manual systems cannot track this (pain-4-5).",
+      "priority": "must",
+      "complexity": "low",
+      "impact": "high",
+      "phase_id": "phase-1",
+      "dependencies": [],
+      "status": "planned",
+      "acceptance_criteria": [
+        "Wait time is calculated from order creation to driver assignment",
+        "Stats endpoint returns actual wait time averages",
+        "Wait time can be filtered by time period (today, week, month)",
+        "Historical wait time trends are available for analysis"
+      ],
+      "user_stories": [
+        "As a fleet manager, I want to track average dispatch time so that I can measure team efficiency",
+        "As a dispatcher, I want to see current wait times so that I can prioritize unassigned orders"
+      ],
+      "linked_spec_id": "002-wait-time-analytics",
+      "competitor_insight_ids": [
+        "pain-4-5"
+      ]
+    },
+    {
+      "id": "feature-3",
+      "title": "Enhanced Contractor Order API",
+      "description": "Extend OrderService to accept additional contractor-specific fields including special instructions, contact details, priority levels, and custom metadata.",
+      "rationale": "Addresses technical debt (TODO for contractor fields). Simple REST API is a competitive differentiator vs Oracle's complex EDI integration requirements (pain-3-2).",
+      "priority": "must",
+      "complexity": "low",
+      "impact": "medium",
+      "phase_id": "phase-1",
+      "dependencies": [],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "API accepts special_instructions field for orders",
+        "API accepts multiple contact phone numbers per order",
+        "API supports priority levels (urgent, normal, low)",
+        "Custom metadata fields can be passed and stored",
+        "All new fields are validated and documented in OpenAPI spec"
+      ],
+      "user_stories": [
+        "As an external contractor, I want to include delivery instructions in my API calls so that drivers have complete information",
+        "As an integrator, I want to pass custom metadata so that I can track orders in both systems"
+      ],
+      "competitor_insight_ids": [
+        "pain-3-2"
+      ]
+    },
+    {
+      "id": "feature-4",
+      "title": "Comprehensive API Documentation",
+      "description": "Create comprehensive API documentation with OpenAPI/Swagger, including examples for all endpoints, authentication flows, and webhook payloads.",
+      "rationale": "Simple API with great docs is a differentiator vs Oracle's integration complexity (pain-3-2). Clear documentation reduces integration friction for contractors.",
+      "priority": "should",
+      "complexity": "medium",
+      "impact": "medium",
+      "phase_id": "phase-1",
+      "dependencies": [
+        "feature-3"
+      ],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "OpenAPI/Swagger documentation is auto-generated and accessible",
+        "All endpoints have request/response examples",
+        "Authentication section explains JWT and Telegram validation",
+        "Webhook payload formats are documented with examples"
+      ],
+      "user_stories": [
+        "As an external contractor developer, I want clear API docs so that I can integrate quickly without support tickets",
+        "As a system administrator, I want to understand webhook payloads so that I can build integrations"
+      ],
+      "competitor_insight_ids": [
+        "pain-3-2"
+      ]
+    },
+    {
+      "id": "feature-5",
+      "title": "Production Error Handling & Monitoring",
+      "description": "Implement comprehensive error handling, structured logging, and basic monitoring/alerting for production stability.",
+      "rationale": "References git history issues with API recovery. Production stability is critical for trust. Addresses Oracle TMS performance issues (pain-3-3) by ensuring reliable system operation.",
+      "priority": "must",
+      "complexity": "medium",
+      "impact": "high",
+      "phase_id": "phase-1",
+      "dependencies": [],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "All API endpoints have proper try/catch with structured error responses",
+        "Errors are logged with correlation IDs for debugging",
+        "Critical errors trigger alerts (email/Telegram)",
+        "Health check endpoint returns detailed service status"
+      ],
+      "user_stories": [
+        "As an operator, I want to be alerted when critical errors occur so that I can respond quickly",
+        "As a developer, I want structured logs so that I can debug production issues efficiently"
+      ],
+      "competitor_insight_ids": [
+        "pain-3-3"
+      ]
+    },
+    {
+      "id": "feature-6",
+      "title": "Customer Delivery Tracking Portal",
+      "description": "Create a lightweight web page where delivery recipients can track their order status and driver location in real-time using a unique tracking link. No login required.",
+      "rationale": "Directly addresses known gap 'No client-facing app for delivery recipients'. Major differentiator vs manual systems (pain-4-1) that have no real-time visibility.",
+      "priority": "must",
+      "complexity": "medium",
+      "impact": "high",
+      "phase_id": "phase-2",
+      "dependencies": [],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "Unique tracking URLs are generated for each order",
+        "Tracking page shows current order status (pending, in-transit, delivered)",
+        "Real-time driver location shown on map when en-route",
+        "Estimated arrival time displayed and updated dynamically",
+        "Works on mobile browsers without app installation"
+      ],
+      "user_stories": [
+        "As a delivery recipient, I want to track my order in real-time so that I know when to expect my delivery",
+        "As a dispatcher, I want to send tracking links to customers so that they can self-serve status updates"
+      ],
+      "competitor_insight_ids": [
+        "pain-4-1"
+      ]
+    },
+    {
+      "id": "feature-7",
+      "title": "Customer Notification System",
+      "description": "Automated notifications to customers for key order events: order confirmed, driver assigned, driver en-route, approaching delivery, delivered. Support Telegram and webhook channels.",
+      "rationale": "Eliminates manual phone/SMS communication pain point (pain-4-3). Proactive notifications reduce 'where is my order' calls and improve customer satisfaction.",
+      "priority": "should",
+      "complexity": "medium",
+      "impact": "high",
+      "phase_id": "phase-2",
+      "dependencies": [
+        "feature-6"
+      ],
+      "status": "planned",
+      "acceptance_criteria": [
+        "Automatic notification on order status changes",
+        "Configurable notification preferences per order or customer",
+        "Support for Telegram messaging to customers",
+        "Webhook notifications for custom integrations",
+        "ETA updates when driver is approaching"
+      ],
+      "user_stories": [
+        "As a customer, I want to receive updates about my delivery so that I don't need to call for status",
+        "As a dispatcher, I want automatic notifications so that I spend less time on status calls"
+      ],
+      "linked_spec_id": "003-customer-notification-system",
+      "competitor_insight_ids": [
+        "pain-4-3"
+      ]
+    },
+    {
+      "id": "feature-8",
+      "title": "Driver Navigation Integration",
+      "description": "Deep-link to navigation apps (Yandex Navigator, 2GIS, Google Maps) from Telegram bot with destination pre-filled. Single-tap navigation start for drivers.",
+      "rationale": "Enhances Telegram-native driver experience which is core differentiator. Reduces friction vs dedicated apps (pain-5-1, pain-1-3) by leveraging existing navigation apps.",
+      "priority": "should",
+      "complexity": "low",
+      "impact": "medium",
+      "phase_id": "phase-2",
+      "dependencies": [],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "Order details in Telegram include 'Navigate' button",
+        "Navigation opens in driver's preferred navigation app",
+        "Supports Yandex Navigator, 2GIS, and Google Maps",
+        "Destination coordinates are pre-filled",
+        "Works on both Android and iOS devices"
+      ],
+      "user_stories": [
+        "As a driver, I want to quickly navigate to my next pickup so that I don't waste time entering addresses",
+        "As a driver, I want to use my preferred navigation app so that I have familiar interface"
+      ],
+      "competitor_insight_ids": [
+        "pain-5-1",
+        "pain-1-3"
+      ]
+    },
+    {
+      "id": "feature-9",
+      "title": "Driver Shift Planning & Preferences",
+      "description": "Allow drivers to set availability windows, preferred zones, and maximum orders per shift via Telegram bot. System considers preferences when suggesting assignments.",
+      "rationale": "Improves driver adoption and satisfaction with Telegram-native experience. Enterprise solutions require complex apps for this (pain-5-1, pain-2-3), while manual systems can't handle it.",
+      "priority": "could",
+      "complexity": "medium",
+      "impact": "medium",
+      "phase_id": "phase-2",
+      "dependencies": [],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "Drivers can set available hours for each day via Telegram",
+        "Drivers can specify preferred pickup/delivery zones",
+        "Maximum orders per shift can be configured",
+        "Dispatcher sees driver preferences when assigning orders",
+        "System warns when assigning outside driver preferences"
+      ],
+      "user_stories": [
+        "As a driver, I want to set my available hours so that I only get orders when I can work",
+        "As a dispatcher, I want to see driver preferences so that I can make appropriate assignments"
+      ],
+      "competitor_insight_ids": [
+        "pain-5-1",
+        "pain-2-3"
+      ]
+    },
+    {
+      "id": "feature-10",
+      "title": "Enhanced Telegram Notifications",
+      "description": "Improve Telegram notifications with rich formatting, quick action buttons, and smart notification timing to reduce driver distraction.",
+      "rationale": "Telegram-native experience is key differentiator. Better notifications improve driver efficiency vs competitors' mobile apps (pain-5-1) which create app fatigue.",
+      "priority": "should",
+      "complexity": "low",
+      "impact": "medium",
+      "phase_id": "phase-2",
+      "dependencies": [],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "Notifications include formatted order details with address",
+        "Inline buttons for quick actions (Accept, Decline, View Map)",
+        "Smart batching to avoid notification fatigue",
+        "Sound/vibration settings configurable per notification type"
+      ],
+      "user_stories": [
+        "As a driver, I want clear notifications so that I can quickly understand new orders",
+        "As a driver, I want quick action buttons so that I can respond without opening the full app"
+      ],
+      "competitor_insight_ids": [
+        "pain-5-1"
+      ]
+    },
+    {
+      "id": "feature-11",
+      "title": "Multi-Stop Route Optimizer (TSP Solver)",
+      "description": "Implement Traveling Salesman Problem solver to optimize order sequences for drivers with multiple stops. Calculate optimal pickup and delivery order to minimize total distance/time.",
+      "rationale": "Directly addresses known gap 'No TSP/VRP solver'. Manual systems (pain-4-4) cannot optimize routes. Provides professional-grade optimization without enterprise costs (pain-2-1).",
+      "priority": "must",
+      "complexity": "high",
+      "impact": "high",
+      "phase_id": "phase-3",
+      "dependencies": [],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "System can optimize sequence of 5-20 stops per driver",
+        "Considers pickup-before-delivery constraints",
+        "Accounts for time windows when specified",
+        "Optimization runs in under 5 seconds for typical loads",
+        "Total distance/time savings shown vs original sequence"
+      ],
+      "user_stories": [
+        "As a dispatcher, I want automatic route optimization so that drivers complete more orders with less driving",
+        "As a fleet manager, I want to reduce fuel costs through better route planning"
+      ],
+      "competitor_insight_ids": [
+        "pain-4-4",
+        "pain-2-1"
+      ]
+    },
+    {
+      "id": "feature-12",
+      "title": "Smart Auto-Assignment Engine",
+      "description": "Intelligent automatic order assignment based on driver location, availability, current load, and proximity. Configurable rules engine with manual override option.",
+      "rationale": "Eliminates manual assignment pain points and scheduling conflicts (pain-4-2). Reduces dispatcher workload significantly. Enterprise systems have this but are expensive (pain-2-1).",
+      "priority": "should",
+      "complexity": "high",
+      "impact": "high",
+      "phase_id": "phase-3",
+      "dependencies": [
+        "feature-11"
+      ],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "System suggests best driver based on configurable criteria",
+        "Proximity to pickup location is primary factor",
+        "Current driver load and availability considered",
+        "Dispatcher can accept, modify, or reject suggestions",
+        "Bulk assignment for multiple orders supported"
+      ],
+      "user_stories": [
+        "As a dispatcher, I want automatic driver suggestions so that I can assign orders faster",
+        "As a fleet manager, I want fair workload distribution so that all drivers get appropriate orders"
+      ],
+      "competitor_insight_ids": [
+        "pain-4-2",
+        "pain-2-1"
+      ]
+    },
+    {
+      "id": "feature-13",
+      "title": "KPI Dashboard for Fleet Managers",
+      "description": "Comprehensive analytics dashboard showing fleet performance: orders per day, on-time delivery rate, driver utilization, average trip distance, cost per delivery, and trend analysis.",
+      "rationale": "Fleet managers are key persona who need analytics. Manual systems (pain-4-5) cannot provide this data. Addresses market need for data-driven fleet management without enterprise cost (pain-2-1).",
+      "priority": "should",
+      "complexity": "medium",
+      "impact": "high",
+      "phase_id": "phase-3",
+      "dependencies": [
+        "feature-1",
+        "feature-2"
+      ],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "Dashboard shows daily/weekly/monthly order volumes",
+        "On-time delivery percentage tracked and displayed",
+        "Driver utilization rates calculated and shown",
+        "Average trip distance and duration metrics",
+        "Trends visualized with charts over time"
+      ],
+      "user_stories": [
+        "As a fleet manager, I want to see key metrics so that I can identify areas for improvement",
+        "As a business owner, I want cost tracking so that I can optimize profitability"
+      ],
+      "competitor_insight_ids": [
+        "pain-4-5",
+        "pain-2-1"
+      ]
+    },
+    {
+      "id": "feature-14",
+      "title": "Driver Performance Leaderboard",
+      "description": "Gamified driver performance tracking with rankings, achievements, and performance badges. Visible to drivers via Telegram and managers via dashboard.",
+      "rationale": "Motivates driver performance improvement. Leverages Telegram-native experience for driver engagement. Simpler than complex enterprise training systems (pain-2-3).",
+      "priority": "could",
+      "complexity": "medium",
+      "impact": "medium",
+      "phase_id": "phase-3",
+      "dependencies": [
+        "feature-1",
+        "feature-13"
+      ],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "Weekly and monthly driver rankings calculated",
+        "Rankings based on orders completed, on-time rate, and rating",
+        "Drivers can view their rank via Telegram bot",
+        "Achievements for milestones (100 orders, perfect week, etc.)",
+        "Manager dashboard shows leaderboard with all drivers"
+      ],
+      "user_stories": [
+        "As a driver, I want to see how I rank so that I'm motivated to improve",
+        "As a fleet manager, I want to recognize top performers so that I can reward excellence"
+      ],
+      "competitor_insight_ids": [
+        "pain-2-3"
+      ]
+    },
+    {
+      "id": "feature-15",
+      "title": "Photo Proof of Delivery",
+      "description": "Enable drivers to capture and upload photo proof of delivery through Telegram bot. Photos are stored and accessible on order details for dispute resolution.",
+      "rationale": "Proof of delivery reduces disputes and provides audit trail. Uses Telegram's native photo capabilities - no separate app needed (pain-5-1).",
+      "priority": "should",
+      "complexity": "medium",
+      "impact": "medium",
+      "phase_id": "phase-3",
+      "dependencies": [],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "Driver can upload photo via Telegram bot on order completion",
+        "Photo is stored and linked to order record",
+        "Dispatchers can view photos in order details",
+        "Photos are timestamped and geotagged"
+      ],
+      "user_stories": [
+        "As a driver, I want to take delivery photos so that I have proof of delivery",
+        "As a dispatcher, I want to see delivery photos so that I can resolve disputes"
+      ],
+      "competitor_insight_ids": [
+        "pain-5-1"
+      ]
+    },
+    {
+      "id": "feature-16",
+      "title": "1C Accounting Integration",
+      "description": "Bidirectional integration with 1C:Enterprise for Russian accounting compliance. Sync orders, generate invoices, and exchange financial documents.",
+      "rationale": "Addresses known gap 'No accounting integration'. 1C is dominant in Russia. Enterprise TMS have accounting but are too expensive (pain-2-1) and complex (pain-2-2).",
+      "priority": "should",
+      "complexity": "high",
+      "impact": "high",
+      "phase_id": "phase-4",
+      "dependencies": [
+        "feature-13"
+      ],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "Completed orders sync to 1C automatically",
+        "Invoices generated in Russian legal format",
+        "Contractor payments tracked and exported",
+        "Driver earnings exported for payroll",
+        "Support for 1C:Предприятие 8.x versions"
+      ],
+      "user_stories": [
+        "As an accountant, I want automatic invoice generation so that I don't need to manually enter data",
+        "As a business owner, I want 1C integration so that my logistics and accounting are synchronized"
+      ],
+      "competitor_insight_ids": [
+        "pain-2-1",
+        "pain-2-2"
+      ]
+    },
+    {
+      "id": "feature-17",
+      "title": "Invoice & Document Generation",
+      "description": "Generate professional invoices, waybills, and delivery receipts in PDF format. Support Russian document formats (счёт-фактура, накладная, ТТН).",
+      "rationale": "Standalone invoice generation for companies not using 1C. Addresses accounting gap. Manual systems require separate document creation (pain-4-4).",
+      "priority": "should",
+      "complexity": "medium",
+      "impact": "medium",
+      "phase_id": "phase-4",
+      "dependencies": [
+        "feature-3"
+      ],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "Generate PDF invoices from order data",
+        "Russian legal document formats supported",
+        "Company logo and details customizable",
+        "Batch invoice generation for periods",
+        "Email delivery of documents"
+      ],
+      "user_stories": [
+        "As a dispatcher, I want to generate delivery documents so that drivers have proper paperwork",
+        "As an accountant, I want invoice PDFs so that I can send to customers"
+      ],
+      "competitor_insight_ids": [
+        "pain-4-4"
+      ]
+    },
+    {
+      "id": "feature-18",
+      "title": "Vehicle Fuel Tracking",
+      "description": "Track fuel consumption per vehicle and per trip. Record fuel purchases, calculate cost per kilometer, and detect anomalies indicating fuel theft or inefficiency.",
+      "rationale": "Addresses known gap 'No fuel/maintenance tracking'. Essential for fleet cost management. Enterprise TMS are expensive (pain-2-1), manual systems cannot track (pain-4-5).",
+      "priority": "could",
+      "complexity": "medium",
+      "impact": "medium",
+      "phase_id": "phase-4",
+      "dependencies": [
+        "feature-13"
+      ],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "Drivers can log fuel purchases via Telegram",
+        "Fuel consumption calculated per trip and per vehicle",
+        "Cost per kilometer metrics available",
+        "Anomaly detection for unusual consumption",
+        "Reports for fuel expense tracking"
+      ],
+      "user_stories": [
+        "As a fleet manager, I want to track fuel costs so that I can identify inefficient vehicles",
+        "As a driver, I want to easily log fuel purchases so that records are accurate"
+      ],
+      "competitor_insight_ids": [
+        "pain-4-5",
+        "pain-2-1"
+      ]
+    },
+    {
+      "id": "feature-19",
+      "title": "Vehicle Maintenance Scheduler",
+      "description": "Track vehicle maintenance schedules based on mileage and time. Send reminders for upcoming service, log maintenance history, and track costs.",
+      "rationale": "Addresses known gap 'No fuel/maintenance tracking'. Prevents costly breakdowns and ensures compliance. Enterprise feature made accessible without cost (pain-2-1).",
+      "priority": "could",
+      "complexity": "medium",
+      "impact": "medium",
+      "phase_id": "phase-4",
+      "dependencies": [
+        "feature-18"
+      ],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "Service schedules based on mileage intervals",
+        "Time-based maintenance reminders",
+        "Maintenance history log per vehicle",
+        "Cost tracking for repairs and service",
+        "Telegram alerts for upcoming maintenance"
+      ],
+      "user_stories": [
+        "As a fleet manager, I want maintenance reminders so that vehicles are properly serviced",
+        "As a mechanic, I want maintenance history so that I can diagnose issues quickly"
+      ],
+      "competitor_insight_ids": [
+        "pain-2-1"
+      ]
+    },
+    {
+      "id": "feature-20",
+      "title": "Data Sovereignty & Self-Hosting Documentation",
+      "description": "Comprehensive documentation and tools for self-hosted deployment, emphasizing data sovereignty benefits. Include security hardening guides and compliance checklists.",
+      "rationale": "Addresses major competitor pain points: sanctions/data localization for Oracle (pain-3-4), vendor lock-in for Yandex (pain-1-1), and cloud privacy concerns (pain-5-3).",
+      "priority": "should",
+      "complexity": "low",
+      "impact": "high",
+      "phase_id": "phase-4",
+      "dependencies": [],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "Complete deployment guide for self-hosted installation",
+        "Security hardening checklist included",
+        "Russian data law compliance documentation",
+        "Backup and disaster recovery procedures documented",
+        "Upgrade and migration guides available"
+      ],
+      "user_stories": [
+        "As an IT administrator, I want clear deployment docs so that I can set up TMS on our servers",
+        "As a business owner, I want compliance documentation so that I can verify legal requirements are met"
+      ],
+      "competitor_insight_ids": [
+        "pain-3-4",
+        "pain-1-1",
+        "pain-5-3"
+      ]
+    }
+  ],
+  "metadata": {
+    "created_at": "2026-01-21T12:45:00Z",
+    "updated_at": "2026-01-21T18:17:28.567Z",
+    "generated_by": "roadmap_features agent",
+    "prioritization_framework": "MoSCoW",
+    "competitor_analysis_used": true,
+    "total_features": 20,
+    "features_addressing_competitor_pain_points": 20,
+    "language": "en",
+    "priority_breakdown": {
+      "must": 6,
+      "should": 10,
+      "could": 4,
+      "wont": 0
+    }
+  }
+}

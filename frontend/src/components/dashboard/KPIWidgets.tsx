@@ -1,11 +1,12 @@
 import React from 'react';
-import { Statistic, Skeleton } from 'antd';
+import { Statistic, Skeleton, Alert, Button } from 'antd';
 import {
     ShoppingCartOutlined,
     CarOutlined,
     CheckCircleOutlined,
     StarOutlined,
     ClockCircleOutlined,
+    ReloadOutlined,
 } from '@ant-design/icons';
 import { useKPIStats } from '../../hooks/useKPIStats';
 
@@ -24,7 +25,7 @@ const useIsMobile = () => {
 };
 
 export const KPIWidgets: React.FC = () => {
-    const { data, isLoading, error } = useKPIStats();
+    const { data, isLoading, error, refetch } = useKPIStats();
     const isMobile = useIsMobile();
 
     if (isLoading) {
@@ -50,7 +51,25 @@ export const KPIWidgets: React.FC = () => {
         );
     }
 
-    if (error || !data) {
+    if (error) {
+        return (
+            <div style={{ marginBottom: 16 }}>
+                <Alert
+                    message="Ошибка KPI"
+                    description="Не удалось загрузить ключевые показатели."
+                    type="error"
+                    showIcon
+                    action={
+                        <Button size="small" icon={<ReloadOutlined />} onClick={() => refetch()}>
+                            Повторить
+                        </Button>
+                    }
+                />
+            </div>
+        );
+    }
+
+    if (!data) {
         return null;
     }
 

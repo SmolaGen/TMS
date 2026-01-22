@@ -1,0 +1,10 @@
+{
+  "sourceType": "ideation",
+  "ideationType": "security_hardening",
+  "ideaId": "sec-001",
+  "rationale": "Hardcoded secrets are a critical security vulnerability (OWASP A07). Anyone with access to the repository can extract these credentials and gain unauthorized access to the Telegram bot, impersonate users via JWT tokens, or access the database directly.",
+  "category": "security",
+  "securitySeverity": "critical",
+  "impact": "critical",
+  "priority": "urgent"
+}

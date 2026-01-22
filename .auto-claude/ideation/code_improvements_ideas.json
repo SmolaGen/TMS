@@ -1,0 +1,77 @@
+{
+  "code_improvements": [
+    {
+      "id": "ci-001",
+      "type": "code_improvements",
+      "title": "Add React Query error boundaries for API failure resilience",
+      "description": "Implement error boundaries around React Query hooks to gracefully handle API failures and provide user-friendly error messages instead of crashing the application.",
+      "priority": "high",
+      "effort": "medium",
+      "impact": "high",
+      "status": "proposed",
+      "affected_files": [
+        "frontend/src/App.tsx",
+        "frontend/src/components/"
+      ],
+      "rationale": "Improves user experience and application stability when backend services are unavailable or return errors."
+    },
+    {
+      "id": "ci-002",
+      "type": "code_improvements",
+      "title": "Implement Leaflet map component lazy loading",
+      "description": "Add code splitting for Leaflet map components to reduce initial bundle size and improve first contentful paint metrics.",
+      "priority": "medium",
+      "effort": "low",
+      "impact": "medium",
+      "status": "proposed",
+      "affected_files": [
+        "frontend/src/components/"
+      ],
+      "rationale": "Leaflet and its plugins add significant weight to the bundle. Lazy loading can improve initial load performance."
+    },
+    {
+      "id": "ci-003",
+      "type": "code_improvements",
+      "title": "Add TypeScript strict mode and improve type coverage",
+      "description": "Enable strict mode in tsconfig.json and add proper type definitions for API responses and Zustand stores to catch potential runtime errors at compile time.",
+      "priority": "medium",
+      "effort": "medium",
+      "impact": "high",
+      "status": "proposed",
+      "affected_files": [
+        "frontend/tsconfig.json",
+        "frontend/src/"
+      ],
+      "rationale": "Strict TypeScript catches more bugs during development and improves code maintainability."
+    },
+    {
+      "id": "ci-004",
+      "type": "code_improvements",
+      "title": "Implement WebSocket reconnection logic with exponential backoff",
+      "description": "Add robust reconnection handling for WebSocket connections (VITE_WS_URL) with exponential backoff to handle network interruptions gracefully.",
+      "priority": "high",
+      "effort": "medium",
+      "impact": "high",
+      "status": "proposed",
+      "affected_files": [
+        "frontend/src/"
+      ],
+      "rationale": "WebSocket connections can drop due to network issues. Proper reconnection logic ensures continuous real-time updates."
+    },
+    {
+      "id": "ci-005",
+      "type": "code_improvements",
+      "title": "Add React Query cache persistence for offline support",
+      "description": "Implement cache persistence using @tanstack/react-query-persist-client to enable basic offline functionality and faster app startup.",
+      "priority": "low",
+      "effort": "low",
+      "impact": "medium",
+      "status": "proposed",
+      "affected_files": [
+        "frontend/src/",
+        "frontend/package.json"
+      ],
+      "rationale": "Improves user experience in areas with poor connectivity and provides faster subsequent app loads."
+    }
+  ]
+}

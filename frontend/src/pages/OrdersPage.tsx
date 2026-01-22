@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Button, Space, Spin, Typography } from 'antd';
+import { Button, Space, Skeleton, Empty, Typography } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { OrderFilters } from '../components/orders/OrderFilters';
 import type { OrderFiltersState } from '../components/orders/OrderFilters';
@@ -133,21 +133,38 @@ export const OrdersPage: React.FC = () => {
             />
 
             <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
-                <Spin spinning={isLoading} tip="Загрузка данных...">
-                    {viewMode === 'table-only' && (
-                        <div style={{ height: '100%' }} className="glass-card">
-                            <OrdersTable
-                                orders={filteredOrders}
-                                drivers={drivers}
-                                loading={isLoading}
-                                onSelect={setSelectedOrderId}
-                            />
-                        </div>
-                    )}
-
-                    {viewMode === 'table-map' && (
-                        <div style={{ display: 'flex', height: '100%', gap: 16 }}>
-                            <div style={{ flex: 1, overflow: 'auto' }} className="glass-card">
+                {isLoading ? (
+                    <div className="glass-card" style={{ padding: 24, height: '100%' }}>
+                        <Skeleton active paragraph={{ rows: 10 }} />
+                    </div>
+                ) : filteredOrders.length === 0 ? (
+                    <div className="glass-card" style={{
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexDirection: 'column',
+                        padding: 40
+                    }}>
+                        <Empty
+                            description={
+                                <Typography.Text type="secondary" style={{ fontSize: 16 }}>
+                                    Заказы не найдены
+                                </Typography.Text>
+                            }
+                        />
+                        <Button
+                            type="link"
+                            onClick={() => setFilters(defaultFilters)}
+                            style={{ marginTop: 16 }}
+                        >
+                            Сбросить фильтры
+                        </Button>
+                    </div>
+                ) : (
+                    <>
+                        {viewMode === 'table-only' && (
+                            <div style={{ height: '100%' }} className="glass-card">
                                 <OrdersTable
                                     orders={filteredOrders}
                                     drivers={drivers}
@@ -155,32 +172,45 @@ export const OrdersPage: React.FC = () => {
                                     onSelect={setSelectedOrderId}
                                 />
                             </div>
-                            <div className="glass-card" style={{ width: '40%', minWidth: 400, borderRadius: 20, overflow: 'hidden', padding: 0, border: 'var(--tms-glass-border)' }}>
-                                <LiveMap selectedOrderId={selectedOrderId} orders={filteredOrders} />
-                            </div>
-                        </div>
-                    )}
+                        )}
 
-                    {viewMode === 'map-timeline' && (
-                        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 16 }}>
-                            <div className="glass-card" style={{ flex: '0 0 55%', position: 'relative', borderRadius: 20, overflow: 'hidden', padding: 0, border: 'var(--tms-glass-border)' }}>
-                                <LiveMap selectedOrderId={selectedOrderId} orders={filteredOrders} />
+                        {viewMode === 'table-map' && (
+                            <div style={{ display: 'flex', height: '100%', gap: 16 }}>
+                                <div style={{ flex: 1, overflow: 'auto' }} className="glass-card">
+                                    <OrdersTable
+                                        orders={filteredOrders}
+                                        drivers={drivers}
+                                        loading={isLoading}
+                                        onSelect={setSelectedOrderId}
+                                    />
+                                </div>
+                                <div className="glass-card" style={{ width: '40%', minWidth: 400, borderRadius: 20, overflow: 'hidden', padding: 0, border: 'var(--tms-glass-border)' }}>
+                                    <LiveMap selectedOrderId={selectedOrderId} orders={filteredOrders} />
+                                </div>
                             </div>
-                            <div className="glass-card" style={{
-                                flex: '1 1 auto',
-                                borderRadius: 12,
-                                overflow: 'hidden',
-                                padding: '8px 16px'
-                            }}>
-                                <TimelineView
-                                    drivers={timelineDrivers}
-                                    onOrderSelect={setSelectedOrderId}
-                                    selectedOrderId={selectedOrderId}
-                                />
+                        )}
+
+                        {viewMode === 'map-timeline' && (
+                            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 16 }}>
+                                <div className="glass-card" style={{ flex: '0 0 55%', position: 'relative', borderRadius: 20, overflow: 'hidden', padding: 0, border: 'var(--tms-glass-border)' }}>
+                                    <LiveMap selectedOrderId={selectedOrderId} orders={filteredOrders} />
+                                </div>
+                                <div className="glass-card" style={{
+                                    flex: '1 1 auto',
+                                    borderRadius: 12,
+                                    overflow: 'hidden',
+                                    padding: '8px 16px'
+                                }}>
+                                    <TimelineView
+                                        drivers={timelineDrivers}
+                                        onOrderSelect={setSelectedOrderId}
+                                        selectedOrderId={selectedOrderId}
+                                    />
+                                </div>
                             </div>
-                        </div>
-                    )}
-                </Spin>
+                        )}
+                    </>
+                )}
             </div>
 
             <OrderDetailDrawer

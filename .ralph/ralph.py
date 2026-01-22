@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 import sys
 import re
@@ -279,9 +280,14 @@ def execute_iteration(task_index: int, task_text: str, task_hash: str, iteration
     current_role = task_obj.current_role if task_obj else AgentRole.DEVELOPER
     current_stage = task_obj.stage if task_obj else TaskStage.CODING
     
-    log(f"\nIteration {iteration}/{MAX_ITERATIONS} | Role: {current_role.value} | Stage: {current_stage.value}", "blue")
+    role_val = current_role.value if current_role else "N/A"
+    stage_val = current_stage.value if current_stage else "N/A"
     
-    system_prompt = get_prompt_for_role(current_role)
+    log(f"\nIteration {iteration}/{MAX_ITERATIONS} | Role: {role_val} | Stage: {stage_val}", "blue")
+    
+    if not current_role:
+        log("⚠️ No role assigned for this stage. Skipping...", "yellow")
+        return False
     
     recent_logs = ""
     if os.path.exists(LOG_FILE):
@@ -303,6 +309,7 @@ def execute_iteration(task_index: int, task_text: str, task_hash: str, iteration
     user_prompt += "\nDo the work. Remember to start with ```log and end with ```done```.\n"
     
     log("🤔 Thinking...", "blue")
+    system_prompt = get_prompt_for_role(current_role)
     response = client.call(system_prompt, user_prompt)
     
     # Meta parsing
@@ -349,7 +356,7 @@ def execute_iteration(task_index: int, task_text: str, task_hash: str, iteration
         if line.startswith("```exec"):
             cur_file, in_block, buffer = "EXEC", True, []
             continue
-        if "```done" in line.lower():
+        if "```done" in line.lower() or "<promise>plan_ready</promise>" in line.lower():
             done_found = True
             continue
         
@@ -444,6 +451,13 @@ def main():
             if _shutdown_requested: break
             
             task_completed = execute_iteration(task_index, task_text, task_hash, iteration, current_plan)
+            
+            # Check if task became BLOCKED
+            current_task_obj = flow_manager.get_task_by_index(task_index)
+            if current_task_obj and current_task_obj.stage == TaskStage.BLOCKED:
+                log("⛔ Task is BLOCKED. Stopping iterations.", "red")
+                break
+                
             if task_completed:
                 mark_task_complete(task_index)
                 if memory_manager:

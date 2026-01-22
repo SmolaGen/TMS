@@ -3,11 +3,11 @@ import type { ThemeConfig } from 'antd';
 
 // Основные цвета бренда TMS
 const brandColors = {
-    primary: '#1677ff',      // Ant Design 5 primary
-    success: '#52c41a',
-    warning: '#faad14',
-    error: '#ff4d4f',
-    info: '#1677ff',
+    primary: '#3b82f6',      // Более насыщенный современный синий
+    success: '#10b981',      // Emerald 500
+    warning: '#f59e0b',      // Amber 500
+    error: '#ef4444',        // Red 500
+    info: '#3b82f6',
 };
 
 // Светлая тема
@@ -19,29 +19,33 @@ export const lightTheme: ThemeConfig = {
         colorWarning: brandColors.warning,
         colorError: brandColors.error,
         colorInfo: brandColors.info,
-        borderRadius: 8,
+        borderRadius: 12,        // Увеличено для более мягкого вида
         fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         fontSize: 14,
         // Shadows
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-        boxShadowSecondary: '0 4px 16px rgba(0, 0, 0, 0.12)',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+        boxShadowSecondary: '0 8px 24px rgba(0, 0, 0, 0.08)',
     },
     components: {
         Button: {
-            borderRadius: 8,
+            borderRadius: 10,
             controlHeight: 40,
+            fontWeight: 500,
         },
         Card: {
-            borderRadiusLG: 12,
+            borderRadiusLG: 16,
         },
         Modal: {
-            borderRadiusLG: 16,
+            borderRadiusLG: 20,
         },
         Drawer: {
-            borderRadiusLG: 16,
+            borderRadiusLG: 20,
         },
         Badge: {
             dotSize: 8,
+        },
+        Table: {
+            borderRadius: 12,
         },
     },
 };
@@ -51,11 +55,19 @@ export const darkTheme: ThemeConfig = {
     algorithm: theme.darkAlgorithm,
     token: {
         ...lightTheme.token,
-        colorBgContainer: '#1f1f1f',
-        colorBgElevated: '#262626',
-        colorBgLayout: '#141414',
+        colorBgLayout: '#0a0f18',      // Глубокий сине-черный
+        colorBgContainer: '#111827',   // Графитовый
+        colorBgElevated: '#1f2937',    // Для модалок и выпадающих меню
+        colorBorder: 'rgba(255, 255, 255, 0.08)',
+        colorBorderSecondary: 'rgba(255, 255, 255, 0.04)',
     },
-    components: lightTheme.components,
+    components: {
+        ...lightTheme.components,
+        Table: {
+            ...lightTheme.components?.Table,
+            headerBg: 'rgba(255, 255, 255, 0.02)',
+        }
+    },
 };
 
 export type ThemeMode = 'light' | 'dark' | 'system';

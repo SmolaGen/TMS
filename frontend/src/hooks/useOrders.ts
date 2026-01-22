@@ -65,6 +65,7 @@ export const useOrdersRaw = (dateRange?: [Date, Date]) => {
         },
         staleTime: 30_000,
         refetchInterval: 60_000,
+        throwOnError: true,
     });
 };
 
@@ -75,6 +76,7 @@ export const useOrders = (dateRange?: [Date, Date]) => {
         select: (data) => data.map(toTimelineOrder).filter(Boolean) as TimelineOrder[],
         staleTime: 30_000,
         refetchInterval: 60_000,
+        throwOnError: true,
     });
 };
 
@@ -197,6 +199,7 @@ export const useOrder = (orderId?: number | string) => {
         queryKey: ['order', orderId],
         queryFn: () => orderId ? fetchOrderById(orderId) : null,
         enabled: !!orderId,
+        throwOnError: true,
     });
 };
 

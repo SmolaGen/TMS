@@ -1,0 +1,108 @@
+{
+    "prd_path": "/Users/alsmolentsev/tms_new/PRD.md",
+    "project_name": "tms_new",
+    "tasks": [
+        {
+            "id": "prd-1",
+            "title": "Провести анализ проекта: изучить все файлы в src/, определить зависимости и составить отчет в PROJECT_ANALYSIS.md",
+            "status": "done",
+            "section": "Задачи (PRD)"
+        },
+        {
+            "id": "prd-2",
+            "title": "Актуализировать system_prompt.md и architect_prompt.md на основе текущего стека (FastAPI, PostGIS, Telegram Bot)",
+            "status": "done",
+            "section": "Задачи (PRD)"
+        },
+        {
+            "id": "prd-3",
+            "title": "Проверить и исправить импорты во всех файлах src/, чтобы избежать циклических зависимостей",
+            "status": "done",
+            "section": "Задачи (PRD)"
+        },
+        {
+            "id": "prd-4",
+            "title": "Сформировать новый детальный список задач для реализации бэкенда",
+            "status": "done",
+            "section": "Задачи (PRD)"
+        },
+        {
+            "id": "auth-1",
+            "title": "Шаг 1: Проверка и обновление модели Driver",
+            "status": "done",
+            "section": "Реализация авторизации через Telegram"
+        },
+        {
+            "id": "auth-2",
+            "title": "Шаг 2: Обновление схем TelegramAuthRequest и TokenResponse",
+            "status": "done",
+            "section": "Реализация авторизации через Telegram"
+        },
+        {
+            "id": "auth-3",
+            "title": "Шаг 3: Реализация методов в AuthService",
+            "status": "done",
+            "section": "Реализация авторизации через Telegram"
+        },
+        {
+            "id": "auth-4",
+            "title": "Шаг 4: Реализация методов в DriverService",
+            "status": "done",
+            "section": "Реализация авторизации через Telegram"
+        },
+        {
+            "id": "auth-5",
+            "title": "Шаг 5: Добавление настройки в config.py",
+            "status": "done",
+            "section": "Реализация авторизации через Telegram"
+        },
+        {
+            "id": "auth-6",
+            "title": "Шаг 6: Создание юнит-тестов для AuthService",
+            "status": "done",
+            "section": "Реализация авторизации через Telegram"
+        },
+        {
+            "id": "auth-7",
+            "title": "Шаг 7: Добавление юнит-тестов для DriverService",
+            "status": "done",
+            "section": "Реализация авторизации через Telegram"
+        },
+        {
+            "id": "auth-8",
+            "title": "Шаг 8: Создание интеграционных тестов для API",
+            "status": "done",
+            "section": "Реализация авторизации через Telegram"
+        },
+        {
+            "id": "stab-1",
+            "title": "Задача 1: Устранение циклических импортов",
+            "status": "done",
+            "section": "Новые задачи (Стабилизация)",
+            "details": [
+                "Провести аудит src/services/ и src/database/models.py.",
+                "Вынести общие типы/зависимости, чтобы избежать Circular Import.",
+                "(DONE: Выделен src/database/connection.py, модели обновлены)."
+            ]
+        },
+        {
+            "id": "stab-2",
+            "title": "Задача 2: Рефакторинг main.py",
+            "status": "in_progress",
+            "section": "Новые задачи (Стабилизация)",
+            "details": [
+                "Разделить логику инициализации FastAPI и Telegram Бота.",
+                "Вынести настройку роутов и middleware в отдельные модули."
+            ]
+        },
+        {
+            "id": "stab-3",
+            "title": "Задача 3: Проверка системы сессий",
+            "status": "todo",
+            "section": "Новые задачи (Стабилизация)",
+            "details": [
+                "Стабилизировать работу асинхронных сессий SQLAlchemy в lifespan."
+            ]
+        }
+    ]
+}

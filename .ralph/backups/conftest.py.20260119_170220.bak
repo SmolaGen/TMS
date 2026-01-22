@@ -1,0 +1,84 @@
+import asyncio
+import pytest
+from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy.pool import NullPool
+
+from src.config import settings
+from src.main import app
+from src.database.models import Base, Driver, Order, DriverLocationHistory, DriverStatus, Contractor
+from src.database.connection import get_db
+
+# Use a separate test database
+# .get_secret_value() is used to extract the string value from SecretStr
+TEST_DATABASE_URL = settings.DATABASE_URL.replace("/tms_db", "/tms_test_db")
+
+test_engine = create_async_engine(
+    TEST_DATABASE_URL,
+    echo=False,
+    poolclass=NullPool # Use NullPool for tests to avoid connection issues
+)
+TestAsyncSessionLocal = async_sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=test_engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+)
+
+async def override_get_db():
+    """
+    Override the get_db dependency to use the test database.
+    """
+    async with TestAsyncSessionLocal() as session:
+        yield session
+
+app.dependency_overrides[get_db] = override_get_db
+
+@pytest.fixture(scope="session")
+def event_loop():
+    """
+    Create an instance of the default event loop for the session.
+    """
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    yield loop
+    loop.close()
+
+@pytest.fixture(scope="session", autouse=True)
+async def setup_test_db():
+    """
+    Set up and tear down the test database for the entire test session.
+    """
+    async with test_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+    async with test_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+
+@pytest.fixture(scope="function", autouse=True)
+async def clear_tables():
+    """
+    Clear data from tables before each test function.
+    """
+    async with TestAsyncSessionLocal() as session:
+        for table in reversed(Base.metadata.sorted_tables):
+            await session.execute(table.delete())
+        await session.commit()
+
+@pytest.fixture(scope="session")
+async def client() -> AsyncClient:
+    """
+    Asynchronous test client for the FastAPI application.
+    """
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        yield ac
+
+@pytest.fixture
+async def db_session() -> AsyncSession:
+    """
+    Provides a test database session for direct database operations in tests.
+    """
+    async with TestAsyncSessionLocal() as session:
+        yield session
+
