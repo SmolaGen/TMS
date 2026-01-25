@@ -86,7 +86,10 @@
   --tms-gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
   --tms-gradient-warning: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
   --tms-gradient-purple: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-  --tms-gradient-mesh: radial-gradient(at 0% 0%, hsla(253, 16%, 7%, 1) 0, transparent 50%), radial-gradient(at 50% 0%, hsla(225, 39%, 30%, 1) 0, transparent 50%), radial-gradient(at 100% 0%, hsla(339, 49%, 30%, 1) 0, transparent 50%);
+  --tms-gradient-mesh:
+    radial-gradient(at 0% 0%, hsla(253, 16%, 7%, 1) 0, transparent 50%),
+    radial-gradient(at 50% 0%, hsla(225, 39%, 30%, 1) 0, transparent 50%),
+    radial-gradient(at 100% 0%, hsla(339, 49%, 30%, 1) 0, transparent 50%);
 }
 
 /* ============================================
@@ -153,7 +156,9 @@ body {
   color: var(--tms-text-primary);
   background: #f8fafc;
   /* Светлый нейтральный фон */
-  transition: background-color var(--tms-transition-normal), color var(--tms-transition-normal);
+  transition:
+    background-color var(--tms-transition-normal),
+    color var(--tms-transition-normal);
   margin: 0;
   padding: 0;
   height: 100vh;
@@ -221,7 +226,11 @@ body.dark-theme {
 }
 
 .vis-item.timeline-item-completed {
-  background-color: color-mix(in srgb, var(--tms-text-disabled) 20%, var(--tms-bg-container)) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--tms-text-disabled) 20%,
+    var(--tms-bg-container)
+  ) !important;
   border-color: var(--tms-border-base) !important;
   opacity: 0.7;
 }
@@ -237,7 +246,7 @@ body.dark-theme {
   background-color: color-mix(in srgb, var(--tms-warning) 10%, var(--tms-bg-container)) !important;
 }
 
-.order-row-warning:hover>td {
+.order-row-warning:hover > td {
   background-color: color-mix(in srgb, var(--tms-warning) 20%, var(--tms-bg-container)) !important;
 }
 
@@ -368,7 +377,7 @@ body.dark-theme .vis-labelset .vis-label .vis-inner {
   opacity: 0.7;
 }
 
-.driver-row-inactive:hover>td {
+.driver-row-inactive:hover > td {
   background-color: var(--tms-bg-layout) !important;
 }
 
@@ -420,7 +429,9 @@ body.dark-theme .glass-panel {
 
 /* Animations & Effects */
 .hover-lift {
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+  transition:
+    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.3s ease;
 }
 
 .hover-lift:hover {
@@ -449,7 +460,6 @@ body.dark-theme .glass-panel {
 
 /* Мобильные устройства (до 768px) */
 @media (max-width: 768px) {
-
   /* Скрыть поиск на мобильных */
   .tms-search-desktop {
     display: none !important;
@@ -513,7 +523,6 @@ body.dark-theme .glass-panel {
 
 /* Очень маленькие экраны (до 480px) */
 @media (max-width: 480px) {
-
   /* Ещё меньше отступов */
   .tms-content-mobile {
     margin: 4px !important;
@@ -564,16 +573,16 @@ body.dark-theme .ant-table {
   background: transparent !important;
 }
 
-body.dark-theme .ant-table-thead>tr>th {
+body.dark-theme .ant-table-thead > tr > th {
   background: rgba(255, 255, 255, 0.04) !important;
 }
 
-body.dark-theme .ant-table-tbody>tr>td {
+body.dark-theme .ant-table-tbody > tr > td {
   background: transparent !important;
   border-color: var(--tms-border-split) !important;
 }
 
-body.dark-theme .ant-table-tbody>tr:hover>td {
+body.dark-theme .ant-table-tbody > tr:hover > td {
   background: rgba(255, 255, 255, 0.04) !important;
 }
 

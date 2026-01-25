@@ -18,88 +18,80 @@ import type { ThemeMode } from './theme';
 import './App.css';
 
 const queryClient = new QueryClient({
-    defaultOptions: {
-        queries: {
-            retry: 2,
-            refetchOnWindowFocus: false,
-            throwOnError: true,
-        },
-        mutations: {
-            throwOnError: true,
-        }
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      refetchOnWindowFocus: false,
+      throwOnError: true,
     },
+    mutations: {
+      throwOnError: true,
+    },
+  },
 });
 
 function App() {
-    const { themeConfig, toggleTheme, isDark, mode, setMode } = useTheme();
+  const { themeConfig, toggleTheme, isDark, mode, setMode } = useTheme();
 
-    // Глобальные шорткаты
-    useKeyboardShortcuts([
-        {
-            key: 'd',
-            handler: toggleTheme,
-            description: 'Переключить тему'
-        }
-    ]);
+  // Глобальные шорткаты
+  useKeyboardShortcuts([
+    {
+      key: 'd',
+      handler: toggleTheme,
+      description: 'Переключить тему',
+    },
+  ]);
 
-    return (
-        <GlobalErrorBoundary>
-            <QueryClientProvider client={queryClient}>
-                <ConfigProvider locale={ruRU} theme={themeConfig}>
-                    <BrowserRouter>
-                        <AuthGuard>
-                            <AppRoutes
-                                onThemeChange={setMode}
-                                themeMode={mode}
-                                isDark={isDark}
-                            />
-                        </AuthGuard>
-                    </BrowserRouter>
-                </ConfigProvider>
-            </QueryClientProvider>
-        </GlobalErrorBoundary>
-    );
+  return (
+    <GlobalErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ConfigProvider locale={ruRU} theme={themeConfig}>
+          <BrowserRouter>
+            <AuthGuard>
+              <AppRoutes onThemeChange={setMode} themeMode={mode} isDark={isDark} />
+            </AuthGuard>
+          </BrowserRouter>
+        </ConfigProvider>
+      </QueryClientProvider>
+    </GlobalErrorBoundary>
+  );
 }
 
 interface AppRoutesProps {
-    onThemeChange: (mode: ThemeMode) => void;
-    themeMode: ThemeMode;
-    isDark: boolean;
+  onThemeChange: (mode: ThemeMode) => void;
+  themeMode: ThemeMode;
+  isDark: boolean;
 }
 
 function AppRoutes({ onThemeChange, themeMode, isDark }: AppRoutesProps) {
-    const { user } = useTelegramAuth();
-    const role = user?.role;
+  const { user } = useTelegramAuth();
+  const role = user?.role;
 
-    // Определяем главный экран в зависимости от роли
-    // Админы и диспетчеры видят Dashboard в AppLayout
-    // Водители (и все остальные по умолчанию) видят DriverApp
-    const isStaff = role === 'admin' || role === 'dispatcher' || role === 'staff';
+  // Определяем главный экран в зависимости от роли
+  // Админы и диспетчеры видят Dashboard в AppLayout
+  // Водители (и все остальные по умолчанию) видят DriverApp
+  const isStaff = role === 'admin' || role === 'dispatcher' || role === 'staff';
 
-    if (!isStaff) {
-        return (
-            <Routes>
-                <Route path="*" element={<DriverApp />} />
-            </Routes>
-        );
-    }
-
+  if (!isStaff) {
     return (
-        <AppLayout
-            onThemeChange={onThemeChange}
-            themeMode={themeMode}
-            isDark={isDark}
-        >
-            <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/orders" element={<OrdersPage />} />
-                <Route path="/drivers" element={<DriversPage />} />
-                <Route path="/stats" element={<StatsPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
-                <Route path="*" element={<Dashboard />} />
-            </Routes>
-        </AppLayout>
+      <Routes>
+        <Route path="*" element={<DriverApp />} />
+      </Routes>
     );
+  }
+
+  return (
+    <AppLayout onThemeChange={onThemeChange} themeMode={themeMode} isDark={isDark}>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/orders" element={<OrdersPage />} />
+        <Route path="/drivers" element={<DriversPage />} />
+        <Route path="/stats" element={<StatsPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="*" element={<Dashboard />} />
+      </Routes>
+    </AppLayout>
+  );
 }
 
 export default App;

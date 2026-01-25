@@ -35,7 +35,7 @@ export interface OrderResponse {
   pickup_lon: number | null;
   dropoff_lat: number | null;
   dropoff_lon: number | null;
-  time_start: string | null;  // ISO datetime
+  time_start: string | null; // ISO datetime
   time_end: string | null;
   comment: string | null;
   pickup_address: string | null;
@@ -57,8 +57,8 @@ export interface OrderResponse {
 
 // Преобразованный заказ для Timeline
 export interface TimelineOrder {
-  id: string;           // vis-timeline требует string
-  group: string;        // driver_id как string
+  id: string; // vis-timeline требует string
+  group: string; // driver_id как string
   content: string;
   start: Date;
   end: Date;
@@ -70,8 +70,8 @@ export interface TimelineOrder {
 // Водитель для Timeline (группа)
 export interface TimelineDriver {
   id: string;
-  content: string;      // ФИО (для vis-timeline)
-  name?: string;        // Для фильтров и других списков
+  content: string; // ФИО (для vis-timeline)
+  name?: string; // Для фильтров и других списков
 }
 
 // Локация водителя
@@ -113,7 +113,7 @@ export interface DriverResponse {
 export interface OrderCreate {
   driver_id?: number | null;
   time_start: string; // ISO
-  time_end: string;   // ISO
+  time_end: string; // ISO
   pickup_lat: number;
   pickup_lon: number;
   dropoff_lat: number;
@@ -127,11 +127,7 @@ export interface OrderCreate {
 }
 
 // WebSocket сообщения
-export type WSMessageType =
-  | 'ORDER_UPDATED'
-  | 'ORDER_CREATED'
-  | 'ORDER_DELETED'
-  | 'DRIVER_LOCATION';
+export type WSMessageType = 'ORDER_UPDATED' | 'ORDER_CREATED' | 'ORDER_DELETED' | 'DRIVER_LOCATION';
 
 export interface WSMessage {
   type: WSMessageType;

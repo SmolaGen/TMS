@@ -7,13 +7,13 @@ import './App.css';
 // Это нужно сделать КАК МОЖНО РАНЬШЕ, иначе будет черный экран
 const tg = (window as any).Telegram?.WebApp;
 if (tg) {
-    tg.ready();
-    tg.expand();
-    console.log('[Telegram] WebApp ready() called');
+  tg.ready();
+  tg.expand();
+  console.log('[Telegram] WebApp ready() called');
 }
 
 ReactDOM.createRoot(document.getElementById('app')!).render(
-    <React.StrictMode>
-        <App />
-    </React.StrictMode>
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
 );
