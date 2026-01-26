@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import select
 from datetime import datetime, date
 from typing import List, Optional
 
@@ -10,22 +11,23 @@ from src.services.driver_service import DriverService
 from src.services.location_manager import LocationManager, DriverLocation
 from src.services.excel_import import ExcelImportService
 from src.api.dependencies import (
-    get_order_service, 
-    get_location_manager, 
+    get_order_service,
+    get_location_manager,
     get_driver_service,
     get_geocoding_service,
     get_order_workflow_service,
     get_auth_service,
     get_current_driver,
     get_batch_assignment_service,
-    get_excel_import_service
+    get_excel_import_service,
+    get_route_rebuild_service
 )
 from fastapi import File, UploadFile
 from src.services.order_workflow import OrderWorkflowService
 from src.services.geocoding import GeocodingService
 from src.schemas.geocoding import GeocodingResult
 from src.schemas.auth import TelegramAuthRequest, TokenResponse
-from src.database.models import OrderStatus, OrderPriority, Driver
+from src.database.models import OrderStatus, OrderPriority, Driver, Route
 from src.services.auth_service import AuthService
 from src.services.batch_assignment import BatchAssignmentService
 from src.schemas.batch_assignment import (
@@ -437,8 +439,9 @@ async def reverse_geocode(
 from src.schemas.routing import RouteResponse
 from src.services.routing import RoutingService, RouteNotFoundError, OSRMUnavailableError
 from src.api.dependencies import get_routing_service
-from src.schemas.route_optimizer import RouteOptimizeRequest, RouteOptimizeResponse
+from src.schemas.route_optimizer import RouteOptimizeRequest, RouteOptimizeResponse, RouteRebuildRequest, RouteRebuildResponse
 from src.database.connection import get_db
+from src.services.route_rebuild_service import RouteRebuildService, RebuildTrigger, RebuildRequest
 
 @router.get("/routing/route", response_model=RouteResponse)
 async def get_route(
@@ -563,6 +566,103 @@ async def optimize_route(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Ошибка при оптимизации маршрута"
             )
+
+
+@router.post("/routes/{route_id}/rebuild", response_model=RouteRebuildResponse)
+async def rebuild_route(
+    route_id: int,
+    request: RouteRebuildRequest,
+    current_driver: Driver = Depends(get_current_driver),
+    rebuild_service: RouteRebuildService = Depends(get_route_rebuild_service)
+):
+    """
+    Принудительно перестроить маршрут.
+
+    Перестраивает указанный маршрут с учётом текущих заказов водителя.
+    Доступно администраторам, диспетчерам и водителю, которому принадлежит маршрут.
+    """
+    from src.database.models import UserRole
+
+    # Получаем маршрут из БД
+    async with get_db() as db:
+        route_result = await db.execute(
+            select(Route).where(Route.id == route_id)
+        )
+        route = route_result.scalar_one_or_none()
+
+        if not route:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Маршрут с id {route_id} не найден"
+            )
+
+        # Проверка прав доступа
+        if current_driver.role not in (UserRole.ADMIN, UserRole.DISPATCHER):
+            if route.driver_id != current_driver.id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Вы можете перестраивать только свои маршруты"
+                )
+
+        # Сохраняем предыдущий статус
+        previous_status = route.status
+
+        # Проверяем, что у маршрута есть водитель
+        if not route.driver_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Невозможно перестроить маршрут без водителя"
+            )
+
+        # Формируем запрос на перестроение
+        rebuild_request = RebuildRequest(
+            driver_id=route.driver_id,
+            trigger=RebuildTrigger.MANUAL,
+            reason=request.reason or "Ручной запрос через API"
+        )
+
+        # Вызываем сервис перестроения (использует свою сессию)
+        result = await rebuild_service.rebuild_route(rebuild_request)
+
+        # Обрабатываем результат
+        if result.result.value == "driver_not_found":
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Водитель не найден"
+            )
+        elif result.result.value == "no_orders_to_optimize":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Нет активных заказов для перестроения"
+            )
+        elif result.result.value == "optimization_failed":
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Не удалось перестроить маршрут: {result.message}"
+            )
+
+        # Получаем обновленные данные маршрута из базы
+        updated_route_result = await db.execute(
+            select(Route).where(Route.id == result.route_id)
+        )
+        updated_route = updated_route_result.scalar_one_or_none()
+
+        if not updated_route:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Не удалось получить обновленный маршрут"
+            )
+
+        return RouteRebuildResponse(
+            route_id=updated_route.id,
+            previous_status=previous_status,
+            new_status=updated_route.status,
+            points_count=result.points_count,
+            total_distance_meters=result.total_distance_meters or 0,
+            total_duration_seconds=result.total_duration_seconds or 0,
+            rebuild_time_seconds=result.rebuild_time_seconds,
+            created_at=updated_route.updated_at if hasattr(updated_route, 'updated_at') else updated_route.created_at
+        )
 
 
 

@@ -228,7 +228,9 @@
             "type": "manual",
             "instructions": "Создать заказ через API, проверить что RouteRebuildService вызывается для перестроения маршрута"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Интегрирован RouteRebuildService в OrderWorkflowService. Добавлен параметр routing_service в конструктор. Создан метод _get_route_rebuild_service для динамического создания RouteRebuildService с текущей сессией БД. Интегрировано перестроение маршрутов в методы: assign_driver (после назначения заказа), cancel_order (после отмены), complete_order (после завершения), start_trip (после начала поездки), mark_departed (после выезда к pickup). Обновлён get_order_workflow_service в dependencies.py для передачи routing_service. Обновлён OrderService и бот-хендлер для передачи/создания routing_service. Все изменения включены в git commit 9412b9e.",
+          "updated_at": "2026-01-26T18:44:59.912827+00:00"
         },
         {
           "id": "subtask-3-3",
@@ -611,5 +613,5 @@
     }
   },
   "qa_signoff": null,
-  "last_updated": "2026-01-26T16:59:59.526030+00:00"
+  "last_updated": "2026-01-26T18:44:59.913021+00:00"
 }
