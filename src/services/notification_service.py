@@ -136,6 +136,24 @@ class NotificationService:
 
         return await self.notify_customer(order.customer_telegram_id, text)
 
+    async def notify_route_updated(self, driver_id: int, order: Order) -> bool:
+        """Уведомить водителя об обновлении маршрута заказа."""
+        pickup = order.pickup_address or "Не указан"
+        dropoff = order.dropoff_address or "Не указан"
+        time_str = "Не указано"
+        if order.time_range and order.time_range.lower and order.time_range.upper:
+            time_str = f"{order.time_range.lower.strftime('%H:%M')} - {order.time_range.upper.strftime('%H:%M')}"
+
+        text = (
+            f"<b>🔄 Маршрут обновлён</b>\n\n"
+            f"Заказ <b>#{order.id}</b>\n"
+            f"📍 <b>Откуда:</b> {pickup}\n"
+            f"🏁 <b>Куда:</b> {dropoff}\n"
+            f"⏰ <b>Время:</b> {time_str}\n\n"
+            f"Проверьте детали в меню /orders"
+        )
+        return await self.send_message(driver_id, text)
+
     async def notify_approaching(self, order: Order, eta_minutes: int) -> bool:
         """Уведомить клиента о приближении водителя."""
         if not order.customer_telegram_id:
