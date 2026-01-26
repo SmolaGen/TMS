@@ -394,7 +394,9 @@
             "url": "http://localhost:8000/v1/routes/{route_id}/history",
             "expected_status": 200
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Добавлен GET /v1/routes/{route_id}/history endpoint для получения истории изменений маршрута. Созданы Pydantic схемы: RouteChangeHistoryResponse (запись истории) и RouteHistoryListResponse (список изменений). Реализована проверка прав доступа (admin/dispatcher или водитель своего маршрута). История возвращается в обратном хронологическом порядке (сначала последние изменения). Включает информацию о типе изменения, изменённом поле, старых/новых значениях (JSON), описании, метаданных и авторе изменения. Добавлены unit тесты (3/3 passed) для проверки схем и структуры endpoint. Код следует паттернам существующих GET endpoints (@router.get, response_model, ошибки 404/403).",
+          "updated_at": "2026-01-27T13:00:00.000000+00:00"
         }
       ]
     },
