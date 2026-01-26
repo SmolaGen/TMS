@@ -243,3 +243,61 @@ Progress: Phase 1 (Database Schema) - 4/4 COMPLETED ✅
 Next: Phase 3 - subtask-3-1 - Создать RouteRebuildService с триггерами
 
 === END SESSION 3 ===
+
+=== SESSION 4 (Coder Agent) - PHASE 5 CONTINUED ===
+
+Started: 2026-01-27 12:30:00
+
+subtask-5-1: Создать RouteHistoryService для записи изменений
+   - Created src/services/route_history_service.py with comprehensive audit service
+   - Implemented methods for recording all route change types
+   - Follows patterns from BatchAssignmentService and RoutingService
+   - Uses AsyncSession, JSON serialization for values
+   - Syntax verified (py_compile OK)
+
+✅ subtask-5-2: Интегрировать сохранение истории в RouteRebuildService
+   - Added RouteHistoryService import to route_rebuild_service.py
+   - Added history_service parameter to RouteRebuildService constructor (optional)
+   - Integrated history recording on route creation (record_route_created)
+   - Integrated history recording on route optimization (record_optimized) with metrics
+   - Integrated history recording on status change IN_PROGRESS → COMPLETED
+   - Integrated history recording on status change PLANNED → IN_PROGRESS
+   - All history_service calls wrapped in if self.history_service: check
+   - Follows BatchAssignmentService pattern for optional dependencies
+   - Syntax verified (py_compile OK)
+   - Git commit: cae6c1d
+
+Progress: Phase 5 (Route History & Audit) - 2/3 subtasks completed
+Next: subtask-5-3 - Добавить API endpoint для получения истории изменений маршрута
+
+=== END SESSION 4 ===
+
+=== SESSION 5 (Coder Agent) - PHASE 5 CONTINUED ===
+
+Started: 2026-01-27 13:00:00
+
+✅ subtask-5-3: Добавить API endpoint для получения истории изменений маршрута
+   - Added GET /v1/routes/{route_id}/history endpoint to src/api/routes.py
+   - Created Pydantic schemas: RouteChangeHistoryResponse and RouteHistoryListResponse
+   - Implemented access control: admin/dispatcher or driver's own routes only
+   - History returned in reverse chronological order (latest first)
+   - Includes: change type, changed field, old/new values (JSON), description, metadata, author info
+   - Added unit tests (3/3 passing) for schemas and endpoint structure
+   - Follows existing GET endpoint patterns (@router.get, response_model, 404/403 errors)
+   - No print/debug statements, proper error handling
+   - Git commit: 20bff12
+
+Progress: Phase 5 (Route History & Audit) - 3/3 COMPLETED ✅
+Phase Status: PHASE 5 FULLY COMPLETED ✅
+
+Overall Progress:
+  - Phase 1 (Database Schema): 4/4 COMPLETED ✅
+  - Phase 2 (Route Optimization Service): 3/3 COMPLETED ✅
+  - Phase 3 (Route Rebuild Service): 4/4 COMPLETED ✅
+  - Phase 4 (Notification Integration): 2/2 COMPLETED ✅
+  - Phase 5 (Route History & Audit): 3/3 COMPLETED ✅
+  - Phase 6 (Testing & Verification): 0/4 pending
+
+Next: Phase 6 (Testing & Verification) - subtask-6-1 - Unit тесты для RouteOptimizerService
+
+=== END SESSION 5 ===
