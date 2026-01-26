@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from src.schemas.driver import DriverResponse, DriverUpdate
+from src.schemas.driver import DriverResponse, DriverUpdate, OnboardingStatusResponse
 from src.database.models import Driver, DriverStatus
 from src.services.driver_service import DriverService
 from src.api.dependencies import get_driver_service, get_current_driver
@@ -31,5 +31,19 @@ async def update_my_status(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Водитель не найден"
         )
-    
+
     return updated_driver
+
+
+@router.get("/users/me/onboarding", response_model=OnboardingStatusResponse)
+async def get_my_onboarding_status(
+    current_driver: Driver = Depends(get_current_driver)
+):
+    """
+    Получить статус онбординга текущего пользователя.
+    """
+    return OnboardingStatusResponse(
+        onboarding_completed=current_driver.onboarding_completed,
+        onboarding_step=current_driver.onboarding_step,
+        onboarding_skipped=current_driver.onboarding_skipped
+    )
