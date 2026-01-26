@@ -427,7 +427,9 @@
             "command": "pytest tests/test_route_optimizer.py -v",
             "expected": "passed"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Написаны unit тесты для RouteOptimizerService (7 тестов, все passing). Тесты покрывают: подготовку точек оптимизации (test_prepare_optimization_points), TSP алгоритм nearest neighbour (test_solve_tsp_nearest_neighbor), обработку пустого списка точек (test_solve_tsp_no_points), выбор метрики оптимизации TIME vs DISTANCE (test_optimize_for_distance_vs_time), структуру OptimizationPoint (test_optimization_point_dataclass), структуру OptimizedRoute (test_optimized_route_dataclass), парсинг начальной точки из заказов (test_get_start_location_from_orders). Использованы pytest, AsyncMock, Mock следуя паттернам из test_geocoding.py. Примечание: интеграционные тесты основного метода optimize_route не добавлены из-за существующего circular import в кодовой базе (не связанного с изменениями). Верификация пройдена: 7 passed в 0.64s.",
+          "updated_at": "2026-01-27T13:15:00.000000+00:00"
         },
         {
           "id": "subtask-6-2",
