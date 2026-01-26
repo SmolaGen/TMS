@@ -296,12 +296,13 @@ class RouteRebuildService:
 
             await self.session.commit()
 
-            # 8. Отправить уведомление водителю
-            await self._notify_driver_updated(
-                driver_id=request.driver_id,
-                route=route,
-                points_count=len(optimized_route.points)
-            )
+            # 8. Отправить уведомление водителю об обновлении маршрута
+            if self.notification_service:
+                await self._notify_driver_updated(
+                    driver_id=request.driver_id,
+                    route=route,
+                    points_count=len(optimized_route.points)
+                )
 
             rebuild_time = (datetime.utcnow() - start_time).total_seconds()
 
@@ -514,9 +515,6 @@ class RouteRebuildService:
             route: Обновленный маршрут
             points_count: Количество точек в маршруте
         """
-        if not self.notification_service:
-            return
-
         try:
             distance_km = route.total_distance_meters / 1000 if route.total_distance_meters else 0
             duration_min = route.total_duration_seconds / 60 if route.total_duration_seconds else 0
