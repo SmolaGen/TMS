@@ -48,6 +48,15 @@ class DriverStatsResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class OnboardingStatusResponse(BaseModel):
+    """Статус онбординга водителя."""
+    onboarding_completed: bool = Field(False, description="Завершён ли онбординг")
+    onboarding_step: Optional[str] = Field(None, description="Текущий шаг онбординга")
+    onboarding_skipped: bool = Field(False, description="Пропустил ли онбординг")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class DriverWithStats(DriverResponse):
     """Водитель с краткой статистикой."""
     orders_today: int = 0
