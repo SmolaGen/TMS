@@ -85,3 +85,6 @@ Check_tg_app.md
 !.auto-claude/specs/
 !.auto-claude/roadmap/
 !.auto-claude/ideation/
+
+# Auto Claude data directory
+.auto-claude/
