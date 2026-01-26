@@ -163,10 +163,9 @@ export interface DriverStats {
 // Типы уведомлений
 export enum NotificationType {
   NEW_ORDER = 'new_order',
-  ORDER_STATUS_CHANGE = 'order_status_change',
-  ORDER_ASSIGNED = 'order_assigned',
-  ORDER_CANCELLED = 'order_cancelled',
-  DRIVER_LOCATION = 'driver_location',
+  STATUS_CHANGE = 'status_change',
+  DRIVER_ASSIGNMENT = 'driver_assignment',
+  ORDER_COMPLETION = 'order_completion',
   SYSTEM_ALERT = 'system_alert',
 }
 
@@ -180,7 +179,7 @@ export enum NotificationChannel {
 
 // Частота уведомлений
 export enum NotificationFrequency {
-  IMMEDIATE = 'immediate',
+  INSTANT = 'instant',
   HOURLY = 'hourly',
   DAILY = 'daily',
   DISABLED = 'disabled',
