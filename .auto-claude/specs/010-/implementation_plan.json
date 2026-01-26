@@ -249,7 +249,9 @@
             "url": "http://localhost:8000/v1/routes/{route_id}/rebuild",
             "expected_status": 200
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Добавлен POST /v1/routes/{route_id}/rebuild endpoint. Реализована проверка прав доступа, обработка ошибок, интеграция с RouteRebuildService. Endpoint поддерживает optional reason parameter и возвращает обновленные данные маршрута.",
+          "updated_at": "2026-01-27T10:30:00.000Z"
         },
         {
           "id": "subtask-3-4",
