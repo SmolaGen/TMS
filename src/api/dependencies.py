@@ -18,6 +18,7 @@ from src.services.urgent_assignment import UrgentAssignmentService
 from src.services.excel_import import ExcelImportService
 from src.services.webhook_service import WebhookService
 from src.services.route_optimizer import RouteOptimizerService
+from src.services.route_rebuild_service import RouteRebuildService
 from src.config import settings
 
 import jwt
@@ -195,3 +196,15 @@ async def get_route_optimizer_service(
 
     async with async_session_factory() as session:
         yield RouteOptimizerService(session, routing)
+
+
+async def get_route_rebuild_service(
+    routing: RoutingService = Depends(get_routing_service),
+    notification_service: NotificationService = Depends(get_notification_service)
+):
+    """Провайдер сервиса перестроения маршрутов."""
+    from src.database.connection import async_session_factory
+
+    async with async_session_factory() as session:
+        optimizer_service = RouteOptimizerService(session, routing)
+        yield RouteRebuildService(session, optimizer_service, notification_service)
