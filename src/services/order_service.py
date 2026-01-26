@@ -196,7 +196,7 @@ class OrderService:
                         
                         # Поскольку commit закрыл сессию, нам нужно открыть новую для назначения
                         from src.services.order_workflow import OrderWorkflowService
-                        workflow = OrderWorkflowService(self.uow)
+                        workflow = OrderWorkflowService(self.uow, routing_service=self.routing_service)
                         await workflow.assign_driver(order.id, driver_id)
                         
                         # Обновляем объект для ответа
