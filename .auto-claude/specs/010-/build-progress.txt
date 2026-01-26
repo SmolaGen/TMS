@@ -194,3 +194,52 @@ Progress: Phase 1 (Database Schema) - 3/4 subtasks completed
 Next: subtask-1-4 - Создать Alembic миграцию для новых таблиц
 
 === END SESSION 2 ===
+
+=== SESSION 3 (Coder Agent) - CONTINUED ===
+
+Started: 2026-01-27 11:00:00
+
+✅ subtask-1-4: Создать Alembic миграцию для новых таблиц
+   - Created migration: alembic/versions/20260127_0306_add_route_models.py
+   - Added tables: routes, route_points, route_change_history
+   - Added ENUM types: route_status, route_optimization_type, route_stop_type, route_change_type
+   - Migration includes type existence checks to avoid re-run errors
+   - Removed duplicate fix_migration_state.py
+   - Migration successfully applied to database
+   - Verification passed
+
+✅ subtask-2-1: Создать Pydantic схемы для route optimization
+   - Created src/schemas/route_optimizer.py with schemas:
+     - Location (geocoordinates)
+     - RouteOptimizeRequest (optimization request)
+     - RoutePointSchema (route point)
+     - RouteOptimizeResponse (optimized route response)
+     - RouteRebuildRequest/Response (rebuilding)
+   - All schemas follow project patterns: Russian descriptions, coordinate validation, ConfigDict(from_attributes=True)
+   - Updated src/schemas/__init__.py with exports
+   - Verification passed
+
+✅ subtask-2-2: Реализовать RouteOptimizerService с multi-stop TSP
+   - Implemented RouteOptimizerService with greedy Nearest Neighbour TSP algorithm
+   - Fixed bug in distance/time summation logic
+   - Created unit tests (7/7 passing)
+   - API endpoint implemented in src/api/routes.py
+   - Created documentation in route_optimizer_README.md
+   - Service integrated with RoutingService for OSRM routing
+   - Supports TIME and DISTANCE optimization metrics
+   - Verification passed
+
+✅ subtask-2-3: Добавить dependency для RouteOptimizerService
+   - Added RouteOptimizerService import to src/api/dependencies.py
+   - Created async provider function get_route_optimizer_service following pattern of other AsyncSession-dependent services
+   - Function accepts routing_service via Depends(get_routing_service)
+   - Creates AsyncSession for RouteOptimizerService
+   - Syntax verified (python -m py_compile)
+   - Tests passing (7/7)
+   - Circular import note: existing codebase issue, unrelated to changes
+
+Progress: Phase 1 (Database Schema) - 4/4 COMPLETED ✅
+         Phase 2 (Route Optimization Service) - 3/3 COMPLETED ✅
+Next: Phase 3 - subtask-3-1 - Создать RouteRebuildService с триггерами
+
+=== END SESSION 3 ===
