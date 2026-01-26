@@ -160,6 +160,64 @@ export interface DriverStats {
   total_distance_km: number;
 }
 
+// Типы уведомлений
+export enum NotificationType {
+  NEW_ORDER = 'new_order',
+  ORDER_STATUS_CHANGE = 'order_status_change',
+  ORDER_ASSIGNED = 'order_assigned',
+  ORDER_CANCELLED = 'order_cancelled',
+  DRIVER_LOCATION = 'driver_location',
+  SYSTEM_ALERT = 'system_alert',
+}
+
+// Каналы уведомлений
+export enum NotificationChannel {
+  TELEGRAM = 'telegram',
+  EMAIL = 'email',
+  IN_APP = 'in_app',
+  PUSH = 'push',
+}
+
+// Частота уведомлений
+export enum NotificationFrequency {
+  IMMEDIATE = 'immediate',
+  HOURLY = 'hourly',
+  DAILY = 'daily',
+  DISABLED = 'disabled',
+}
+
+// Профили пресетов настроек
+export enum PresetProfile {
+  MINIMAL = 'minimal',
+  STANDARD = 'standard',
+  MAXIMUM = 'maximum',
+}
+
+// Настройка уведомления
+export interface NotificationPreference {
+  id: number;
+  driver_id: number;
+  notification_type: NotificationType;
+  channel: NotificationChannel;
+  frequency: NotificationFrequency;
+  is_enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Запрос на обновление настройки уведомления
+export interface NotificationPreferenceUpdate {
+  notification_type: NotificationType;
+  channel: NotificationChannel;
+  frequency: NotificationFrequency;
+  is_enabled: boolean;
+}
+
+// Запрос на применение пресета
+export interface PresetRequest {
+  preset: PresetProfile;
+}
+
 // Стандартная ошибка API
 export interface ApiError {
   message: string;
