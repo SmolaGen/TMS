@@ -439,7 +439,13 @@ async def reverse_geocode(
 from src.schemas.routing import RouteResponse
 from src.services.routing import RoutingService, RouteNotFoundError, OSRMUnavailableError
 from src.api.dependencies import get_routing_service
-from src.schemas.route_optimizer import RouteOptimizeRequest, RouteOptimizeResponse, RouteRebuildRequest, RouteRebuildResponse
+from src.schemas.route_optimizer import (
+    RouteOptimizeRequest,
+    RouteOptimizeResponse,
+    RouteRebuildRequest,
+    RouteRebuildResponse,
+    RouteHistoryListResponse
+)
 from src.database.connection import get_db
 from src.services.route_rebuild_service import RouteRebuildService, RebuildTrigger, RebuildRequest
 
@@ -664,6 +670,71 @@ async def rebuild_route(
             created_at=updated_route.updated_at if hasattr(updated_route, 'updated_at') else updated_route.created_at
         )
 
+
+@router.get("/routes/{route_id}/history", response_model=RouteHistoryListResponse)
+async def get_route_history(
+    route_id: int,
+    current_driver: Driver = Depends(get_current_driver)
+):
+    """
+    Получить историю изменений маршрута.
+
+    Доступно администраторам, диспетчерам и водителю, которому принадлежит маршрут.
+    """
+    from src.database.models import UserRole, RouteChangeHistory
+    from src.schemas.route_optimizer import RouteChangeHistoryResponse
+
+    # Получаем маршрут из БД
+    async with get_db() as db:
+        route_result = await db.execute(
+            select(Route).where(Route.id == route_id)
+        )
+        route = route_result.scalar_one_or_none()
+
+        if not route:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Маршрут с id {route_id} не найден"
+            )
+
+        # Проверка прав доступа
+        if current_driver.role not in (UserRole.ADMIN, UserRole.DISPATCHER):
+            if route.driver_id != current_driver.id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Вы можете просматривать историю только своих маршрутов"
+                )
+
+        # Получаем историю изменений
+        history_result = await db.execute(
+            select(RouteChangeHistory)
+            .where(RouteChangeHistory.route_id == route_id)
+            .order_by(RouteChangeHistory.created_at.desc())
+        )
+        history_entries = history_result.scalars().all()
+
+        # Формируем ответ
+        changes = []
+        for entry in history_entries:
+            changes.append(RouteChangeHistoryResponse(
+                id=entry.id,
+                route_id=entry.route_id,
+                change_type=entry.change_type,
+                changed_field=entry.changed_field,
+                old_value=entry.old_value,
+                new_value=entry.new_value,
+                description=entry.description,
+                change_metadata=entry.change_metadata,
+                changed_by_id=entry.changed_by_id,
+                changed_by_name=entry.changed_by.name if entry.changed_by else None,
+                created_at=entry.created_at
+            ))
+
+        return RouteHistoryListResponse(
+            route_id=route_id,
+            total_changes=len(changes),
+            changes=changes
+        )
 
 
 # --- Batch Assignment ---
