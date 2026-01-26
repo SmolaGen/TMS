@@ -137,7 +137,7 @@ class Driver(Base):
     orders: Mapped[List["Order"]] = relationship(
         "Order",
         back_populates="driver",
-        lazy="selectin"
+        lazy="noload"  # Не загружаем автоматически для совместимости с текущей схемой БД
     )
     
     def __repr__(self) -> str:
