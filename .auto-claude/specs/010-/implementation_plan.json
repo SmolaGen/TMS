@@ -373,7 +373,9 @@
             "url": "http://localhost:8000/v1/routes/{route_id}/history",
             "expected_status": 200
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Интегрирован RouteHistoryService в RouteRebuildService. Добавлен параметр history_service в конструктор (опциональный). Реализована запись истории в следующих местах: 1) При создании нового маршрута (record_route_created), 2) При оптимизации маршрута (record_optimized) с метриками (distance, duration, points_count, trigger), 3) При изменении статуса с IN_PROGRESS на COMPLETED (record_status_changed), 4) При изменении статуса с PLANNED на IN_PROGRESS (record_status_changed). Все вызовы history_service обернуты в проверку if self.history_service: следуя паттерну BatchAssignmentService для опциональных зависимостей. Синтаксис проверен (python -m py_compile OK).",
+          "updated_at": "2026-01-27T12:30:00.000000+00:00"
         },
         {
           "id": "subtask-5-3",
