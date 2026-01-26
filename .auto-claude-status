@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "002-wait-time-analytics",
-  "state": "building",
+  "spec": "011-",
+  "state": "planning",
   "subtasks": {
-    "completed": 7,
-    "total": 9,
+    "completed": 0,
+    "total": 0,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Frontend Integration",
+    "current": "Database & Models",
     "id": null,
-    "total": 2
+    "total": 3
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 13,
-    "started_at": "2026-01-22T00:26:40.469298"
+    "number": 2,
+    "started_at": "2026-01-26T23:18:23.352376"
   },
-  "last_update": "2026-01-22T01:49:17.245208"
+  "last_update": "2026-01-26T23:22:35.315871"
 }
