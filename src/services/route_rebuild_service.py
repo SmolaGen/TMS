@@ -305,6 +305,17 @@ class RouteRebuildService:
 
             rebuild_time = (datetime.utcnow() - start_time).total_seconds()
 
+            # Мониторинг performance: предупреждение если > 5 секунд
+            if rebuild_time > 5.0:
+                logger.warning(
+                    "route_rebuild_slow",
+                    driver_id=request.driver_id,
+                    route_id=route.id,
+                    rebuild_time_seconds=rebuild_time,
+                    threshold_seconds=5.0,
+                    message=f"Перестроение маршрута заняло {rebuild_time:.2f}с (порог: 5с)"
+                )
+
             logger.info(
                 "route_rebuild_success",
                 driver_id=request.driver_id,
