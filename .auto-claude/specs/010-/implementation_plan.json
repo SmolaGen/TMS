@@ -472,7 +472,9 @@
               "Проверить историю изменений (GET /routes/{route_id}/history)"
             ]
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Создан end-to-end тест для проверки всего потока перестроения маршрута. Тест проверяет: (1) создание заказа напрямую в БД с использованием TimestamptzRange для time_range и Geometry POINT для pickup/dropoff locations, (2) вызов RouteRebuildService.on_order_assigned(), (3) создание/обновление маршрута в БД, (4) создание RoutePoint с корректными sequence и stop_type, (5) отправку уведомления через NotificationService, (6) вызов RouteOptimizerService, (7) запись истории через RouteHistoryService. Созданы 3 теста: test_e2e_create_order_and_rebuild_route (основной E2E сценарий с проверкой всех шагов), test_e2e_multiple_orders_rebuild (несколько заказов для одного водителя), test_e2e_rebuild_records_history (проверка записи истории). Использованы fixtures: db_session (transactional сессия с rollback), test_driver (с генерацией уникального telegram_id), mock_routing_service, mock_notification_service, mock_optimizer_service. Тест использует transactional rollback для очистки данных после выполнения. Примечание: тест требует актуальной схемы БД с lifecycle полями (assigned_at и т.д.), в противном случае возникнет ошибка UndefinedColumnError.",
+          "updated_at": "2026-01-27T15:16:00.000000+00:00"
         },
         {
           "id": "subtask-6-4",
