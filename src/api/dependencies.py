@@ -17,6 +17,7 @@ from src.services.notification_service import NotificationService
 from src.services.urgent_assignment import UrgentAssignmentService
 from src.services.excel_import import ExcelImportService
 from src.services.webhook_service import WebhookService
+from src.services.route_optimizer import RouteOptimizerService
 from src.config import settings
 
 import jwt
@@ -183,3 +184,13 @@ async def get_batch_assignment_service(
 
     async with async_session_factory() as session:
         yield BatchAssignmentService(session, order_service, notification_service)
+
+
+async def get_route_optimizer_service(
+    routing: RoutingService = Depends(get_routing_service)
+) -> RouteOptimizerService:
+    """Провайдер сервиса оптимизации маршрутов."""
+    from src.database.connection import async_session_factory
+
+    async with async_session_factory() as session:
+        yield RouteOptimizerService(session, routing)
