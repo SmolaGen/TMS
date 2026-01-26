@@ -42,10 +42,9 @@ interface NotificationSettings {
 
 const NOTIFICATION_TYPES: { key: NotificationType; label: string }[] = [
     { key: NotificationType.NEW_ORDER, label: 'Новый заказ' },
-    { key: NotificationType.ORDER_STATUS_CHANGE, label: 'Изменение статуса заказа' },
-    { key: NotificationType.ORDER_ASSIGNED, label: 'Назначение заказа' },
-    { key: NotificationType.ORDER_CANCELLED, label: 'Отмена заказа' },
-    { key: NotificationType.DRIVER_LOCATION, label: 'Локация водителя' },
+    { key: NotificationType.STATUS_CHANGE, label: 'Изменение статуса заказа' },
+    { key: NotificationType.DRIVER_ASSIGNMENT, label: 'Назначение водителя' },
+    { key: NotificationType.ORDER_COMPLETION, label: 'Завершение заказа' },
     { key: NotificationType.SYSTEM_ALERT, label: 'Системные оповещения' },
 ];
 
@@ -57,7 +56,7 @@ const NOTIFICATION_CHANNELS: { key: NotificationChannel; label: string; icon: st
 ];
 
 const FREQUENCY_OPTIONS: { key: NotificationFrequency; label: string }[] = [
-    { key: NotificationFrequency.IMMEDIATE, label: 'Мгновенно' },
+    { key: NotificationFrequency.INSTANT, label: 'Мгновенно' },
     { key: NotificationFrequency.HOURLY, label: 'Раз в час' },
     { key: NotificationFrequency.DAILY, label: 'Раз в день' },
     { key: NotificationFrequency.DISABLED, label: 'Отключено' },
@@ -111,7 +110,7 @@ export const NotificationPreferences: React.FC<NotificationPreferencesProps> = (
                 transformedSettings[key] = {
                     enabled: enabledChannels.length > 0,
                     channels: enabledChannels,
-                    frequency: typePrefs.find(p => p.is_enabled)?.frequency || NotificationFrequency.IMMEDIATE,
+                    frequency: typePrefs.find(p => p.is_enabled)?.frequency || NotificationFrequency.INSTANT,
                 };
             });
 
@@ -138,7 +137,7 @@ export const NotificationPreferences: React.FC<NotificationPreferencesProps> = (
                 transformedSettings[key] = {
                     enabled: enabledChannels.length > 0,
                     channels: enabledChannels,
-                    frequency: typePrefs.find(p => p.is_enabled)?.frequency || NotificationFrequency.IMMEDIATE,
+                    frequency: typePrefs.find(p => p.is_enabled)?.frequency || NotificationFrequency.INSTANT,
                 };
             });
 
