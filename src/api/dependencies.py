@@ -145,10 +145,11 @@ def get_webhook_service() -> WebhookService:
 def get_order_workflow_service(
     uow: SQLAlchemyUnitOfWork = Depends(get_uow),
     webhook_service: WebhookService = Depends(get_webhook_service),
-    notification_service: NotificationService = Depends(get_notification_service)
+    notification_service: NotificationService = Depends(get_notification_service),
+    routing: RoutingService = Depends(get_routing_service)
 ) -> OrderWorkflowService:
     """Провайдер сервиса управления жизненным циклом заказов."""
-    return OrderWorkflowService(uow, webhook_service, notification_service)
+    return OrderWorkflowService(uow, webhook_service, notification_service, routing)
 
 
 def get_routing_service() -> RoutingService:
