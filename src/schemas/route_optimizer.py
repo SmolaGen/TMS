@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, Field, ConfigDict
 
-from src.database.models import RouteOptimizationType, RouteStopType, RouteStatus
+from src.database.models import RouteOptimizationType, RouteStopType, RouteStatus, RouteChangeType
 
 
 class Location(BaseModel):
@@ -78,3 +78,27 @@ class RouteRebuildResponse(BaseModel):
     created_at: datetime = Field(..., description="Время последнего обновления")
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class RouteChangeHistoryResponse(BaseModel):
+    """Запись об изменении маршрута."""
+    id: int = Field(..., description="ID записи истории")
+    route_id: int = Field(..., description="ID маршрута")
+    change_type: RouteChangeType = Field(..., description="Тип изменения")
+    changed_field: Optional[str] = Field(None, description="Название изменённого поля")
+    old_value: Optional[str] = Field(None, description="Значение до изменения (JSON)")
+    new_value: Optional[str] = Field(None, description="Значение после изменения (JSON)")
+    description: Optional[str] = Field(None, description="Описание изменения")
+    change_metadata: Optional[str] = Field(None, description="Дополнительные метаданные (JSON)")
+    changed_by_id: Optional[int] = Field(None, description="ID пользователя, внесшего изменение")
+    changed_by_name: Optional[str] = Field(None, description="Имя пользователя, внесшего изменение")
+    created_at: datetime = Field(..., description="Время внесения изменения")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class RouteHistoryListResponse(BaseModel):
+    """Список изменений маршрута."""
+    route_id: int = Field(..., description="ID маршрута")
+    total_changes: int = Field(..., description="Общее количество изменений")
+    changes: List[RouteChangeHistoryResponse] = Field(..., description="Список изменений")
