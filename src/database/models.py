@@ -67,6 +67,20 @@ class UserRole(str, PyEnum):
     PENDING = "pending"        # Ожидает одобрения
 
 
+class RouteStatus(str, PyEnum):
+    """Статусы маршрута."""
+    PLANNED = "planned"        # Запланирован
+    IN_PROGRESS = "in_progress" # В выполнении
+    COMPLETED = "completed"    # Завершён
+    CANCELLED = "cancelled"    # Отменён
+
+
+class RouteOptimizationType(str, PyEnum):
+    """Тип оптимизации маршрута."""
+    TIME = "time"              # Оптимизация по времени
+    DISTANCE = "distance"      # Оптимизация по расстоянию
+
+
 class Driver(Base):
     """
     Модель водителя.
@@ -124,7 +138,12 @@ class Driver(Base):
         back_populates="driver",
         lazy="selectin"
     )
-    
+    routes: Mapped[List["Route"]] = relationship(
+        "Route",
+        back_populates="driver",
+        lazy="selectin"
+    )
+
     def __repr__(self) -> str:
         return f"<Driver(id={self.id}, name='{self.name}', status={self.status.value})>"
 
@@ -366,7 +385,88 @@ class DriverLocationHistory(Base):
     )
     
     driver: Mapped["Driver"] = relationship("Driver", backref="location_history")
-    
+
     __table_args__ = (
         Index("ix_driver_location_time", "driver_id", "recorded_at"),
     )
+
+
+class Route(Base):
+    """
+    Модель multi-stop маршрута.
+
+    Маршрут объединяет несколько заказов для одного водителя,
+    оптимизируя последовательность выполнения точек.
+    """
+    __tablename__ = "routes"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    driver_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("drivers.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+        comment="FK на водителя"
+    )
+    status: Mapped[RouteStatus] = mapped_column(
+        Enum(RouteStatus, name="route_status",
+             values_callable=lambda x: [e.value for e in x]),
+        default=RouteStatus.PLANNED,
+        server_default=text("'planned'"),
+        comment="Статус маршрута"
+    )
+    optimization_type: Mapped[RouteOptimizationType] = mapped_column(
+        Enum(RouteOptimizationType, name="route_optimization_type",
+             values_callable=lambda x: [e.value for e in x]),
+        default=RouteOptimizationType.TIME,
+        server_default=text("'time'"),
+        comment="Тип оптимизации (время/расстояние)"
+    )
+
+    # Рассчитанные метрики маршрута
+    total_distance_meters: Mapped[Optional[float]] = mapped_column(
+        nullable=True,
+        comment="Общая дистанция маршрута в метрах"
+    )
+    total_duration_seconds: Mapped[Optional[float]] = mapped_column(
+        nullable=True,
+        comment="Общее время маршрута в секундах"
+    )
+
+    # Временные метки жизненного цикла маршрута
+    started_at: Mapped[Optional[datetime]] = mapped_column(
+        nullable=True,
+        comment="Время начала выполнения маршрута"
+    )
+    completed_at: Mapped[Optional[datetime]] = mapped_column(
+        nullable=True,
+        comment="Время завершения маршрута"
+    )
+    cancelled_at: Mapped[Optional[datetime]] = mapped_column(
+        nullable=True,
+        comment="Время отмены маршрута"
+    )
+    cancellation_reason: Mapped[Optional[str]] = mapped_column(
+        Text,
+        nullable=True,
+        comment="Причина отмены маршрута"
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        default=datetime.utcnow,
+        server_default=text("CURRENT_TIMESTAMP")
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        default=datetime.utcnow,
+        server_default=text("CURRENT_TIMESTAMP"),
+        onupdate=datetime.utcnow
+    )
+
+    # Relationships
+    driver: Mapped[Optional["Driver"]] = relationship(
+        "Driver",
+        back_populates="routes",
+        lazy="joined"
+    )
+
+    def __repr__(self) -> str:
+        return f"<Route(id={self.id}, driver_id={self.driver_id}, status={self.status.value})>"
