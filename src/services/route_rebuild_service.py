@@ -19,6 +19,7 @@ from src.database.models import (
 )
 from src.services.route_optimizer import RouteOptimizerService
 from src.services.notification_service import NotificationService
+from src.services.route_history_service import RouteHistoryService
 from src.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -86,7 +87,8 @@ class RouteRebuildService:
         self,
         session: AsyncSession,
         optimizer_service: RouteOptimizerService,
-        notification_service: Optional[NotificationService] = None
+        notification_service: Optional[NotificationService] = None,
+        history_service: Optional[RouteHistoryService] = None
     ):
         """
         Инициализация сервиса.
@@ -95,10 +97,12 @@ class RouteRebuildService:
             session: Async сессия SQLAlchemy
             optimizer_service: Сервис оптимизации маршрутов
             notification_service: Опциональный сервис уведомлений
+            history_service: Опциональный сервис истории изменений
         """
         self.session = session
         self.optimizer_service = optimizer_service
         self.notification_service = notification_service
+        self.history_service = history_service
 
     async def on_order_assigned(self, order_id: int, driver_id: int) -> RebuildResponse:
         """
@@ -238,8 +242,20 @@ class RouteRebuildService:
                 )
                 # Если нет заказов, отметить маршрут как завершенный
                 if route and route.status == RouteStatus.IN_PROGRESS:
+                    old_status = route.status
                     route.status = RouteStatus.COMPLETED
                     route.completed_at = datetime.utcnow()
+
+                    # Записываем изменение статуса в историю
+                    if self.history_service:
+                        await self.history_service.record_status_changed(
+                            route_id=route.id,
+                            old_status=old_status.value,
+                            new_status=RouteStatus.COMPLETED.value,
+                            changed_by_id=request.driver_id,
+                            metadata={"reason": "Нет активных заказов"}
+                        )
+
                     await self.session.commit()
 
                 return RebuildResponse(
@@ -284,6 +300,20 @@ class RouteRebuildService:
             route.total_duration_seconds = optimized_route.duration_seconds
             route.optimization_type = RouteOptimizationType.TIME
 
+            # Записываем оптимизацию в историю
+            if self.history_service:
+                await self.history_service.record_optimized(
+                    route_id=route.id,
+                    optimization_type=RouteOptimizationType.TIME.value,
+                    metrics={
+                        "distance_meters": optimized_route.distance_meters,
+                        "duration_seconds": optimized_route.duration_seconds,
+                        "points_count": len(optimized_route.points),
+                        "trigger": request.trigger.value
+                    },
+                    changed_by_id=request.driver_id
+                )
+
             # Если маршрут в статусе PLANNED и есть заказы в работе, перевести в IN_PROGRESS
             if route.status == RouteStatus.PLANNED:
                 any_in_progress = any(
@@ -291,8 +321,19 @@ class RouteRebuildService:
                     for o in active_orders
                 )
                 if any_in_progress:
+                    old_status = route.status
                     route.status = RouteStatus.IN_PROGRESS
                     route.started_at = datetime.utcnow()
+
+                    # Записываем изменение статуса в историю
+                    if self.history_service:
+                        await self.history_service.record_status_changed(
+                            route_id=route.id,
+                            old_status=old_status.value,
+                            new_status=RouteStatus.IN_PROGRESS.value,
+                            changed_by_id=request.driver_id,
+                            metadata={"reason": "Начало выполнения заказа"}
+                        )
 
             await self.session.commit()
 
@@ -391,6 +432,17 @@ class RouteRebuildService:
             await self.session.flush()
 
             logger.info("created_new_route", driver_id=driver_id, route_id=route.id)
+
+            # Записываем в историю
+            if self.history_service:
+                await self.history_service.record_route_created(
+                    route_id=route.id,
+                    changed_by_id=driver_id,
+                    metadata={
+                        "driver_id": driver_id,
+                        "optimization_type": RouteOptimizationType.TIME.value
+                    }
+                )
 
         return route
 
