@@ -269,7 +269,9 @@
             "command": "python -c \"from src.services.route_rebuild_service import RouteRebuildService; print('Performance monitoring enabled')\"",
             "expected": "Performance monitoring enabled"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Добавлен мониторинг performance в метод rebuild_route. После вычисления rebuild_time выполняется проверка: если время > 5.0 секунд, логируется предупреждение с метриками (rebuild_time_seconds, threshold_seconds) и описанием проблемы. Используется logger.warning для алертинга. Следует паттерну get_logger из src/core/logging.py. Верификация пройдена успешно (AST анализ подтверждает наличие проверки rebuild_time > 5.0).",
+          "updated_at": "2026-01-27T11:30:00.000000+00:00"
         }
       ]
     },
