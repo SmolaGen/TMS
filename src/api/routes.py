@@ -437,6 +437,8 @@ async def reverse_geocode(
 from src.schemas.routing import RouteResponse
 from src.services.routing import RoutingService, RouteNotFoundError, OSRMUnavailableError
 from src.api.dependencies import get_routing_service
+from src.schemas.route_optimizer import RouteOptimizeRequest, RouteOptimizeResponse
+from src.database.connection import get_db
 
 @router.get("/routing/route", response_model=RouteResponse)
 async def get_route(
@@ -479,6 +481,89 @@ async def get_route(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Сервис маршрутизации временно недоступен"
         )
+
+
+@router.post("/routes/optimize", response_model=RouteOptimizeResponse)
+async def optimize_route(
+    request: RouteOptimizeRequest,
+    current_driver: Driver = Depends(get_current_driver)
+):
+    """
+    Оптимизировать multi-stop маршрут для водителя.
+
+    Создаёт оптимальный маршрут для выполнения указанных заказов,
+    используя алгоритм решения задачи коммивояжёра (TSP).
+    """
+    from src.services.route_optimizer import RouteOptimizerService
+    from src.services.route_optimizer import DriverNotFoundError, OrdersNotFoundError, NoValidRouteError
+
+    async with get_db() as db:
+        try:
+            service = RouteOptimizerService(session=db)
+            route = await service.optimize_route(
+                driver_id=request.driver_id,
+                order_ids=request.order_ids,
+                start_location=(request.start_location.lon, request.start_location.lat) if request.start_location else None,
+                optimize_for=request.optimize_for
+            )
+
+            # Загружаем связи для ответа
+            await db.refresh(route)
+
+            # Формируем ответ
+            from src.schemas.route_optimizer import RoutePointSchema, Location
+
+            points_schema = [
+                RoutePointSchema(
+                    id=rp.id,
+                    sequence=rp.sequence,
+                    location=Location(lat=rp.lat, lon=rp.lon) if rp.lat and rp.lon else None,
+                    address=rp.address,
+                    order_id=rp.order_id,
+                    stop_type=rp.stop_type,
+                    estimated_arrival=rp.estimated_arrival,
+                    note=rp.note
+                )
+                for rp in route.route_points
+            ]
+
+            return RouteOptimizeResponse(
+                route_id=route.id,
+                driver_id=route.driver_id or 0,
+                status=route.status,
+                optimization_type=route.optimization_type,
+                total_distance_meters=route.total_distance_meters or 0,
+                total_distance_km=(route.total_distance_meters or 0) / 1000,
+                total_duration_seconds=route.total_duration_seconds or 0,
+                total_duration_minutes=(route.total_duration_seconds or 0) / 60,
+                points=points_schema,
+                created_at=route.created_at,
+                started_at=route.started_at,
+                completed_at=route.completed_at
+            )
+
+        except DriverNotFoundError:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Водитель с id {request.driver_id} не найден"
+            )
+        except OrdersNotFoundError as e:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=str(e)
+            )
+        except NoValidRouteError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
+        except Exception as e:
+            logger.error(f"Route optimization failed: {e}", exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Ошибка при оптимизации маршрута"
+            )
+
 
 
 # --- Batch Assignment ---

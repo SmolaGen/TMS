@@ -1,0 +1,611 @@
+{
+  "feature": "Динамическое перестроение маршрутов в реальном времени",
+  "description": "# Динамическое перестроение маршрутов в реальном времени\n\nАвтоматическое перестроение маршрутов при изменении условий: новые заказы, отмены, изменения статусов, пробки\n\n## Rationale\nЯндекс.Маршрутизация и OptimoRoute критикуются за отсутствие возможности мгновенно изменить построенные маршруты. Динамическая адаптация критична для гибких операций\n\n## User Stories\n- Как диспетчер, я хочу добавлять срочные заказы в существующие маршруты, чтобы быстро реагировать на запросы\n- Как водитель, я хочу получать обновлённые маршруты при изменении ситуации, чтобы работать эффективно\n\n## Acceptance Criteria\n- [ ] Маршрут автоматически перестраивается при добавлении нового заказа\n- [ ] При отмене заказа маршрут оптимизируется без этой точки\n- [ ] Учитываются изменения трафика для корректировки маршрута\n- [ ] Водитель получает уведомление об изменении маршрута через Telegram\n- [ ] Перестроение происходит за < 5 секунд\n- [ ] История изменений маршрута сохраняется для аудита\n",
+  "workflow_type": "feature",
+  "workflow_rationale": "Это feature workflow, так как мы добавляем новую функциональность (multi-stop route optimization) к существующей системе. Фазы следуют зависимостям: сначала схема БД, потом алгоритмы оптимизации, потом event-driven триггеры, затем API и интеграция с уведомлениями.",
+  "created_at": "2026-01-26T06:23:56.189Z",
+  "updated_at": "2026-01-27T10:00:00.000Z",
+  "status": "pending",
+  "phases": [
+    {
+      "id": "phase-1-database",
+      "name": "Database Schema",
+      "type": "implementation",
+      "description": "Создать модели для multi-stop маршрутов и истории изменений",
+      "depends_on": [],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-1-1",
+          "description": "Создать модель Route для multi-stop маршрутов",
+          "service": "backend",
+          "files_to_modify": [
+            "src/database/models.py"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/database/models.py (существующие Order, Driver модели)"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "python -c \"from src.database.models import Route; print('Route model imported successfully')\"",
+            "expected": "Route model imported successfully"
+          },
+          "status": "completed",
+          "notes": "Создана модель Route с полями: id, driver_id, status (enum), optimization_type (enum), total_distance_meters, total_duration_seconds, временные метки жизненного цикла, created_at/updated_at. Добавлены enum'ы RouteStatus и RouteOptimizationType. Обратная связь добавлена в модель Driver. Верификация пройдена успешно.",
+          "updated_at": "2026-01-26T16:59:59.526019+00:00"
+        },
+        {
+          "id": "subtask-1-2",
+          "description": "Создать модель RoutePoint для точек маршрута с sequence order",
+          "service": "backend",
+          "files_to_modify": [
+            "src/database/models.py"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/database/models.py (существующие Order модели с GeoAlchemy2)"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "python -c \"from src.database.models import RoutePoint; print('RoutePoint model imported successfully')\"",
+            "expected": "RoutePoint model imported successfully"
+          },
+          "status": "completed",
+          "notes": "Создана модель RoutePoint с полями: id, route_id (FK с CASCADE), sequence, location (Geometry POINT), address, order_id (FK с SET NULL), stop_type (enum RouteStopType), estimated_arrival, actual_arrival, is_completed, note. Добавлены свойства lat/lon для работы с GeoAlchemy2. Создан enum RouteStopType (PICKUP, DROPOFF, BREAK, FUEL, OTHER). Добавлен индекс на route_id + sequence для оптимизации запросов. Обновлены связи в моделях Route (route_points) и Order (route_points). Верификация пройдена успешно.",
+          "updated_at": "2026-01-27T10:15:00.000000+00:00"
+        },
+        {
+          "id": "subtask-1-3",
+          "description": "Создать модель RouteChangeHistory для аудита изменений",
+          "service": "backend",
+          "files_to_modify": [
+            "src/database/models.py"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/database/models.py (существующие модели с timestamps)"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "python -c \"from src.database.models import RouteChangeHistory; print('RouteChangeHistory model imported successfully')\"",
+            "expected": "RouteChangeHistory model imported successfully"
+          },
+          "status": "completed",
+          "notes": "Создан enum RouteChangeType с типами изменений: CREATED, STATUS_CHANGED, DRIVER_ASSIGNED, POINT_ADDED, POINT_REMOVED, POINT_REORDERED, OPTIMIZED, CANCELLED, COMPLETED. Создана модель RouteChangeHistory с полями: id, route_id (FK с CASCADE), change_type (enum), changed_by_id (FK на Driver с SET NULL), changed_field, old_value, new_value (Text для JSON), description, change_metadata, created_at с индексом. Добавлены relationships в Route (change_history) и双向 связь через back_populates. Добавлен составной индекс на route_id + created_at для оптимизации запросов истории. Верификация пройдена успешно.",
+          "updated_at": "2026-01-27T10:20:00.000000+00:00"
+        },
+        {
+          "id": "subtask-1-4",
+          "description": "Создать Alembic миграцию для новых таблиц",
+          "service": "backend",
+          "files_to_modify": [],
+          "files_to_create": [
+            "alembic/versions/YYYYMMDD_HHMM_add_route_models.py"
+          ],
+          "patterns_from": [
+            "alembic/versions/* (существующие миграции)"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "alembic upgrade head && python -c \"from src.database.models import Route, RoutePoint, RouteChangeHistory; print('Migration successful')\"",
+            "expected": "Migration successful"
+          },
+          "status": "completed",
+          "notes": "Создана миграция 20260127_0306_add_route_models.py для добавления таблиц routes, route_points, route_change_history. Созданы ENUM типы: route_status, route_optimization_type, route_stop_type, route_change_type. Миграция включает проверки существования типов перед созданием для избежания ошибок при повторном применении. Удалена дублирующая миграция fix_migration_state.py. Миграция успешно применена к базе данных. Все таблицы и типы созданы корректно. Модели Route, RoutePoint, RouteChangeHistory успешно импортируются.",
+          "updated_at": "2026-01-27T10:30:00.000000+00:00"
+        }
+      ]
+    },
+    {
+      "id": "phase-2-optimization",
+      "name": "Route Optimization Service",
+      "type": "implementation",
+      "description": "Реализовать алгоритм multi-stop route оптимизации (TSP solver)",
+      "depends_on": [
+        "phase-1-database"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-2-1",
+          "description": "Создать Pydantic схемы для route optimization запросов/ответов",
+          "service": "backend",
+          "files_to_modify": [],
+          "files_to_create": [
+            "src/schemas/route_optimizer.py"
+          ],
+          "patterns_from": [
+            "src/schemas/routing.py (существующие RouteRequest/RouteResponse)"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "python -c \"from src.schemas.route_optimizer import RouteOptimizeRequest, RouteOptimizeResponse; print('Schemas imported')\"",
+            "expected": "Schemas imported"
+          },
+          "status": "completed",
+          "notes": "Создан файл src/schemas/route_optimizer.py со схемами: Location (геокоординаты), RouteOptimizeRequest (запрос на оптимизацию), RoutePointSchema (точка маршрута), RouteOptimizeResponse (ответ с оптимизированным маршрутом), RouteRebuildRequest/Response (перестроение). Все схемы следуют паттернам проекта: описания на русском, валидация координат, ConfigDict(from_attributes=True). Обновлён src/schemas/__init__.py с экспортом новых схем. Верификация пройдена успешно.",
+          "updated_at": "2026-01-27T10:35:00.000000+00:00"
+        },
+        {
+          "id": "subtask-2-2",
+          "description": "Реализовать RouteOptimizerService с multi-stop TSP алгоритмом",
+          "service": "backend",
+          "files_to_modify": [],
+          "files_to_create": [
+            "src/services/route_optimizer.py"
+          ],
+          "patterns_from": [
+            "src/services/routing.py (существующий RoutingService паттерн)"
+          ],
+          "verification": {
+            "type": "api",
+            "method": "POST",
+            "url": "http://localhost:8000/v1/routes/optimize",
+            "body": {
+              "driver_id": 1,
+              "order_ids": [
+                1,
+                2,
+                3
+              ],
+              "start_location": {
+                "lat": 43.115,
+                "lon": 131.886
+              },
+              "optimize_for": "time"
+            },
+            "expected_status": 200
+          },
+          "status": "completed",
+          "notes": "Реализован RouteOptimizerService с multi-stop TSP алгоритмом (жадный Nearest Neighbour). Исправлен баг в логике суммирования дистанции/времени. Созданы unit тесты (7/7 passing). API endpoint реализован в src/api/routes.py. Создана документация в route_optimizer_README.md. Сервис интегрирован с RoutingService для OSRM маршрутизации. Поддерживаются метрики оптимизации TIME и DISTANCE.",
+          "updated_at": "2026-01-27T10:45:00.000000+00:00"
+        },
+        {
+          "id": "subtask-2-3",
+          "description": "Добавить dependency для RouteOptimizerService в api/dependencies.py",
+          "service": "backend",
+          "files_to_modify": [
+            "src/api/dependencies.py"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/api/dependencies.py (существующие get_*_service функции)"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "python -c \"from src.api.dependencies import get_route_optimizer_service; print('Dependency registered')\"",
+            "expected": "Dependency registered"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-3-rebuild",
+      "name": "Route Rebuild Service",
+      "type": "implementation",
+      "description": "Реализовать event-driven сервис для автоматического перестроения маршрутов",
+      "depends_on": [
+        "phase-2-optimization"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-3-1",
+          "description": "Создать RouteRebuildService с триггерами на события заказов",
+          "service": "backend",
+          "files_to_modify": [],
+          "files_to_create": [
+            "src/services/route_rebuild_service.py"
+          ],
+          "patterns_from": [
+            "src/services/batch_assignment.py (BatchAssignmentService паттерн), src/services/order_workflow.py"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "python -c \"from src.services.route_rebuild_service import RouteRebuildService; print('RouteRebuildService imported')\"",
+            "expected": "RouteRebuildService imported"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-3-2",
+          "description": "Интегрировать RouteRebuildService в OrderWorkflowService (создание, отмена заказов)",
+          "service": "backend",
+          "files_to_modify": [
+            "src/services/order_workflow.py"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/services/order_workflow.py (существующие workflow методы)"
+          ],
+          "verification": {
+            "type": "manual",
+            "instructions": "Создать заказ через API, проверить что RouteRebuildService вызывается для перестроения маршрута"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-3-3",
+          "description": "Добавить API endpoint для ручного триггера перестроения маршрута",
+          "service": "backend",
+          "files_to_modify": [
+            "src/api/routes.py"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/api/routes.py (существующие POST /orders/* endpoints)"
+          ],
+          "verification": {
+            "type": "api",
+            "method": "POST",
+            "url": "http://localhost:8000/v1/routes/{route_id}/rebuild",
+            "expected_status": 200
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-3-4",
+          "description": "Добавить мониторинг performance (проверка <5 секунд)",
+          "service": "backend",
+          "files_to_modify": [
+            "src/services/route_rebuild_service.py"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/core/logging.py (get_logger паттерн)"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "python -c \"from src.services.route_rebuild_service import RouteRebuildService; print('Performance monitoring enabled')\"",
+            "expected": "Performance monitoring enabled"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-4-notifications",
+      "name": "Notification Integration",
+      "type": "implementation",
+      "description": "Добавить Telegram уведомления об изменениях маршрутов",
+      "depends_on": [
+        "phase-3-rebuild"
+      ],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-4-1",
+          "description": "Добавить метод notify_route_updated в NotificationService",
+          "service": "backend",
+          "files_to_modify": [
+            "src/services/notification_service.py"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/services/notification_service.py (существующие notify_order_assigned, notify_order_cancelled)"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "python -c \"from src.services.notification_service import NotificationService; print(hasattr(NotificationService, 'notify_route_updated') and 'notify_route_updated exists' or 'Method not found')\"",
+            "expected": "notify_route_updated exists"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-4-2",
+          "description": "Интегрировать уведомления в RouteRebuildService после перестроения",
+          "service": "backend",
+          "files_to_modify": [
+            "src/services/route_rebuild_service.py"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/services/batch_assignment.py (интеграция с NotificationService)"
+          ],
+          "verification": {
+            "type": "manual",
+            "instructions": "Перестроить маршрут, проверить Telegram уведомление водителю"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-5-history",
+      "name": "Route History & Audit",
+      "type": "implementation",
+      "description": "Реализовать сохранение истории изменений маршрутов",
+      "depends_on": [
+        "phase-3-rebuild"
+      ],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-5-1",
+          "description": "Создать RouteHistoryService для записи изменений",
+          "service": "backend",
+          "files_to_modify": [],
+          "files_to_create": [
+            "src/services/route_history_service.py"
+          ],
+          "patterns_from": [
+            "src/services/routing.py (простой сервис с зависимостями)"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "python -c \"from src.services.route_history_service import RouteHistoryService; print('RouteHistoryService imported')\"",
+            "expected": "RouteHistoryService imported"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-5-2",
+          "description": "Интегрировать сохранение истории в RouteRebuildService",
+          "service": "backend",
+          "files_to_modify": [
+            "src/services/route_rebuild_service.py"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/services/route_rebuild_service.py (вызовы сервисов)"
+          ],
+          "verification": {
+            "type": "api",
+            "method": "GET",
+            "url": "http://localhost:8000/v1/routes/{route_id}/history",
+            "expected_status": 200
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-5-3",
+          "description": "Добавить API endpoint для получения истории изменений маршрута",
+          "service": "backend",
+          "files_to_modify": [
+            "src/api/routes.py"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/api/routes.py (существующие GET endpoints)"
+          ],
+          "verification": {
+            "type": "api",
+            "method": "GET",
+            "url": "http://localhost:8000/v1/routes/{route_id}/history",
+            "expected_status": 200
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-6-testing",
+      "name": "Testing & Verification",
+      "type": "integration",
+      "description": "Написать тесты и верифицировать все компоненты",
+      "depends_on": [
+        "phase-4-notifications",
+        "phase-5-history"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-6-1",
+          "description": "Написать unit тесты для RouteOptimizerService",
+          "service": "backend",
+          "files_to_modify": [],
+          "files_to_create": [
+            "tests/test_route_optimizer.py"
+          ],
+          "patterns_from": [
+            "tests/test_geocoding.py (pytest с AsyncMock)"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "pytest tests/test_route_optimizer.py -v",
+            "expected": "passed"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-6-2",
+          "description": "Написать unit тесты для RouteRebuildService",
+          "service": "backend",
+          "files_to_modify": [],
+          "files_to_create": [
+            "tests/test_route_rebuild.py"
+          ],
+          "patterns_from": [
+            "tests/test_geocoding.py (pytest с AsyncMock)"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "pytest tests/test_route_rebuild.py -v",
+            "expected": "passed"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-6-3",
+          "description": "E2E тест: создать заказ → триггер rebuild → проверить уведомление",
+          "service": "backend",
+          "files_to_modify": [],
+          "files_to_create": [
+            "tests/test_route_rebuild_e2e.py"
+          ],
+          "patterns_from": [
+            "tests/test_ingest_worker.py (интеграционные тесты)"
+          ],
+          "verification": {
+            "type": "e2e",
+            "steps": [
+              "Создать заказ через POST /orders",
+              "Подождать триггера rebuild",
+              "Проверить что маршрут перестроен (GET /routes/{driver_id})",
+              "Проверить Telegram уведомление в логах",
+              "Проверить историю изменений (GET /routes/{route_id}/history)"
+            ]
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-6-4",
+          "description": "Performance тест: убедиться что rebuild < 5 секунд",
+          "service": "backend",
+          "files_to_modify": [],
+          "files_to_create": [
+            "tests/test_route_performance.py"
+          ],
+          "patterns_from": [
+            "tests/ (pytest benchmarks)"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "pytest tests/test_route_performance.py -v",
+            "expected": "Rebuild time < 5 seconds"
+          },
+          "status": "pending"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_phases": 6,
+    "total_subtasks": 20,
+    "services_involved": [
+      "backend"
+    ],
+    "parallelism": {
+      "max_parallel_phases": 2,
+      "parallel_groups": [
+        {
+          "phases": [
+            "phase-4-notifications",
+            "phase-5-history"
+          ],
+          "reason": "Обе фазы зависят только от phase-3-rebuild и работают с разными файлами (notifications vs history)"
+        }
+      ],
+      "recommended_workers": 2,
+      "speedup_estimate": "1.3x быстрее чем последовательное выполнение"
+    },
+    "startup_command": "cd /Users/alsmolentsev/tms_new/.auto-claude/worktrees/tasks/010-63ab6c && source .venv/bin/activate && python -m src.app"
+  },
+  "verification_strategy": {
+    "risk_level": "medium",
+    "skip_validation": false,
+    "test_creation_phase": "post_implementation",
+    "test_types_required": [
+      "unit",
+      "integration",
+      "e2e"
+    ],
+    "security_scanning_required": false,
+    "staging_deployment_required": false,
+    "acceptance_criteria": [
+      "Все существующие тесты проходят",
+      "Новые сервисы имеют unit тесты",
+      "E2E тест проверяет полный цикл rebuild",
+      "Performance тест подтверждает <5 секунд",
+      "Нет регрессии в существующих endpoint'ах"
+    ],
+    "verification_steps": [
+      {
+        "name": "Unit Tests",
+        "command": "pytest tests/test_route_optimizer.py tests/test_route_rebuild.py -v",
+        "expected_outcome": "Все тесты проходят",
+        "type": "test",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Integration Tests",
+        "command": "pytest tests/ -k integration -v",
+        "expected_outcome": "Все интеграционные тесты проходят",
+        "type": "test",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "E2E Route Rebuild",
+        "command": "pytest tests/test_route_rebuild_e2e.py -v",
+        "expected_outcome": "Полный цикл работает: создание → rebuild → уведомление → история",
+        "type": "test",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Performance Verification",
+        "command": "pytest tests/test_route_performance.py -v",
+        "expected_outcome": "Rebuild завершается за <5 секунд",
+        "type": "test",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "API Endpoints Check",
+        "command": "curl -f http://localhost:8000/v1/routes/optimize -X POST",
+        "expected_outcome": "API отвечает 200/400 (но не 500)",
+        "type": "api",
+        "required": true,
+        "blocking": false
+      }
+    ],
+    "reasoning": "Medium risk изменение требует комплексного тестирования: unit для алгоритмов оптимизации, integration для проверки триггеров и БД, E2E для полного цикла, performance тест для проверки <5 sec требования"
+  },
+  "qa_acceptance": {
+    "unit_tests": {
+      "required": true,
+      "commands": [
+        "pytest tests/test_route_optimizer.py -v",
+        "pytest tests/test_route_rebuild.py -v"
+      ],
+      "minimum_coverage": 80
+    },
+    "integration_tests": {
+      "required": true,
+      "commands": [
+        "pytest tests/ -k integration -v"
+      ],
+      "services_to_test": [
+        "backend"
+      ]
+    },
+    "e2e_tests": {
+      "required": true,
+      "commands": [
+        "pytest tests/test_route_rebuild_e2e.py -v"
+      ],
+      "flows": [
+        "create-order-trigger-rebuild",
+        "cancel-order-trigger-rebuild"
+      ]
+    },
+    "browser_verification": {
+      "required": false,
+      "pages": []
+    },
+    "database_verification": {
+      "required": true,
+      "checks": [
+        "routes-table-exists",
+        "route_points-table-exists",
+        "route_change_history-table-exists",
+        "migrations-applied"
+      ]
+    },
+    "performance_checks": {
+      "required": true,
+      "metrics": [
+        {
+          "name": "route_rebuild_time",
+          "max_seconds": 5
+        }
+      ]
+    }
+  },
+  "qa_signoff": null,
+  "last_updated": "2026-01-26T16:59:59.526030+00:00"
+}
