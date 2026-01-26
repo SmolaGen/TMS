@@ -81,6 +81,15 @@ class RouteOptimizationType(str, PyEnum):
     DISTANCE = "distance"      # Оптимизация по расстоянию
 
 
+class RouteStopType(str, PyEnum):
+    """Тип остановки в маршруте."""
+    PICKUP = "pickup"          # Погрузка
+    DROPOFF = "dropoff"        # Выгрузка
+    BREAK = "break"            # Перерыв
+    FUEL = "fuel"              # Заправка
+    OTHER = "other"            # Другое
+
+
 class Driver(Base):
     """
     Модель водителя.
@@ -311,6 +320,11 @@ class Order(Base):
         back_populates="orders",
         lazy="selectin"
     )
+    route_points: Mapped[List["RoutePoint"]] = relationship(
+        "RoutePoint",
+        back_populates="order",
+        lazy="selectin"
+    )
 
     @property
     def driver_name(self) -> Optional[str]:
@@ -467,6 +481,114 @@ class Route(Base):
         back_populates="routes",
         lazy="joined"
     )
+    route_points: Mapped[List["RoutePoint"]] = relationship(
+        "RoutePoint",
+        back_populates="route",
+        lazy="selectin",
+        order_by="RoutePoint.sequence"
+    )
 
     def __repr__(self) -> str:
         return f"<Route(id={self.id}, driver_id={self.driver_id}, status={self.status.value})>"
+
+
+class RoutePoint(Base):
+    """
+    Модель точки маршрута.
+
+    Представляет отдельную точку (остановку) в маршруте с порядковым номером.
+    """
+    __tablename__ = "route_points"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    route_id: Mapped[int] = mapped_column(
+        ForeignKey("routes.id", ondelete="CASCADE"),
+        index=True,
+        comment="FK на маршрут"
+    )
+    sequence: Mapped[int] = mapped_column(
+        comment="Порядковый номер точки в маршруте"
+    )
+    location: Mapped[str] = mapped_column(
+        Geometry(geometry_type="POINT", srid=4326),
+        comment="Координаты точки (WGS84)"
+    )
+    address: Mapped[Optional[str]] = mapped_column(
+        String(500),
+        nullable=True,
+        comment="Адрес точки"
+    )
+    order_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("orders.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+        comment="FK на связанный заказ (если применимо)"
+    )
+    stop_type: Mapped[RouteStopType] = mapped_column(
+        Enum(RouteStopType, name="route_stop_type",
+             values_callable=lambda x: [e.value for e in x]),
+        default=RouteStopType.OTHER,
+        server_default=text("'other'"),
+        comment="Тип остановки"
+    )
+
+    # Временные метки
+    estimated_arrival: Mapped[Optional[datetime]] = mapped_column(
+        nullable=True,
+        comment="Планируемое время прибытия"
+    )
+    actual_arrival: Mapped[Optional[datetime]] = mapped_column(
+        nullable=True,
+        comment="Фактическое время прибытия"
+    )
+    is_completed: Mapped[bool] = mapped_column(
+        default=False,
+        server_default=text("false"),
+        comment="Флаг выполнения точки"
+    )
+
+    # Дополнительная информация
+    note: Mapped[Optional[str]] = mapped_column(
+        Text,
+        nullable=True,
+        comment="Заметки к точке маршрута"
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        default=datetime.utcnow,
+        server_default=text("CURRENT_TIMESTAMP")
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        default=datetime.utcnow,
+        server_default=text("CURRENT_TIMESTAMP"),
+        onupdate=datetime.utcnow
+    )
+
+    # Relationships
+    route: Mapped["Route"] = relationship(
+        "Route",
+        back_populates="route_points",
+        lazy="joined"
+    )
+    order: Mapped[Optional["Order"]] = relationship(
+        "Order",
+        lazy="joined"
+    )
+
+    @property
+    def lat(self) -> Optional[float]:
+        """Широта точки."""
+        return to_shape(self.location).y if self.location else None
+
+    @property
+    def lon(self) -> Optional[float]:
+        """Долгота точки."""
+        return to_shape(self.location).x if self.location else None
+
+    __table_args__ = (
+        Index("ix_route_points_route_sequence", "route_id", "sequence"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<RoutePoint(id={self.id}, route_id={self.route_id}, sequence={self.sequence}, stop_type={self.stop_type.value})>"
+
