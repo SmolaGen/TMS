@@ -90,6 +90,19 @@ class RouteStopType(str, PyEnum):
     OTHER = "other"            # Другое
 
 
+class RouteChangeType(str, PyEnum):
+    """Тип изменения маршрута."""
+    CREATED = "created"                    # Маршрут создан
+    STATUS_CHANGED = "status_changed"      # Статус изменён
+    DRIVER_ASSIGNED = "driver_assigned"    # Водитель назначен
+    POINT_ADDED = "point_added"            # Точка добавлена
+    POINT_REMOVED = "point_removed"        # Точка удалена
+    POINT_REORDERED = "point_reordered"    # Порядок точек изменён
+    OPTIMIZED = "optimized"                # Маршрут оптимизирован
+    CANCELLED = "cancelled"                # Маршрут отменён
+    COMPLETED = "completed"                # Маршрут завершён
+
+
 class Driver(Base):
     """
     Модель водителя.
@@ -487,6 +500,12 @@ class Route(Base):
         lazy="selectin",
         order_by="RoutePoint.sequence"
     )
+    change_history: Mapped[List["RouteChangeHistory"]] = relationship(
+        "RouteChangeHistory",
+        back_populates="route",
+        lazy="selectin",
+        order_by="RouteChangeHistory.created_at.desc()"
+    )
 
     def __repr__(self) -> str:
         return f"<Route(id={self.id}, driver_id={self.driver_id}, status={self.status.value})>"
@@ -591,4 +610,86 @@ class RoutePoint(Base):
 
     def __repr__(self) -> str:
         return f"<RoutePoint(id={self.id}, route_id={self.route_id}, sequence={self.sequence}, stop_type={self.stop_type.value})>"
+
+
+class RouteChangeHistory(Base):
+    """
+    История изменений маршрута.
+
+    Используется для аудита и отслеживания всех изменений
+    в маршрутах и их точках.
+    """
+    __tablename__ = "route_change_history"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    route_id: Mapped[int] = mapped_column(
+        ForeignKey("routes.id", ondelete="CASCADE"),
+        index=True,
+        comment="FK на маршрут"
+    )
+    change_type: Mapped[RouteChangeType] = mapped_column(
+        Enum(RouteChangeType, name="route_change_type",
+             values_callable=lambda x: [e.value for e in x]),
+        comment="Тип изменения"
+    )
+    changed_by_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("drivers.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+        comment="ID пользователя, внесшего изменение"
+    )
+
+    # Поля для хранения данных изменения
+    changed_field: Mapped[Optional[str]] = mapped_column(
+        String(255),
+        nullable=True,
+        comment="Название изменённого поля"
+    )
+    old_value: Mapped[Optional[str]] = mapped_column(
+        Text,
+        nullable=True,
+        comment="Значение до изменения (JSON)"
+    )
+    new_value: Mapped[Optional[str]] = mapped_column(
+        Text,
+        nullable=True,
+        comment="Значение после изменения (JSON)"
+    )
+
+    # Дополнительная информация
+    description: Mapped[Optional[str]] = mapped_column(
+        Text,
+        nullable=True,
+        comment="Описание изменения"
+    )
+    change_metadata: Mapped[Optional[str]] = mapped_column(
+        Text,
+        nullable=True,
+        comment="Дополнительные метаданные (JSON)"
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        default=datetime.utcnow,
+        server_default=text("CURRENT_TIMESTAMP"),
+        index=True,
+        comment="Время внесения изменения"
+    )
+
+    # Relationships
+    route: Mapped["Route"] = relationship(
+        "Route",
+        back_populates="change_history",
+        lazy="joined"
+    )
+    changed_by: Mapped[Optional["Driver"]] = relationship(
+        "Driver",
+        lazy="joined"
+    )
+
+    __table_args__ = (
+        Index("ix_route_change_history_route_time", "route_id", "created_at"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<RouteChangeHistory(id={self.id}, route_id={self.route_id}, change_type={self.change_type.value})>"
 
