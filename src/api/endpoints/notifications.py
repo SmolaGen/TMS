@@ -12,7 +12,7 @@ from src.api.dependencies import (
     get_current_driver,
 )
 
-router = APIRouter()
+router = APIRouter(tags=["notifications"])
 
 
 @router.get("/preferences", response_model=List[NotificationPreferenceResponse])
