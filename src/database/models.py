@@ -67,6 +67,31 @@ class UserRole(str, PyEnum):
     PENDING = "pending"        # Ожидает одобрения
 
 
+class NotificationType(str, PyEnum):
+    """Типы уведомлений."""
+    NEW_ORDER = "new_order"                    # Новый заказ
+    STATUS_CHANGE = "status_change"            # Изменение статуса заказа
+    SYSTEM_ALERT = "system_alert"              # Алерты системы
+    DRIVER_ASSIGNMENT = "driver_assignment"    # Назначение водителя
+    ORDER_COMPLETION = "order_completion"      # Завершение заказа
+
+
+class NotificationChannel(str, PyEnum):
+    """Каналы отправки уведомлений."""
+    TELEGRAM = "telegram"      # Telegram бот
+    EMAIL = "email"            # Электронная почта
+    IN_APP = "in_app"          # В приложении
+    PUSH = "push"              # Push-уведомления
+
+
+class NotificationFrequency(str, PyEnum):
+    """Частота уведомлений."""
+    INSTANT = "instant"        # Мгновенно
+    HOURLY = "hourly"          # Раз в час
+    DAILY = "daily"            # Раз в день
+    DISABLED = "disabled"      # Отключено
+
+
 class Driver(Base):
     """
     Модель водителя.
@@ -124,7 +149,13 @@ class Driver(Base):
         back_populates="driver",
         lazy="selectin"
     )
-    
+    notification_preferences: Mapped[List["NotificationPreference"]] = relationship(
+        "NotificationPreference",
+        back_populates="driver",
+        lazy="selectin",
+        cascade="all, delete-orphan"
+    )
+
     def __repr__(self) -> str:
         return f"<Driver(id={self.id}, name='{self.name}', status={self.status.value})>"
 
@@ -370,3 +401,77 @@ class DriverLocationHistory(Base):
     __table_args__ = (
         Index("ix_driver_location_time", "driver_id", "recorded_at"),
     )
+
+
+class NotificationPreference(Base):
+    """
+    Модель настроек уведомлений пользователя.
+
+    Позволяет настроить типы уведомлений, каналы доставки и частоту
+    для каждого пользователя индивидуально.
+    """
+    __tablename__ = "notification_preferences"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    driver_id: Mapped[int] = mapped_column(
+        ForeignKey("drivers.id", ondelete="CASCADE"),
+        index=True,
+        comment="ID водителя (пользователя)"
+    )
+    notification_type: Mapped[NotificationType] = mapped_column(
+        Enum(NotificationType, name="notification_type",
+             values_callable=lambda x: [e.value for e in x]),
+        default=NotificationType.NEW_ORDER,
+        server_default=text("'new_order'"),
+        comment="Тип уведомления"
+    )
+    channel: Mapped[NotificationChannel] = mapped_column(
+        Enum(NotificationChannel, name="notification_channel",
+             values_callable=lambda x: [e.value for e in x]),
+        default=NotificationChannel.TELEGRAM,
+        server_default=text("'telegram'"),
+        comment="Канал доставки уведомления"
+    )
+    frequency: Mapped[NotificationFrequency] = mapped_column(
+        Enum(NotificationFrequency, name="notification_frequency",
+             values_callable=lambda x: [e.value for e in x]),
+        default=NotificationFrequency.INSTANT,
+        server_default=text("'instant'"),
+        comment="Частота отправки уведомлений"
+    )
+    is_enabled: Mapped[bool] = mapped_column(
+        default=True,
+        server_default=text("true"),
+        comment="Включена ли настройка"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        default=datetime.utcnow,
+        server_default=text("CURRENT_TIMESTAMP")
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        default=datetime.utcnow,
+        server_default=text("CURRENT_TIMESTAMP"),
+        onupdate=datetime.utcnow
+    )
+
+    # Relationships
+    driver: Mapped["Driver"] = relationship(
+        "Driver",
+        back_populates="notification_preferences",
+        lazy="joined"
+    )
+
+    __table_args__ = (
+        Index(
+            "ix_notification_prefs_driver_type_channel",
+            "driver_id", "notification_type", "channel",
+            unique=True
+        ),
+    )
+
+    def __repr__(self) -> str:
+        return (f"<NotificationPreference(id={self.id}, "
+                f"driver_id={self.driver_id}, "
+                f"type={self.notification_type.value}, "
+                f"channel={self.channel.value}, "
+                f"frequency={self.frequency.value})>")

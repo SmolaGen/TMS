@@ -1,5 +1,5 @@
-import React from 'react';
 import { Typography, Button } from 'antd';
+import { NotificationPreferences } from '../components/settings/NotificationPreferences';
 
 export const SettingsPage: React.FC = () => {
   const triggerError = () => {
@@ -9,8 +9,14 @@ export const SettingsPage: React.FC = () => {
   return (
     <div style={{ padding: 24 }}>
       <Typography.Title level={2}>Настройки</Typography.Title>
-      <Typography.Text type="secondary">Страница в разработке.</Typography.Text>
-      <div style={{ marginTop: 24 }}>
+
+      <div style={{ marginBottom: 32 }}>
+        <Typography.Title level={4}>Уведомления</Typography.Title>
+        <NotificationPreferences />
+      </div>
+
+      <div style={{ marginTop: 24, borderTop: '1px solid #f0f0f0', paddingTop: 24 }}>
+        <Typography.Title level={4}>Отладка</Typography.Title>
         <Button danger onClick={triggerError}>
           Триггернуть тестовую ошибку
         </Button>
