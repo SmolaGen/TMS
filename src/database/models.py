@@ -178,12 +178,27 @@ class Driver(Base):
         server_default=text("true"),
         comment="Флаг активности (разрешен ли вход в бот)"
     )
-    
+    onboarding_completed: Mapped[bool] = mapped_column(
+        default=False,
+        server_default=text("false"),
+        comment="Завершён ли онбординг водителя"
+    )
+    onboarding_step: Mapped[Optional[str]] = mapped_column(
+        String(50),
+        nullable=True,
+        comment="Текущий шаг онбординга"
+    )
+    onboarding_skipped: Mapped[bool] = mapped_column(
+        default=False,
+        server_default=text("false"),
+        comment="Пропустил ли онбординг"
+    )
+
     # Relationships
     orders: Mapped[List["Order"]] = relationship(
         "Order",
         back_populates="driver",
-        lazy="selectin"
+        lazy="noload"  # Не загружаем автоматически для совместимости с текущей схемой БД
     )
     notification_preferences: Mapped[List["NotificationPreference"]] = relationship(
         "NotificationPreference",

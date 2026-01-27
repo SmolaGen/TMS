@@ -220,3 +220,26 @@ export interface ApiError {
   data?: any;
   originalError?: any;
 }
+
+// Шаги онбординга
+export enum OnboardingStep {
+  CREATE_ORDER = '1',
+  ASSIGN_DRIVER = '2',
+  VIEW_MAP = '3',
+  CHANGE_STATUS = '4',
+  VIEW_STATS = '5',
+}
+
+// Статус онбординга
+export interface OnboardingStatus {
+  onboarding_completed: boolean;
+  onboarding_step: string | null;
+  onboarding_skipped: boolean;
+}
+
+// Запрос на обновление онбординга
+export interface OnboardingUpdateRequest {
+  onboarding_step?: number;
+  onboarding_completed?: boolean;
+  onboarding_skipped?: boolean;
+}

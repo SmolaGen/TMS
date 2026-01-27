@@ -17,6 +17,9 @@ class DriverUpdate(BaseModel):
     phone: Optional[str] = Field(None, max_length=20)
     status: Optional[DriverStatus] = None
     is_active: Optional[bool] = None
+    onboarding_completed: Optional[bool] = Field(None, description="Завершён ли онбординг")
+    onboarding_step: Optional[str] = Field(None, max_length=50, description="Текущий шаг онбординга")
+    onboarding_skipped: Optional[bool] = Field(None, description="Пропустил ли онбординг")
 
 class DriverResponse(DriverBase):
     model_config = ConfigDict(from_attributes=True)
@@ -24,6 +27,9 @@ class DriverResponse(DriverBase):
     id: int
     status: DriverStatus
     is_online: bool = Field(False, description="Реально онлайн (отправлял геолокацию < 5 мин)")
+    onboarding_completed: bool = Field(False, description="Завершён ли онбординг")
+    onboarding_step: Optional[str] = Field(None, description="Текущий шаг онбординга")
+    onboarding_skipped: bool = Field(False, description="Пропустил ли онбординг")
     created_at: datetime
     updated_at: datetime
 
@@ -40,6 +46,22 @@ class DriverStatsResponse(BaseModel):
     total_distance_km: float
     
     model_config = ConfigDict(from_attributes=True)
+
+
+class OnboardingStatusResponse(BaseModel):
+    """Статус онбординга водителя."""
+    onboarding_completed: bool = Field(False, description="Завершён ли онбординг")
+    onboarding_step: Optional[str] = Field(None, description="Текущий шаг онбординга")
+    onboarding_skipped: bool = Field(False, description="Пропустил ли онбординг")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class OnboardingUpdate(BaseModel):
+    """Запрос на обновление статуса онбординга."""
+    onboarding_step: Optional[int] = Field(None, description="Номер шага онбординга")
+    onboarding_completed: Optional[bool] = Field(None, description="Завершён ли онбординг")
+    onboarding_skipped: Optional[bool] = Field(None, description="Пропустил ли онбординг")
 
 
 class DriverWithStats(DriverResponse):
