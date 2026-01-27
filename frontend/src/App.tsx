@@ -11,6 +11,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { DriverApp } from './pages/DriverApp';
 import { AuthGuard } from './components/AuthGuard';
 import { GlobalErrorBoundary } from './components/GlobalErrorBoundary';
+import { OnboardingWrapper } from './components/onboarding/OnboardingWrapper';
 import { useTelegramAuth } from './hooks/useTelegramAuth';
 import { useTheme } from './hooks/useTheme';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
@@ -48,7 +49,9 @@ function App() {
         <ConfigProvider locale={ruRU} theme={themeConfig}>
           <BrowserRouter>
             <AuthGuard>
-              <AppRoutes onThemeChange={setMode} themeMode={mode} isDark={isDark} />
+              <OnboardingWrapper>
+                <AppRoutes onThemeChange={setMode} themeMode={mode} isDark={isDark} />
+              </OnboardingWrapper>
             </AuthGuard>
           </BrowserRouter>
         </ConfigProvider>
