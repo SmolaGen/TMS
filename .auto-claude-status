@@ -1,25 +1,46 @@
 {
   "active": true,
+<<<<<<< HEAD
   "spec": "011-",
   "state": "building",
   "subtasks": {
     "completed": 3,
     "total": 16,
+=======
+  "spec": "010-",
+  "state": "building",
+  "subtasks": {
+    "completed": 16,
+    "total": 20,
+>>>>>>> auto-claude/010-63ab6c
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
+<<<<<<< HEAD
     "current": "Backend Services & API",
     "id": null,
     "total": 5
+=======
+    "current": "Testing & Verification",
+    "id": null,
+    "total": 4
+>>>>>>> auto-claude/010-63ab6c
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
+<<<<<<< HEAD
     "number": 5,
     "started_at": "2026-01-26T23:18:23.352376"
   },
   "last_update": "2026-01-26T23:31:57.160975"
+=======
+    "number": 36,
+    "started_at": "2026-01-27T02:56:09.701275"
+  },
+  "last_update": "2026-01-27T05:01:57.176643"
+>>>>>>> auto-claude/010-63ab6c
 }

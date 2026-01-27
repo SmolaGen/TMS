@@ -8,6 +8,7 @@ from src.config import settings
 from src.database.uow import SQLAlchemyUnitOfWork
 from src.database.models import OrderStatus, DriverStatus
 from src.services.order_workflow import OrderWorkflowService
+from src.services.routing import RoutingService
 from src.bot.keyboards.orders import get_orders_list_kb, get_order_actions_kb, get_shift_kb
 
 router = Router(name="orders")
@@ -72,9 +73,10 @@ async def cb_order_status(callback: CallbackQuery):
     """Смена статуса заказа."""
     _, order_id, action = callback.data.split(":")
     order_id = int(order_id)
-    
+
     async with SQLAlchemyUnitOfWork() as uow:
-        workflow = OrderWorkflowService(uow)
+        routing_service = RoutingService()
+        workflow = OrderWorkflowService(uow, routing_service=routing_service)
         try:
             if action == "departed":
                 await workflow.mark_departed(order_id)
@@ -84,11 +86,11 @@ async def cb_order_status(callback: CallbackQuery):
                 await workflow.start_trip(order_id)
             elif action == "completed":
                 await workflow.complete_order(order_id)
-            
+
             await callback.answer("Статус обновлен!")
             # Обновляем карточку заказа
             await cb_order_view(callback)
-            
+
         except Exception as e:
             await callback.answer(f"Ошибка: {str(e)}", show_alert=True)
 

@@ -102,17 +102,40 @@ class OrderWorkflowService:
         self,
         uow: AbstractUnitOfWork,
         webhook_service: Optional[WebhookService] = None,
-        notification_service: Optional[NotificationService] = None
+        notification_service: Optional[NotificationService] = None,
+        routing_service = None
     ):
         self.uow = uow
         self.webhook_service = webhook_service
         self.notification_service = notification_service
+        self.routing_service = routing_service
 
     async def _get_order_and_sm(self, order_id: int) -> tuple[Order, OrderStateMachine]:
         order = await self.uow.orders.get(order_id)
         if not order:
             raise ValueError(f"Order {order_id} not found")
         return order, OrderStateMachine(order)
+
+    def _get_route_rebuild_service(self, session: AsyncSession):
+        """
+        Создать инстанс RouteRebuildService для текущей сессии.
+
+        Создаётся динамически, так как зависит от сессии БД.
+        """
+        if not self.routing_service:
+            return None
+
+        from src.services.route_rebuild_service import RouteRebuildService
+        from src.services.route_optimizer import RouteOptimizerService
+
+        # Создаём optimizer_service с текущей сессией
+        optimizer_service = RouteOptimizerService(session, self.routing_service)
+
+        return RouteRebuildService(
+            session=session,
+            optimizer_service=optimizer_service,
+            notification_service=self.notification_service
+        )
 
     async def _notify_all(self, order: Order):
         """Отправить все уведомления об изменении статуса."""
@@ -132,6 +155,21 @@ class OrderWorkflowService:
             sm.assign(driver_id=driver_id)
             driver.status = DriverStatus.BUSY
             await self.uow.commit()
+
+            # Перестроить маршрут водителя после назначения заказа
+            rebuild_service = self._get_route_rebuild_service(self.uow.session)
+            if rebuild_service:
+                try:
+                    await rebuild_service.on_order_assigned(order_id, driver_id)
+                    await self.uow.commit()
+                except Exception as e:
+                    logger.error(
+                        "route_rebuild_failed_on_assign",
+                        order_id=order_id,
+                        driver_id=driver_id,
+                        error=str(e)
+                    )
+
             await self._notify_all(order)
 
     async def mark_departed(self, order_id: int):
@@ -139,6 +177,21 @@ class OrderWorkflowService:
             order, sm = await self._get_order_and_sm(order_id)
             sm.depart()
             await self.uow.commit()
+
+            # Перестроить маршрут после выезда к точке pickup
+            rebuild_service = self._get_route_rebuild_service(self.uow.session)
+            if rebuild_service and order.driver_id:
+                try:
+                    await rebuild_service.on_order_status_changed(order)
+                    await self.uow.commit()
+                except Exception as e:
+                    logger.error(
+                        "route_rebuild_failed_on_depart",
+                        order_id=order_id,
+                        driver_id=order.driver_id,
+                        error=str(e)
+                    )
+
             await self._notify_all(order)
 
     async def mark_arrived(self, order_id: int):
@@ -153,6 +206,21 @@ class OrderWorkflowService:
             order, sm = await self._get_order_and_sm(order_id)
             sm.start_trip()
             await self.uow.commit()
+
+            # Перестроить маршрут после начала поездки
+            rebuild_service = self._get_route_rebuild_service(self.uow.session)
+            if rebuild_service and order.driver_id:
+                try:
+                    await rebuild_service.on_order_status_changed(order)
+                    await self.uow.commit()
+                except Exception as e:
+                    logger.error(
+                        "route_rebuild_failed_on_start_trip",
+                        order_id=order_id,
+                        driver_id=order.driver_id,
+                        error=str(e)
+                    )
+
             await self._notify_all(order)
 
     async def complete_order(self, order_id: int):
@@ -160,6 +228,21 @@ class OrderWorkflowService:
             order, sm = await self._get_order_and_sm(order_id)
             sm.complete()
             await self.uow.commit()
+
+            # Перестроить маршрут после завершения заказа
+            rebuild_service = self._get_route_rebuild_service(self.uow.session)
+            if rebuild_service and order.driver_id:
+                try:
+                    await rebuild_service.on_order_status_changed(order)
+                    await self.uow.commit()
+                except Exception as e:
+                    logger.error(
+                        "route_rebuild_failed_on_complete",
+                        order_id=order_id,
+                        driver_id=order.driver_id,
+                        error=str(e)
+                    )
+
             await self._notify_all(order)
 
     async def cancel_order(self, order_id: int, reason: Optional[str] = None):
@@ -167,6 +250,21 @@ class OrderWorkflowService:
             order, sm = await self._get_order_and_sm(order_id)
             sm.cancel(reason=reason)
             await self.uow.commit()
+
+            # Перестроить маршрут водителя после отмены заказа
+            rebuild_service = self._get_route_rebuild_service(self.uow.session)
+            if rebuild_service and order.driver_id:
+                try:
+                    await rebuild_service.on_order_cancelled(order)
+                    await self.uow.commit()
+                except Exception as e:
+                    logger.error(
+                        "route_rebuild_failed_on_cancel",
+                        order_id=order_id,
+                        driver_id=order.driver_id,
+                        error=str(e)
+                    )
+
             await self._notify_all(order)
 
     async def update_eta(self, order_id: int, eta_minutes: int):

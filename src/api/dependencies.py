@@ -17,6 +17,8 @@ from src.services.notification_service import NotificationService
 from src.services.urgent_assignment import UrgentAssignmentService
 from src.services.excel_import import ExcelImportService
 from src.services.webhook_service import WebhookService
+from src.services.route_optimizer import RouteOptimizerService
+from src.services.route_rebuild_service import RouteRebuildService
 from src.config import settings
 
 import jwt
@@ -145,10 +147,11 @@ def get_webhook_service() -> WebhookService:
 def get_order_workflow_service(
     uow: SQLAlchemyUnitOfWork = Depends(get_uow),
     webhook_service: WebhookService = Depends(get_webhook_service),
-    notification_service: NotificationService = Depends(get_notification_service)
+    notification_service: NotificationService = Depends(get_notification_service),
+    routing: RoutingService = Depends(get_routing_service)
 ) -> OrderWorkflowService:
     """Провайдер сервиса управления жизненным циклом заказов."""
-    return OrderWorkflowService(uow, webhook_service, notification_service)
+    return OrderWorkflowService(uow, webhook_service, notification_service, routing)
 
 
 def get_routing_service() -> RoutingService:
@@ -192,3 +195,25 @@ async def get_notification_preferences_service() -> NotificationPreferencesServi
 
     async with async_session_factory() as session:
         yield NotificationPreferencesService(session)
+
+
+async def get_route_optimizer_service(
+    routing: RoutingService = Depends(get_routing_service)
+) -> RouteOptimizerService:
+    """Провайдер сервиса оптимизации маршрутов."""
+    from src.database.connection import async_session_factory
+
+    async with async_session_factory() as session:
+        yield RouteOptimizerService(session, routing)
+
+
+async def get_route_rebuild_service(
+    routing: RoutingService = Depends(get_routing_service),
+    notification_service: NotificationService = Depends(get_notification_service)
+):
+    """Провайдер сервиса перестроения маршрутов."""
+    from src.database.connection import async_session_factory
+
+    async with async_session_factory() as session:
+        optimizer_service = RouteOptimizerService(session, routing)
+        yield RouteRebuildService(session, optimizer_service, notification_service)
