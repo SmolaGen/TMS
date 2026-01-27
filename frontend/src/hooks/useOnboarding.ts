@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getOnboardingStatus, updateOnboardingProgress } from '../api/onboarding';
-import type { OnboardingStatus, OnboardingStep, OnboardingUpdateRequest } from '../types/api';
+import type { OnboardingStatus, OnboardingUpdateRequest } from '../types/api';
 
 interface OnboardingState {
     isLoading: boolean;

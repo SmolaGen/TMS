@@ -2,12 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Tour } from 'antd';
 import { useOnboarding } from '../../hooks/useOnboarding';
 
-interface TourStep {
-    selector: string;
-    title: string;
-    description: React.ReactNode;
-    placement?: 'top' | 'left' | 'right' | 'bottom' | 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight';
-}
+
 
 interface OnboardingTourProps {
     open: boolean;
@@ -17,8 +12,6 @@ interface OnboardingTourProps {
 export const OnboardingTour: React.FC<OnboardingTourProps> = ({ open, onClose }) => {
     const {
         currentStep,
-        isLoading,
-        nextStep,
         skipOnboarding,
         completeOnboarding,
         goToStep,
@@ -35,10 +28,11 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ open, onClose })
         }
     }, [open, currentStep]);
 
-    const steps: TourStep[] = [
+    const steps = [
         {
-            selector: '[data-tour="create-order-btn"]',
+            target: () => document.querySelector('[data-tour="create-order-btn"]'),
             title: 'Создание заказа',
+            // ...
             description: (
                 <div>
                     <p>
@@ -53,7 +47,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ open, onClose })
             placement: 'bottom',
         },
         {
-            selector: '[data-tour="timeline"]',
+            target: () => document.querySelector('[data-tour="timeline"]'),
             title: 'Временная шкала',
             description: (
                 <div>
@@ -70,7 +64,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ open, onClose })
             placement: 'right',
         },
         {
-            selector: '[data-tour="map-tab"]',
+            target: () => document.querySelector('[data-tour="map-tab"]'),
             title: 'Карта водителей',
             description: (
                 <div>
@@ -90,7 +84,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ open, onClose })
             placement: 'bottom',
         },
         {
-            selector: '[data-tour="status-select"]',
+            target: () => document.querySelector('[data-tour="status-select"]'),
             title: 'Изменение статуса',
             description: (
                 <div>
@@ -112,7 +106,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ open, onClose })
             placement: 'bottom',
         },
         {
-            selector: '[data-tour="driver-list"]',
+            target: () => document.querySelector('[data-tour="driver-list"]'),
             title: 'Статистика водителя',
             description: (
                 <div>
@@ -163,8 +157,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ open, onClose })
             current={current}
             onChange={handleCurrentChange}
             onFinish={handleFinish}
-            steps={steps}
-            loading={isLoading}
+            steps={steps as any}
             indicatorsRender={(total, current) => {
                 return (
                     <span>
