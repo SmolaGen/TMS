@@ -43,6 +43,7 @@ def get_location_manager(redis: Redis = Depends(get_redis)) -> LocationManager:
 
 from src.services.driver_service import DriverService
 from src.services.stats_service import StatsService
+from src.services.notification_preferences_service import NotificationPreferencesService
 
 def get_driver_service(
     uow: SQLAlchemyUnitOfWork = Depends(get_uow),
@@ -183,3 +184,11 @@ async def get_batch_assignment_service(
 
     async with async_session_factory() as session:
         yield BatchAssignmentService(session, order_service, notification_service)
+
+
+async def get_notification_preferences_service() -> NotificationPreferencesService:
+    """Провайдер сервиса настроек уведомлений."""
+    from src.database.connection import async_session_factory
+
+    async with async_session_factory() as session:
+        yield NotificationPreferencesService(session)

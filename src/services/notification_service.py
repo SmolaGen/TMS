@@ -2,13 +2,16 @@
 Сервис для отправки уведомлений водителям через Telegram.
 """
 
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from aiogram import Bot
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from src.database.models import Driver, Order
+from src.database.models import Driver, Order, NotificationType, NotificationChannel
 from src.core.logging import get_logger
+
+if TYPE_CHECKING:
+    from src.services.notification_preferences_service import NotificationPreferencesService
 
 logger = get_logger(__name__)
 
@@ -16,9 +19,10 @@ logger = get_logger(__name__)
 class NotificationService:
     """Сервис для отправки уведомлений."""
 
-    def __init__(self, bot: Bot, session: AsyncSession):
+    def __init__(self, bot: Bot, session: AsyncSession, preferences_service: Optional["NotificationPreferencesService"] = None):
         self.bot = bot
         self.session = session
+        self.preferences_service = preferences_service
 
     async def _get_driver_telegram_id(self, driver_id: int) -> Optional[int]:
         """Получить telegram_id по внутреннему id водителя."""
@@ -26,8 +30,76 @@ class NotificationService:
         result = await self.session.execute(query)
         return result.scalar()
 
-    async def send_message(self, driver_id: int, text: str, reply_markup=None) -> bool:
-        """Универсальный метод отправки сообщения."""
+    async def should_send_notification(
+        self,
+        driver_id: int,
+        notification_type: NotificationType,
+        channel: NotificationChannel
+    ) -> bool:
+        """
+        Проверить, следует ли отправлять уведомление согласно настройкам пользователя.
+
+        Args:
+            driver_id: ID водителя
+            notification_type: Тип уведомления
+            channel: Канал отправки
+
+        Returns:
+            True если уведомление следует отправить, иначе False
+        """
+        # Если preferences_service не предоставлен, отправляем уведомление (обратная совместимость)
+        if not self.preferences_service:
+            logger.debug(
+                "preferences_service_not_available",
+                driver_id=driver_id,
+                notification_type=notification_type.value,
+                channel=channel.value
+            )
+            return True
+
+        # Проверяем, включено ли уведомление
+        is_enabled = await self.preferences_service.is_notification_enabled(
+            driver_id=driver_id,
+            notification_type=notification_type,
+            channel=channel
+        )
+
+        if not is_enabled:
+            logger.debug(
+                "notification_disabled_in_preferences",
+                driver_id=driver_id,
+                notification_type=notification_type.value,
+                channel=channel.value
+            )
+            return False
+
+        return True
+
+    async def send_message(self, driver_id: int, text: str, reply_markup=None, notification_type: NotificationType = NotificationType.NEW_ORDER) -> bool:
+        """
+        Универсальный метод отправки сообщения.
+
+        Args:
+            driver_id: ID водителя
+            text: Текст сообщения
+            reply_markup: Клавиатура ответа
+            notification_type: Тип уведомления для проверки настроек
+        """
+        # Проверяем настройки пользователя перед отправкой
+        should_send = await self.should_send_notification(
+            driver_id=driver_id,
+            notification_type=notification_type,
+            channel=NotificationChannel.TELEGRAM
+        )
+
+        if not should_send:
+            logger.debug(
+                "notification_skipped_due_to_preferences",
+                driver_id=driver_id,
+                notification_type=notification_type.value
+            )
+            return False
+
         if not self.bot:
             logger.warning("bot_not_initialized", driver_id=driver_id)
             return False
@@ -65,12 +137,12 @@ class NotificationService:
             f"⚠️ <b>Приоритет:</b> {order.priority.value if order.priority else 'Обычный'}\n\n"
             f"Посмотрите детали в меню /orders"
         )
-        return await self.send_message(driver_id, text)
+        return await self.send_message(driver_id, text, notification_type=NotificationType.DRIVER_ASSIGNMENT)
 
     async def notify_order_cancelled(self, driver_id: int, order_id: int) -> bool:
         """Уведомить об отмене заказа."""
         text = f"<b>❌ Заказ #{order_id} отменён</b>"
-        return await self.send_message(driver_id, text)
+        return await self.send_message(driver_id, text, notification_type=NotificationType.STATUS_CHANGE)
 
     async def notify_morning_schedule(self, driver_id: int, orders_count: int) -> bool:
         """Утреннее приветствие с расписанием."""
@@ -79,7 +151,7 @@ class NotificationService:
             f"У вас <b>{orders_count}</b> заказов на сегодня.\n"
             f"Нажмите /orders чтобы посмотреть расписание."
         )
-        return await self.send_message(driver_id, text)
+        return await self.send_message(driver_id, text, notification_type=NotificationType.NEW_ORDER)
 
     async def notify_order_reminder(self, driver_id: int, order: Order) -> bool:
         """Напоминание за 15 минут до начала заказа."""
@@ -87,14 +159,14 @@ class NotificationService:
         time_str = ""
         if order.time_range and order.time_range.lower:
             time_str = f" в {order.time_range.lower.strftime('%H:%M')}"
-            
+
         text = (
             f"<b>⏰ Напоминание!</b>\n\n"
             f"Заказ <b>#{order.id}</b> начинается{time_str}.\n"
             f"📍 <b>Подача:</b> {pickup}\n\n"
             f"Пора выезжать! 🚗"
         )
-        return await self.send_message(driver_id, text)
+        return await self.send_message(driver_id, text, notification_type=NotificationType.NEW_ORDER)
 
     async def notify_customer(self, telegram_id: int, text: str, reply_markup=None) -> bool:
         """Метод для отправки сообщения клиенту."""
