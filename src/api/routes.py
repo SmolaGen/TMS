@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import select
 from datetime import datetime, date
 from typing import List, Optional
 
@@ -10,22 +11,23 @@ from src.services.driver_service import DriverService
 from src.services.location_manager import LocationManager, DriverLocation
 from src.services.excel_import import ExcelImportService
 from src.api.dependencies import (
-    get_order_service, 
-    get_location_manager, 
+    get_order_service,
+    get_location_manager,
     get_driver_service,
     get_geocoding_service,
     get_order_workflow_service,
     get_auth_service,
     get_current_driver,
     get_batch_assignment_service,
-    get_excel_import_service
+    get_excel_import_service,
+    get_route_rebuild_service
 )
 from fastapi import File, UploadFile
 from src.services.order_workflow import OrderWorkflowService
 from src.services.geocoding import GeocodingService
 from src.schemas.geocoding import GeocodingResult
 from src.schemas.auth import TelegramAuthRequest, TokenResponse
-from src.database.models import OrderStatus, OrderPriority, Driver
+from src.database.models import OrderStatus, OrderPriority, Driver, Route
 from src.services.auth_service import AuthService
 from src.services.batch_assignment import BatchAssignmentService
 from src.schemas.batch_assignment import (
@@ -439,6 +441,15 @@ async def reverse_geocode(
 from src.schemas.routing import RouteResponse
 from src.services.routing import RoutingService, RouteNotFoundError, OSRMUnavailableError
 from src.api.dependencies import get_routing_service
+from src.schemas.route_optimizer import (
+    RouteOptimizeRequest,
+    RouteOptimizeResponse,
+    RouteRebuildRequest,
+    RouteRebuildResponse,
+    RouteHistoryListResponse
+)
+from src.database.connection import get_db
+from src.services.route_rebuild_service import RouteRebuildService, RebuildTrigger, RebuildRequest
 
 @router.get("/routing/route", response_model=RouteResponse)
 async def get_route(
@@ -480,6 +491,251 @@ async def get_route(
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Сервис маршрутизации временно недоступен"
+        )
+
+
+@router.post("/routes/optimize", response_model=RouteOptimizeResponse)
+async def optimize_route(
+    request: RouteOptimizeRequest,
+    current_driver: Driver = Depends(get_current_driver)
+):
+    """
+    Оптимизировать multi-stop маршрут для водителя.
+
+    Создаёт оптимальный маршрут для выполнения указанных заказов,
+    используя алгоритм решения задачи коммивояжёра (TSP).
+    """
+    from src.services.route_optimizer import RouteOptimizerService
+    from src.services.route_optimizer import DriverNotFoundError, OrdersNotFoundError, NoValidRouteError
+
+    async with get_db() as db:
+        try:
+            service = RouteOptimizerService(session=db)
+            route = await service.optimize_route(
+                driver_id=request.driver_id,
+                order_ids=request.order_ids,
+                start_location=(request.start_location.lon, request.start_location.lat) if request.start_location else None,
+                optimize_for=request.optimize_for
+            )
+
+            # Загружаем связи для ответа
+            await db.refresh(route)
+
+            # Формируем ответ
+            from src.schemas.route_optimizer import RoutePointSchema, Location
+
+            points_schema = [
+                RoutePointSchema(
+                    id=rp.id,
+                    sequence=rp.sequence,
+                    location=Location(lat=rp.lat, lon=rp.lon) if rp.lat and rp.lon else None,
+                    address=rp.address,
+                    order_id=rp.order_id,
+                    stop_type=rp.stop_type,
+                    estimated_arrival=rp.estimated_arrival,
+                    note=rp.note
+                )
+                for rp in route.route_points
+            ]
+
+            return RouteOptimizeResponse(
+                route_id=route.id,
+                driver_id=route.driver_id or 0,
+                status=route.status,
+                optimization_type=route.optimization_type,
+                total_distance_meters=route.total_distance_meters or 0,
+                total_distance_km=(route.total_distance_meters or 0) / 1000,
+                total_duration_seconds=route.total_duration_seconds or 0,
+                total_duration_minutes=(route.total_duration_seconds or 0) / 60,
+                points=points_schema,
+                created_at=route.created_at,
+                started_at=route.started_at,
+                completed_at=route.completed_at
+            )
+
+        except DriverNotFoundError:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Водитель с id {request.driver_id} не найден"
+            )
+        except OrdersNotFoundError as e:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=str(e)
+            )
+        except NoValidRouteError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
+        except Exception as e:
+            logger.error(f"Route optimization failed: {e}", exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Ошибка при оптимизации маршрута"
+            )
+
+
+@router.post("/routes/{route_id}/rebuild", response_model=RouteRebuildResponse)
+async def rebuild_route(
+    route_id: int,
+    request: RouteRebuildRequest,
+    current_driver: Driver = Depends(get_current_driver),
+    rebuild_service: RouteRebuildService = Depends(get_route_rebuild_service)
+):
+    """
+    Принудительно перестроить маршрут.
+
+    Перестраивает указанный маршрут с учётом текущих заказов водителя.
+    Доступно администраторам, диспетчерам и водителю, которому принадлежит маршрут.
+    """
+    from src.database.models import UserRole
+
+    # Получаем маршрут из БД
+    async with get_db() as db:
+        route_result = await db.execute(
+            select(Route).where(Route.id == route_id)
+        )
+        route = route_result.scalar_one_or_none()
+
+        if not route:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Маршрут с id {route_id} не найден"
+            )
+
+        # Проверка прав доступа
+        if current_driver.role not in (UserRole.ADMIN, UserRole.DISPATCHER):
+            if route.driver_id != current_driver.id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Вы можете перестраивать только свои маршруты"
+                )
+
+        # Сохраняем предыдущий статус
+        previous_status = route.status
+
+        # Проверяем, что у маршрута есть водитель
+        if not route.driver_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Невозможно перестроить маршрут без водителя"
+            )
+
+        # Формируем запрос на перестроение
+        rebuild_request = RebuildRequest(
+            driver_id=route.driver_id,
+            trigger=RebuildTrigger.MANUAL,
+            reason=request.reason or "Ручной запрос через API"
+        )
+
+        # Вызываем сервис перестроения (использует свою сессию)
+        result = await rebuild_service.rebuild_route(rebuild_request)
+
+        # Обрабатываем результат
+        if result.result.value == "driver_not_found":
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Водитель не найден"
+            )
+        elif result.result.value == "no_orders_to_optimize":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Нет активных заказов для перестроения"
+            )
+        elif result.result.value == "optimization_failed":
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Не удалось перестроить маршрут: {result.message}"
+            )
+
+        # Получаем обновленные данные маршрута из базы
+        updated_route_result = await db.execute(
+            select(Route).where(Route.id == result.route_id)
+        )
+        updated_route = updated_route_result.scalar_one_or_none()
+
+        if not updated_route:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Не удалось получить обновленный маршрут"
+            )
+
+        return RouteRebuildResponse(
+            route_id=updated_route.id,
+            previous_status=previous_status,
+            new_status=updated_route.status,
+            points_count=result.points_count,
+            total_distance_meters=result.total_distance_meters or 0,
+            total_duration_seconds=result.total_duration_seconds or 0,
+            rebuild_time_seconds=result.rebuild_time_seconds,
+            created_at=updated_route.updated_at if hasattr(updated_route, 'updated_at') else updated_route.created_at
+        )
+
+
+@router.get("/routes/{route_id}/history", response_model=RouteHistoryListResponse)
+async def get_route_history(
+    route_id: int,
+    current_driver: Driver = Depends(get_current_driver)
+):
+    """
+    Получить историю изменений маршрута.
+
+    Доступно администраторам, диспетчерам и водителю, которому принадлежит маршрут.
+    """
+    from src.database.models import UserRole, RouteChangeHistory
+    from src.schemas.route_optimizer import RouteChangeHistoryResponse
+
+    # Получаем маршрут из БД
+    async with get_db() as db:
+        route_result = await db.execute(
+            select(Route).where(Route.id == route_id)
+        )
+        route = route_result.scalar_one_or_none()
+
+        if not route:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Маршрут с id {route_id} не найден"
+            )
+
+        # Проверка прав доступа
+        if current_driver.role not in (UserRole.ADMIN, UserRole.DISPATCHER):
+            if route.driver_id != current_driver.id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Вы можете просматривать историю только своих маршрутов"
+                )
+
+        # Получаем историю изменений
+        history_result = await db.execute(
+            select(RouteChangeHistory)
+            .where(RouteChangeHistory.route_id == route_id)
+            .order_by(RouteChangeHistory.created_at.desc())
+        )
+        history_entries = history_result.scalars().all()
+
+        # Формируем ответ
+        changes = []
+        for entry in history_entries:
+            changes.append(RouteChangeHistoryResponse(
+                id=entry.id,
+                route_id=entry.route_id,
+                change_type=entry.change_type,
+                changed_field=entry.changed_field,
+                old_value=entry.old_value,
+                new_value=entry.new_value,
+                description=entry.description,
+                change_metadata=entry.change_metadata,
+                changed_by_id=entry.changed_by_id,
+                changed_by_name=entry.changed_by.name if entry.changed_by else None,
+                created_at=entry.created_at
+            ))
+
+        return RouteHistoryListResponse(
+            route_id=route_id,
+            total_changes=len(changes),
+            changes=changes
         )
 
 

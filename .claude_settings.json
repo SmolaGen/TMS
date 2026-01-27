@@ -11,6 +11,7 @@
       "Edit(./**)",
       "Glob(./**)",
       "Grep(./**)",
+<<<<<<< HEAD
       "Read(/Users/alsmolentsev/tms_new/.auto-claude/worktrees/tasks/011-af1305/**)",
       "Write(/Users/alsmolentsev/tms_new/.auto-claude/worktrees/tasks/011-af1305/**)",
       "Edit(/Users/alsmolentsev/tms_new/.auto-claude/worktrees/tasks/011-af1305/**)",
@@ -19,6 +20,16 @@
       "Read(/Users/alsmolentsev/tms_new/.auto-claude/worktrees/tasks/011-af1305/.auto-claude/specs/011-/**)",
       "Write(/Users/alsmolentsev/tms_new/.auto-claude/worktrees/tasks/011-af1305/.auto-claude/specs/011-/**)",
       "Edit(/Users/alsmolentsev/tms_new/.auto-claude/worktrees/tasks/011-af1305/.auto-claude/specs/011-/**)",
+=======
+      "Read(/Users/alsmolentsev/tms_new/.auto-claude/worktrees/tasks/010-63ab6c/**)",
+      "Write(/Users/alsmolentsev/tms_new/.auto-claude/worktrees/tasks/010-63ab6c/**)",
+      "Edit(/Users/alsmolentsev/tms_new/.auto-claude/worktrees/tasks/010-63ab6c/**)",
+      "Glob(/Users/alsmolentsev/tms_new/.auto-claude/worktrees/tasks/010-63ab6c/**)",
+      "Grep(/Users/alsmolentsev/tms_new/.auto-claude/worktrees/tasks/010-63ab6c/**)",
+      "Read(/Users/alsmolentsev/tms_new/.auto-claude/worktrees/tasks/010-63ab6c/.auto-claude/specs/010-/**)",
+      "Write(/Users/alsmolentsev/tms_new/.auto-claude/worktrees/tasks/010-63ab6c/.auto-claude/specs/010-/**)",
+      "Edit(/Users/alsmolentsev/tms_new/.auto-claude/worktrees/tasks/010-63ab6c/.auto-claude/specs/010-/**)",
+>>>>>>> auto-claude/010-63ab6c
       "Read(/Users/alsmolentsev/tms_new/.auto-claude/**)",
       "Write(/Users/alsmolentsev/tms_new/.auto-claude/**)",
       "Edit(/Users/alsmolentsev/tms_new/.auto-claude/**)",
