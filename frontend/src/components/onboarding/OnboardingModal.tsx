@@ -3,10 +3,9 @@ import { Modal, Steps, Button, Space, Typography, Popconfirm } from 'antd';
 import { ArrowLeftOutlined, ArrowRightOutlined, CloseOutlined } from '@ant-design/icons';
 import { useOnboarding } from '../../hooks/useOnboarding';
 import { useTelegramAuth } from '../../hooks/useTelegramAuth';
-import { OnboardingStep } from '../../types/api';
+
 
 const { Title, Paragraph, Text } = Typography;
-const { Step } = Steps;
 
 interface OnboardingModalProps {
     open: boolean;
@@ -23,8 +22,6 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ open, onClose 
     const {
         currentStep,
         isLoading,
-        nextStep,
-        previousStep,
         skipOnboarding,
         completeOnboarding,
         goToStep,
@@ -330,15 +327,11 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ open, onClose 
                     current={internalStep}
                     size="small"
                     style={{ marginBottom: 30 }}
-                >
-                    {stepsData.map((step, index) => (
-                        <Step
-                            key={index}
-                            title={step.title}
-                            description={step.description}
-                        />
-                    ))}
-                </Steps>
+                    items={stepsData.map((step) => ({
+                        title: step.title,
+                        description: step.description,
+                    }))}
+                />
 
                 <div style={{
                     minHeight: 300,
