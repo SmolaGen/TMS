@@ -76,5 +76,15 @@ class Settings(BaseSettings):
     NOTIFICATION_RETRY_COUNT: int = 3
     NOTIFICATION_RETRY_DELAY: int = 5  # seconds
 
+    # Health Checks
+    HEALTH_CHECK_TIMEOUT: float = 5.0  # seconds
+    HEALTH_CHECK_INTERVAL: int = 30  # seconds
+    HEALTH_CHECK_RETRIES: int = 3
+
+    # Circuit Breaker
+    CIRCUIT_BREAKER_FAILURE_THRESHOLD: int = 5
+    CIRCUIT_BREAKER_TIMEOUT: int = 60  # seconds
+    CIRCUIT_BREAKER_RECOVERY_TIMEOUT: int = 120  # seconds
+
 
 settings = Settings()
