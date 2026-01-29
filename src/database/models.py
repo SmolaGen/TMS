@@ -128,6 +128,15 @@ class RouteChangeType(str, PyEnum):
     COMPLETED = "completed"                # Маршрут завершён
 
 
+class AvailabilityType(str, PyEnum):
+    """Тип недоступности водителя."""
+    VACATION = "vacation"      # Отпуск
+    SICK_LEAVE = "sick_leave"  # Больничный
+    DAY_OFF = "day_off"        # Выходной
+    PERSONAL = "personal"      # Личные обстоятельства
+    OTHER = "other"            # Другое
+
+
 class Driver(Base):
     """
     Модель водителя.
@@ -211,9 +220,92 @@ class Driver(Base):
         back_populates="driver",
         lazy="selectin"
     )
+    availability_periods: Mapped[List["DriverAvailability"]] = relationship(
+        "DriverAvailability",
+        back_populates="driver",
+        lazy="selectin",
+        cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<Driver(id={self.id}, name='{self.name}', status={self.status.value})>"
+
+
+class DriverAvailability(Base):
+    """
+    Модель недоступности водителя (отпуска, выходные, больничные).
+
+    Note:
+        Exclusion Constraint `no_driver_availability_overlap` гарантирует,
+        что у одного водителя не может быть пересекающихся периодов недоступности.
+    """
+    __tablename__ = "driver_availability"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    driver_id: Mapped[int] = mapped_column(
+        ForeignKey("drivers.id", ondelete="CASCADE"),
+        index=True,
+        comment="FK на водителя"
+    )
+    availability_type: Mapped[AvailabilityType] = mapped_column(
+        Enum(AvailabilityType, name="availability_type",
+             values_callable=lambda x: [e.value for e in x]),
+        default=AvailabilityType.OTHER,
+        server_default=text("'other'"),
+        comment="Тип недоступности"
+    )
+
+    # Временной интервал недоступности
+    time_range: Mapped[tuple] = mapped_column(
+        TSTZRANGE(),
+        comment="Временной интервал недоступности (с таймзоной)"
+    )
+
+    description: Mapped[Optional[str]] = mapped_column(
+        Text,
+        nullable=True,
+        comment="Описание/причина недоступности"
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        default=datetime.utcnow,
+        server_default=text("CURRENT_TIMESTAMP")
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        default=datetime.utcnow,
+        server_default=text("CURRENT_TIMESTAMP"),
+        onupdate=datetime.utcnow
+    )
+
+    # Relationships
+    driver: Mapped["Driver"] = relationship(
+        "Driver",
+        back_populates="availability_periods",
+        lazy="joined"
+    )
+
+    @property
+    def time_start(self) -> Optional[datetime]:
+        if not self.time_range:
+            return None
+        return getattr(self.time_range, 'lower', self.time_range[0] if isinstance(self.time_range, (list, tuple)) else None)
+
+    @property
+    def time_end(self) -> Optional[datetime]:
+        if not self.time_range:
+            return None
+        return getattr(self.time_range, 'upper', self.time_range[1] if isinstance(self.time_range, (list, tuple)) else None)
+
+    __table_args__ = (
+        ExcludeConstraint(
+            (Column("driver_id"), "="),
+            (Column("time_range"), "&&"),
+            name="no_driver_availability_overlap"
+        ),
+    )
+
+    def __repr__(self) -> str:
+        return f"<DriverAvailability(id={self.id}, driver_id={self.driver_id}, type={self.availability_type.value})>"
 
 
 class Contractor(Base):
