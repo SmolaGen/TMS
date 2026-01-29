@@ -2,11 +2,12 @@ from abc import ABC, abstractmethod
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.database.connection import async_session_factory
 from src.database.repository import SQLAlchemyRepository, DriverRepository, OrderRepository
-from src.database.models import Driver, Order
+from src.database.models import Driver, Order, DriverAvailability
 
 class AbstractUnitOfWork(ABC):
     drivers: DriverRepository[Driver]
     orders: OrderRepository[Order]
+    driver_availability: SQLAlchemyRepository[DriverAvailability]
 
     async def __aenter__(self):
         return self
@@ -30,6 +31,7 @@ class SQLAlchemyUnitOfWork(AbstractUnitOfWork):
         self.session: AsyncSession = self.session_factory()
         self.drivers = DriverRepository(self.session, Driver)
         self.orders = OrderRepository(self.session, Order)
+        self.driver_availability = SQLAlchemyRepository(self.session, DriverAvailability)
         return await super().__aenter__()
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
