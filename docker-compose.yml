@@ -143,6 +143,37 @@ services:
     networks:
       - tms-network
 
+  # Scheduler Worker for background jobs
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tms-scheduler
+    restart: unless-stopped
+    command: python -m src.workers.scheduler
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-tms}:${POSTGRES_PASSWORD:-tms_secret}@postgis:5432/${POSTGRES_DB:-tms_db}
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./src:/app/src
+    depends_on:
+      postgis:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      replicas: 1
+    healthcheck:
+      test: ["CMD", "python", "-c", "import redis; redis.Redis(host='redis', port=6379).ping()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - tms-network
+
   # Nginx Reverse Proxy
   nginx:
     build:
