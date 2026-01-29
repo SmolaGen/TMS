@@ -29,9 +29,13 @@ COPY . .
 # Expose port
 EXPOSE 8000
 
-# Health check
+# Copy health check script
+COPY healthcheck.py /app/healthcheck.py
+RUN chmod +x /app/healthcheck.py
+
+# Health check - validates application and critical dependencies
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+    CMD python /app/healthcheck.py
 
 # Run the application
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
