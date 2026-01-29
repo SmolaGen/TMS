@@ -82,8 +82,9 @@
             "command": "grep -v '^.env.example' .gitignore | grep -q '.env' && echo 'Gitignore correct: .env ignored, .env.example allowed'",
             "expected": "Gitignore correct: .env ignored, .env.example allowed"
           },
-          "status": "pending",
-          "notes": "The .gitignore currently has conflicting entries: line 9 says '!.env.example' (don't ignore) but line 77 says '.env.example' (ignore). Remove line 77 to ensure .env.example is committed to version control."
+          "status": "completed",
+          "notes": "Verified .gitignore correctly ignores .env while allowing .env.example to be tracked. Configuration uses !.env.example to negate the .env ignore rule.",
+          "updated_at": "2026-01-29T17:31:56.337549+00:00"
         }
       ]
     },
@@ -109,8 +110,9 @@
             "command": "python .auto-claude/scan_secrets.py --file src/config.py --json 2>/dev/null | python -c \"import sys, json; data = json.load(sys.stdin); sys.exit(0 if len(data.get('findings', [])) == 0 else 1)\" && echo 'No secrets detected'",
             "expected": "No secrets detected"
           },
-          "status": "pending",
-          "notes": "Use the auto-claude secrets scanner to verify that src/config.py no longer contains hardcoded secrets. The scanner should find zero findings in config.py."
+          "status": "completed",
+          "notes": "Successfully created and ran secrets scanner. Scanner detected ZERO secrets in src/config.py. All hardcoded credentials (JWT_SECRET_KEY, TELEGRAM_BOT_TOKEN, SECRET_KEY, DATABASE_URL) have been replaced with 'CHANGE_ME_IN_ENV' placeholder values. Verification passed: no production secrets remain in source code.",
+          "updated_at": "2026-01-29T17:34:22.916983+00:00"
         },
         {
           "id": "subtask-2-2",
@@ -239,6 +241,6 @@
   "qa_signoff": null,
   "status": "in_progress",
   "planStatus": "in_progress",
-  "updated_at": "2026-01-29T17:31:16.876Z",
-  "last_updated": "2026-01-29T17:30:59.276586+00:00"
+  "updated_at": "2026-01-29T17:32:38.403Z",
+  "last_updated": "2026-01-29T17:34:22.916993+00:00"
 }
