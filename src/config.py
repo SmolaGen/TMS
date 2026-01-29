@@ -97,6 +97,14 @@ class Settings(BaseSettings):
                 f'See .env.example for setup instructions.'
             )
 
+        # Check for CHANGEME_ prefix pattern (from .env.example)
+        if v.upper().startswith('CHANGEME'):
+            raise ValueError(
+                f'{info.field_name} cannot start with "CHANGEME" - this is a placeholder from .env.example. '
+                f'You must generate a real secret. '
+                f'Use: python -c "import secrets; print(secrets.token_hex(32))"'
+            )
+
         # Enforce minimum length for security
         if len(v) < 32:
             raise ValueError(
