@@ -1,9 +1,19 @@
 import React from 'react';
-import { Card, List, Tag, Space, Typography, Empty, Timeline } from 'antd';
-import { ClockCircleOutlined, EnvironmentOutlined, UserOutlined } from '@ant-design/icons';
+import { Card, List, Tag, Space, Typography, Empty, Timeline, Alert } from 'antd';
+import {
+  ClockCircleOutlined,
+  EnvironmentOutlined,
+  UserOutlined,
+  CalendarOutlined,
+  WarningOutlined,
+} from '@ant-design/icons';
 import { useDriverSchedule } from '../../hooks/useBatchAssignment';
+import { useDriverAvailability, type AvailabilityType } from '../../hooks/useDriverAvailability';
 
 import dayjs from 'dayjs';
+import isBetween from 'dayjs/plugin/isBetween';
+
+dayjs.extend(isBetween);
 
 const { Text } = Typography;
 
@@ -13,12 +23,27 @@ interface DriverScheduleViewProps {
   onOrderClick?: (orderId: number) => void;
 }
 
+const availabilityTypeConfig: Record<AvailabilityType, { color: string; text: string }> = {
+  vacation: { color: 'blue', text: 'Отпуск' },
+  sick_leave: { color: 'red', text: 'Больничный' },
+  day_off: { color: 'orange', text: 'Выходной' },
+  personal: { color: 'purple', text: 'Личное' },
+  other: { color: 'default', text: 'Недоступен' },
+};
+
 export const DriverScheduleView: React.FC<DriverScheduleViewProps> = ({
   driverId,
   targetDate,
   onOrderClick,
 }) => {
   const { data, isLoading, error } = useDriverSchedule(driverId, targetDate);
+
+  // Fetch driver availability for the target date
+  const targetDateObj = dayjs(targetDate);
+  const { data: availability } = useDriverAvailability(driverId, {
+    dateFrom: targetDateObj.format('YYYY-MM-DD'),
+    dateUntil: targetDateObj.add(1, 'day').format('YYYY-MM-DD'),
+  });
 
   if (isLoading) {
     return <Card loading={true}>Загрузка расписания...</Card>;
@@ -111,6 +136,24 @@ export const DriverScheduleView: React.FC<DriverScheduleViewProps> = ({
     return timeA - timeB;
   });
 
+  // Фильтруем периоды недоступности, которые пересекаются с целевой датой
+  const unavailablePeriods =
+    availability?.filter((period) => {
+      const start = dayjs(period.time_start);
+      const end = dayjs(period.time_end);
+      const targetStart = targetDateObj.startOf('day');
+      const targetEnd = targetDateObj.endOf('day');
+
+      // Проверяем, пересекается ли период с целевым днём
+      return (
+        start.isBefore(targetEnd) &&
+        end.isAfter(targetStart) &&
+        (start.isSame(targetDateObj, 'day') ||
+          end.isSame(targetDateObj, 'day') ||
+          (start.isBefore(targetStart) && end.isAfter(targetEnd)))
+      );
+    }) || [];
+
   return (
     <Card
       title={
@@ -128,6 +171,44 @@ export const DriverScheduleView: React.FC<DriverScheduleViewProps> = ({
           <Text strong>Всего заказов: {data.total_orders}</Text>
           <Text strong>Свободных слотов: {data.available_slots}</Text>
         </Space>
+
+        {/* Периоды недоступности */}
+        {unavailablePeriods.length > 0 && (
+          <Alert
+            type="warning"
+            icon={<WarningOutlined />}
+            message="Водитель недоступен"
+            description={
+              <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                {unavailablePeriods.map((period) => {
+                  const config = availabilityTypeConfig[period.availability_type];
+                  const start = dayjs(period.time_start);
+                  const end = dayjs(period.time_end);
+
+                  return (
+                    <Space key={period.id} direction="vertical" size={0}>
+                      <Space>
+                        <Tag icon={<CalendarOutlined />} color={config.color}>
+                          {config.text}
+                        </Tag>
+                        <Text>
+                          {start.format('DD.MM HH:mm')} - {end.format('DD.MM HH:mm')}
+                        </Text>
+                      </Space>
+                      {period.description && (
+                        <Text type="secondary" style={{ fontSize: 12, marginLeft: 8 }}>
+                          {period.description}
+                        </Text>
+                      )}
+                    </Space>
+                  );
+                })}
+              </Space>
+            }
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+        )}
 
         {/* Список заказов */}
         {sortedSchedule.length > 0 ? (
@@ -188,9 +269,47 @@ export const DriverScheduleView: React.FC<DriverScheduleViewProps> = ({
         )}
 
         {/* Временная шкала для визуализации */}
-        {sortedSchedule.length > 0 && (
+        {(sortedSchedule.length > 0 || unavailablePeriods.length > 0) && (
           <Card size="small" title="Временная шкала">
             <Timeline mode="left">
+              {/* Периоды недоступности */}
+              {unavailablePeriods.map((period) => {
+                const config = availabilityTypeConfig[period.availability_type];
+                const start = dayjs(period.time_start);
+                const end = dayjs(period.time_end);
+
+                return (
+                  <Timeline.Item
+                    key={`unavailable-${period.id}`}
+                    color={config.color}
+                    label={
+                      <Space direction="vertical" size={0}>
+                        <Text strong>{start.format('HH:mm')}</Text>
+                        <Text type="secondary" style={{ fontSize: '12px' }}>
+                          {config.text}
+                        </Text>
+                      </Space>
+                    }
+                  >
+                    <Space direction="vertical" size={2}>
+                      <Space>
+                        <CalendarOutlined />
+                        <Text strong>{config.text}</Text>
+                      </Space>
+                      <Text type="secondary">
+                        До: {end.format('HH:mm')} ({end.format('DD.MM.YYYY')})
+                      </Text>
+                      {period.description && (
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                          {period.description}
+                        </Text>
+                      )}
+                    </Space>
+                  </Timeline.Item>
+                );
+              })}
+
+              {/* Заказы */}
               {sortedSchedule.map((item) => (
                 <Timeline.Item
                   key={item.order_id}
