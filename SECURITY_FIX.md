@@ -147,6 +147,31 @@ To remove secrets from git history (destructive operation):
 
 ---
 
+### Runtime Validation Protection
+
+**NEW**: The application now includes runtime validation to prevent accidental use of compromised secrets from git history.
+
+The following specific values are **explicitly rejected** by the validator:
+
+1. **JWT_SECRET_KEY**: `6064f7b6b3e7f6d1a9e8b7c6d5a4f3e2...` (63 chars)
+2. **TELEGRAM_BOT_TOKEN**: `8237141688:AAGcLKDClo_RUxXRdO7CeGjNw_zwzITHf4w` (46 chars)
+3. **DATABASE_URL password**: `tms_secret` (10 chars)
+
+If you attempt to start the application with any of these values, you will receive:
+
+```
+ValidationError: [field_name] is a COMPROMISED secret from git history.
+This value was exposed in previous commits and MUST NOT be used.
+Anyone with repository access can extract this value.
+Generate a new secret immediately using: python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+**Why This Matters**: Even though you followed the setup instructions and created a `.env` file, if you copied the old values from a previous `.env` or from git history, the application will refuse to start. This protection ensures you cannot accidentally deploy with known compromised credentials.
+
+**What To Do**: Generate fresh secrets using the commands provided in the error message or in the "How to Set Up Environment Variables" section below.
+
+---
+
 ## ✅ How to Set Up Environment Variables
 
 ### For Development Environments

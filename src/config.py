@@ -81,6 +81,25 @@ class Settings(BaseSettings):
     @classmethod
     def validate_not_placeholder(cls, v: str, info) -> str:
         """Ensure secrets are not placeholder values."""
+
+        # CRITICAL: Reject compromised secrets from git history
+        # These values were exposed in previous commits and must never be used
+        COMPROMISED_SECRETS = {
+            # Old JWT secret key (exposed in git history before security fix)
+            '6064f7b6b3e7f6d1a9e8b7c6d5a4f3e2d1c0b9a8f7e6d5c4b3a2f1e0d9c8b7a',
+            # Old Telegram bot token (exposed in git history before security fix)
+            '8237141688:AAGcLKDClo_RUxXRdO7CeGjNw_zwzITHf4w',
+        }
+
+        if v in COMPROMISED_SECRETS:
+            raise ValueError(
+                f'{info.field_name} is a COMPROMISED secret from git history. '
+                f'This value was exposed in previous commits and MUST NOT be used. '
+                f'Anyone with repository access can extract this value. '
+                f'Generate a new secret immediately using: '
+                f'python -c "import secrets; print(secrets.token_hex(32))"'
+            )
+
         placeholder_values = {
             'CHANGE_ME_IN_ENV',
             'CHANGE_ME',
@@ -118,12 +137,24 @@ class Settings(BaseSettings):
     @field_validator('DATABASE_URL')
     @classmethod
     def validate_database_url(cls, v: str) -> str:
-        """Ensure database URL doesn't contain placeholder password."""
+        """Ensure database URL doesn't contain placeholder or compromised passwords."""
+
+        # Check for placeholder password
         if 'password@' in v or ':password@' in v:
             raise ValueError(
                 'DATABASE_URL contains placeholder password. '
                 'Set a real database password in your .env file.'
             )
+
+        # CRITICAL: Check for compromised password from git history
+        if 'tms_secret' in v.lower():
+            raise ValueError(
+                'DATABASE_URL contains COMPROMISED password "tms_secret" from git history. '
+                'This password was exposed in previous commits and MUST be changed. '
+                'Generate a new password and update both the database and .env file. '
+                'See SECURITY_FIX.md for rotation instructions.'
+            )
+
         return v
 
 settings = Settings()
