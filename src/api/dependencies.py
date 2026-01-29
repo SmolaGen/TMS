@@ -224,3 +224,12 @@ def get_availability_service(
     """Провайдер сервиса управления доступностью водителей."""
     from src.services.availability_service import DriverAvailabilityService
     return DriverAvailabilityService(uow)
+
+
+def get_template_service(
+    uow: SQLAlchemyUnitOfWork = Depends(get_uow),
+    geocoding: GeocodingService = Depends(get_geocoding_service)
+):
+    """Провайдер сервиса управления шаблонами заказов."""
+    from src.services.template_service import TemplateService
+    return TemplateService(uow, geocoding)
