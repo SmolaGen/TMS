@@ -1,8 +1,13 @@
 # Security Fix: Removal of Hardcoded Secrets
 
+> **⚠️ CRITICAL SECURITY NOTICE**
+> Secrets removed from this file were previously committed to git and remain in the repository history.
+> **ALL SECRETS MUST BE ROTATED IMMEDIATELY** - treat this as a credential leak incident.
+> See "Git History Contains Old Secrets" section below for rotation instructions.
+
 **Date:** 2026-01-30
 **Severity:** CRITICAL
-**Status:** FIXED ✅
+**Status:** FIXED ✅ (Code) | ACTION REQUIRED ⚠️ (Secret Rotation)
 
 ---
 
@@ -81,6 +86,64 @@ This vulnerability falls under **OWASP A07:2021 - Identification and Authenticat
 - ❌ **Principle of Least Privilege:** All developers had access to production credentials
 - ❌ **Secret Rotation:** Changing secrets would require code commits
 - ❌ **Defense in Depth:** Single point of failure for credential exposure
+
+---
+
+## ⚠️ CRITICAL: Git History Contains Old Secrets
+
+**Important**: This security fix removes secrets from the *current* source code, but secrets committed in previous versions remain in git history permanently.
+
+### Secrets Exposed in Git History
+
+The following secrets were found in git commits and must be considered **compromised**:
+- JWT_SECRET_KEY (exposed in commits, can be extracted with `git log -p`)
+- TELEGRAM_BOT_TOKEN (exposed in commits)
+- DATABASE_URL password (exposed in commits)
+- SECRET_KEY (exposed in commits)
+
+### Required Actions
+
+**ALL EXPOSED SECRETS MUST BE ROTATED IMMEDIATELY:**
+
+1. **JWT_SECRET_KEY**: Generate new key
+   ```bash
+   python -c "import secrets; print(secrets.token_hex(32))"
+   ```
+
+2. **TELEGRAM_BOT_TOKEN**: Revoke old token and create new bot
+   - Message @BotFather on Telegram
+   - Use `/revoke` to invalidate the old token: `8237141688:AAGcLKDClo_RUxXRdO7CeGjNw_zwzITHf4w`
+   - Use `/newbot` or `/token` to get a new token
+   - Update TELEGRAM_BOT_TOKEN in all environments
+
+3. **DATABASE_URL password**: Change database password
+   ```sql
+   ALTER USER tms WITH PASSWORD 'new-secure-password-here';
+   ```
+   - Update DATABASE_URL in all environments
+
+4. **SECRET_KEY**: Generate new key
+   ```bash
+   python -c "import secrets; print(secrets.token_urlsafe(32))"
+   ```
+
+### Post-Rotation
+
+After rotating secrets:
+- ✅ All old JWT tokens will become invalid (users must re-authenticate)
+- ✅ Old Telegram bot token will be rejected
+- ✅ Old database credentials will be denied
+- ✅ Monitor logs for attempts to use old credentials (indicates potential attack)
+
+### Git History Remediation (Optional)
+
+To remove secrets from git history (destructive operation):
+1. Use [BFG Repo-Cleaner](https://rtyley.github.io/bfg-repo-cleaner/) or `git-filter-repo`
+2. Force-push to all branches
+3. All developers must re-clone the repository
+4. **Still rotate secrets** as they may have been exposed before remediation
+
+**Recommendation**: Secret rotation is sufficient. Git history rewrite is optional and disruptive.
 
 ---
 
