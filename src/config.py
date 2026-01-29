@@ -5,6 +5,7 @@ TMS Configuration
 """
 
 from decimal import Decimal
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -76,5 +77,45 @@ class Settings(BaseSettings):
     NOTIFICATION_RETRY_COUNT: int = 3
     NOTIFICATION_RETRY_DELAY: int = 5  # seconds
 
+    @field_validator('SECRET_KEY', 'JWT_SECRET_KEY', 'TELEGRAM_BOT_TOKEN')
+    @classmethod
+    def validate_not_placeholder(cls, v: str, info) -> str:
+        """Ensure secrets are not placeholder values."""
+        placeholder_values = {
+            'CHANGE_ME_IN_ENV',
+            'CHANGE_ME',
+            'your-secret-key-change-me',
+            'your-jwt-secret-key-here',
+            'your-telegram-bot-token-here',
+            'your-bot-token-from-botfather',
+        }
+
+        if v in placeholder_values:
+            raise ValueError(
+                f'{info.field_name} cannot use placeholder value "{v}". '
+                f'You must set a real secret in your .env file. '
+                f'See .env.example for setup instructions.'
+            )
+
+        # Enforce minimum length for security
+        if len(v) < 32:
+            raise ValueError(
+                f'{info.field_name} must be at least 32 characters long for security. '
+                f'Current length: {len(v)}. Generate a secure secret using: '
+                f'python -c "import secrets; print(secrets.token_hex(32))"'
+            )
+
+        return v
+
+    @field_validator('DATABASE_URL')
+    @classmethod
+    def validate_database_url(cls, v: str) -> str:
+        """Ensure database URL doesn't contain placeholder password."""
+        if 'password@' in v or ':password@' in v:
+            raise ValueError(
+                'DATABASE_URL contains placeholder password. '
+                'Set a real database password in your .env file.'
+            )
+        return v
 
 settings = Settings()
