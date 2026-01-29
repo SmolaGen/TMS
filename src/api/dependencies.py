@@ -216,3 +216,29 @@ async def get_route_rebuild_service(
     async with async_session_factory() as session:
         optimizer_service = RouteOptimizerService(session, routing)
         yield RouteRebuildService(session, optimizer_service, notification_service)
+
+
+def get_availability_service(
+    uow: SQLAlchemyUnitOfWork = Depends(get_uow)
+):
+    """Провайдер сервиса управления доступностью водителей."""
+    from src.services.availability_service import DriverAvailabilityService
+    return DriverAvailabilityService(uow)
+
+
+def get_template_service(
+    uow: SQLAlchemyUnitOfWork = Depends(get_uow),
+    geocoding: GeocodingService = Depends(get_geocoding_service)
+):
+    """Провайдер сервиса управления шаблонами заказов."""
+    from src.services.template_service import TemplateService
+    return TemplateService(uow, geocoding)
+
+
+def get_schedule_service(
+    uow: SQLAlchemyUnitOfWork = Depends(get_uow),
+    order_service: OrderService = Depends(get_order_service)
+):
+    """Провайдер сервиса управления расписанием."""
+    from src.services.schedule_service import ScheduleService
+    return ScheduleService(uow, order_service)
