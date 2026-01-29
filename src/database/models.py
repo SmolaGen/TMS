@@ -523,6 +523,122 @@ class Order(Base):
     )
 
 
+class OrderTemplate(Base):
+    """
+    Модель шаблона заказа для повторяющихся маршрутов.
+
+    Позволяет сохранить параметры часто используемых заказов
+    для быстрого создания новых заказов на их основе.
+    """
+    __tablename__ = "order_templates"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(
+        String(255),
+        comment="Название шаблона"
+    )
+    contractor_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("contractors.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+        comment="FK на подрядчика-владельца шаблона"
+    )
+    priority: Mapped[OrderPriority] = mapped_column(
+        Enum(OrderPriority, name="order_priority",
+             values_callable=lambda x: [e.value for e in x]),
+        default=OrderPriority.NORMAL,
+        server_default=text("'normal'"),
+        comment="Приоритет заказа по умолчанию"
+    )
+
+    # Координаты и адреса
+    pickup_location: Mapped[Optional[str]] = mapped_column(
+        Geometry(geometry_type="POINT", srid=4326),
+        nullable=True,
+        comment="Координаты точки погрузки (WGS84)"
+    )
+    dropoff_location: Mapped[Optional[str]] = mapped_column(
+        Geometry(geometry_type="POINT", srid=4326),
+        nullable=True,
+        comment="Координаты точки выгрузки (WGS84)"
+    )
+    pickup_address: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    dropoff_address: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+
+    # Данные заказчика
+    customer_phone: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    customer_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    customer_telegram_id: Mapped[Optional[int]] = mapped_column(
+        BigInteger,
+        nullable=True,
+        index=True,
+        comment="Telegram ID заказчика для уведомлений"
+    )
+    customer_webhook_url: Mapped[Optional[str]] = mapped_column(
+        String(500),
+        nullable=True,
+        comment="URL вебхука заказчика для уведомлений"
+    )
+
+    # Стоимость по умолчанию
+    price: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(10, 2),
+        nullable=True,
+        comment="Стоимость заказа по умолчанию"
+    )
+
+    comment: Mapped[Optional[str]] = mapped_column(
+        Text,
+        nullable=True,
+        comment="Комментарий к шаблону"
+    )
+
+    is_active: Mapped[bool] = mapped_column(
+        default=True,
+        server_default=text("true"),
+        comment="Флаг активности шаблона"
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        default=datetime.utcnow,
+        server_default=text("CURRENT_TIMESTAMP")
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        default=datetime.utcnow,
+        server_default=text("CURRENT_TIMESTAMP"),
+        onupdate=datetime.utcnow
+    )
+
+    # Relationships
+    contractor: Mapped[Optional["Contractor"]] = relationship(
+        "Contractor",
+        lazy="selectin"
+    )
+
+    @property
+    def pickup_lat(self) -> Optional[float]:
+        return to_shape(self.pickup_location).y if self.pickup_location else None
+
+    @property
+    def pickup_lon(self) -> Optional[float]:
+        return to_shape(self.pickup_location).x if self.pickup_location else None
+
+    @property
+    def dropoff_lat(self) -> Optional[float]:
+        return to_shape(self.dropoff_location).y if self.dropoff_location else None
+
+    @property
+    def dropoff_lon(self) -> Optional[float]:
+        return to_shape(self.dropoff_location).x if self.dropoff_location else None
+
+    __table_args__ = (
+        Index("ix_order_templates_contractor", "contractor_id"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<OrderTemplate(id={self.id}, name='{self.name}', contractor_id={self.contractor_id})>"
+
+
 class DriverLocationHistory(Base):
     """
     История перемещений водителя.
