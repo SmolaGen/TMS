@@ -439,6 +439,11 @@ class Order(Base):
         comment="Комментарий к заказу"
     )
 
+    scheduled_date: Mapped[Optional[datetime]] = mapped_column(
+        nullable=True,
+        comment="Запланированная дата выполнения заказа"
+    )
+
     # Lifecycle timestamps
     assigned_at: Mapped[Optional[datetime]] = mapped_column(
         nullable=True,
