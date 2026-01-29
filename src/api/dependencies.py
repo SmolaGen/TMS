@@ -216,3 +216,11 @@ async def get_route_rebuild_service(
     async with async_session_factory() as session:
         optimizer_service = RouteOptimizerService(session, routing)
         yield RouteRebuildService(session, optimizer_service, notification_service)
+
+
+def get_availability_service(
+    uow: SQLAlchemyUnitOfWork = Depends(get_uow)
+):
+    """Провайдер сервиса управления доступностью водителей."""
+    from src.services.availability_service import DriverAvailabilityService
+    return DriverAvailabilityService(uow)
