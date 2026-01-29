@@ -1,10 +1,17 @@
 import React from 'react';
 import { Table, Tag, Space, Button, Tooltip, Typography, Avatar, Badge } from 'antd';
-import { EditOutlined, EnvironmentOutlined, PhoneOutlined, UserOutlined } from '@ant-design/icons';
+import {
+  EditOutlined,
+  EnvironmentOutlined,
+  PhoneOutlined,
+  UserOutlined,
+  CalendarOutlined,
+} from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { DriverResponse } from '../../types/api';
 import { DriverStatus } from '../../types/api';
 import dayjs from 'dayjs';
+import { useDriverAvailability, type AvailabilityType } from '../../hooks/useDriverAvailability';
 
 interface DriversTableProps {
   drivers: DriverResponse[];
@@ -20,6 +27,86 @@ const statusConfig: Record<
   [DriverStatus.AVAILABLE]: { color: 'success', text: 'Доступен', badge: 'success' },
   [DriverStatus.BUSY]: { color: 'warning', text: 'Занят', badge: 'warning' },
   [DriverStatus.OFFLINE]: { color: 'default', text: 'Оффлайн', badge: 'default' },
+};
+
+const availabilityTypeConfig: Record<AvailabilityType, { color: string; text: string }> = {
+  vacation: { color: 'blue', text: 'Отпуск' },
+  sick_leave: { color: 'red', text: 'Больничный' },
+  day_off: { color: 'orange', text: 'Выходной' },
+  personal: { color: 'purple', text: 'Личное' },
+  other: { color: 'default', text: 'Недоступен' },
+};
+
+// Helper component to show driver availability status
+const DriverAvailabilityIndicator: React.FC<{ driverId: number }> = ({ driverId }) => {
+  const now = dayjs();
+  const { data: availability } = useDriverAvailability(driverId, {
+    dateFrom: now.format('YYYY-MM-DD'),
+    dateUntil: now.add(7, 'days').format('YYYY-MM-DD'),
+  });
+
+  if (!availability || availability.length === 0) {
+    return <Typography.Text type="secondary">—</Typography.Text>;
+  }
+
+  // Check for current unavailability
+  const currentUnavailability = availability.find((period) => {
+    const start = dayjs(period.time_start);
+    const end = dayjs(period.time_end);
+    return now.isAfter(start) && now.isBefore(end);
+  });
+
+  if (currentUnavailability) {
+    const config = availabilityTypeConfig[currentUnavailability.availability_type];
+    const endDate = dayjs(currentUnavailability.time_end);
+    return (
+      <Tooltip
+        title={
+          <Space direction="vertical" size={0}>
+            <span>{config.text}</span>
+            <span style={{ fontSize: 11 }}>До: {endDate.format('DD.MM.YYYY HH:mm')}</span>
+            {currentUnavailability.description && (
+              <span style={{ fontSize: 11 }}>{currentUnavailability.description}</span>
+            )}
+          </Space>
+        }
+      >
+        <Tag icon={<CalendarOutlined />} color={config.color}>
+          {config.text}
+        </Tag>
+      </Tooltip>
+    );
+  }
+
+  // Check for upcoming unavailability (within next 7 days)
+  const upcomingUnavailability = availability.find((period) => {
+    const start = dayjs(period.time_start);
+    return start.isAfter(now);
+  });
+
+  if (upcomingUnavailability) {
+    const config = availabilityTypeConfig[upcomingUnavailability.availability_type];
+    const startDate = dayjs(upcomingUnavailability.time_start);
+    return (
+      <Tooltip
+        title={
+          <Space direction="vertical" size={0}>
+            <span>{config.text}</span>
+            <span style={{ fontSize: 11 }}>С: {startDate.format('DD.MM.YYYY HH:mm')}</span>
+            {upcomingUnavailability.description && (
+              <span style={{ fontSize: 11 }}>{upcomingUnavailability.description}</span>
+            )}
+          </Space>
+        }
+      >
+        <Tag icon={<CalendarOutlined />} color="default">
+          Скоро: {config.text}
+        </Tag>
+      </Tooltip>
+    );
+  }
+
+  return <Typography.Text type="secondary">—</Typography.Text>;
 };
 
 export const DriversTable: React.FC<DriversTableProps> = ({
@@ -78,6 +165,12 @@ export const DriversTable: React.FC<DriversTableProps> = ({
         const config = statusConfig[status];
         return config ? <Tag color={config.color}>{config.text}</Tag> : status;
       },
+    },
+    {
+      title: 'Доступность',
+      key: 'availability',
+      width: 180,
+      render: (_, record) => <DriverAvailabilityIndicator driverId={record.id} />,
     },
     {
       title: 'Телефон',
@@ -168,7 +261,7 @@ export const DriversTable: React.FC<DriversTableProps> = ({
         showSizeChanger: true,
         showTotal: (total) => `Всего: ${total} водителей`,
       }}
-      scroll={{ x: 1000 }}
+      scroll={{ x: 1200 }}
       onRow={(record) => ({
         onClick: () => onSelect(record.id),
         style: { cursor: 'pointer' },
