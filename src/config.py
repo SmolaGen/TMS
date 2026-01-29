@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     )
     
     # Database
-    DATABASE_URL: str = "postgresql+asyncpg://tms:tms_secret@localhost:5432/tms_db"
+    DATABASE_URL: str = "postgresql+asyncpg://user:password@localhost:5432/dbname"
     
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
@@ -40,10 +40,10 @@ class Settings(BaseSettings):
     # Application
     APP_ENV: str = "development"
     DEBUG: bool = True
-    SECRET_KEY: str = "your-secret-key-change-me"
+    SECRET_KEY: str = "CHANGE_ME_IN_ENV"
     
     # JWT Authentication
-    JWT_SECRET_KEY: str = "6064f7b6b3e7f6d1a9e8b7c6d5a4f3e2d1c0b9a8f7e6d5c4b3a2f1e0d9c8b7a"
+    JWT_SECRET_KEY: str = "CHANGE_ME_IN_ENV"
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 часа
     TELEGRAM_INIT_DATA_EXPIRE_SECONDS: int = 86400  # 24 часа
@@ -52,7 +52,7 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
 
     # Telegram Bot
-    TELEGRAM_BOT_TOKEN: str = "8237141688:AAGcLKDClo_RUxXRdO7CeGjNw_zwzITHf4w"
+    TELEGRAM_BOT_TOKEN: str = "CHANGE_ME_IN_ENV"
     TELEGRAM_WEBHOOK_URL: str = "https://myappnf.ru/bot/webhook"
     WEBAPP_URL: str = "https://myappnf.ru/webapp"
     ADMIN_USERNAME: str = "alsmolentsev"
