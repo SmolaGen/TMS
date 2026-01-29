@@ -1,10 +1,9 @@
-import os
+import time
 from typing import Optional
 
 import httpx
 import redis.asyncio as aioredis
-from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect, Response
-from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+from fastapi import APIRouter, Response
 from sqlalchemy import text
 
 from src.config import settings
@@ -17,8 +16,9 @@ from src.core.health_check import (
 from src.core.logging import get_logger
 from src.database.connection import engine
 
-router = APIRouter()
 logger = get_logger(__name__)
+
+router = APIRouter()
 
 
 class DatabaseHealthChecker(HealthChecker):
@@ -33,6 +33,9 @@ class DatabaseHealthChecker(HealthChecker):
 
         Returns:
             HealthCheckResult с статусом подключения к БД
+
+        Raises:
+            HealthCheckError: Если проверка не удалась
         """
         try:
             async with engine.connect() as conn:
@@ -67,6 +70,9 @@ class RedisHealthChecker(HealthChecker):
 
         Returns:
             HealthCheckResult с статусом подключения к Redis
+
+        Raises:
+            HealthCheckError: Если проверка не удалась
         """
         redis_client: Optional[aioredis.Redis] = None
         try:
@@ -105,9 +111,13 @@ class OSRMHealthChecker(HealthChecker):
 
         Returns:
             HealthCheckResult с статусом подключения к OSRM
+
+        Raises:
+            HealthCheckError: Если проверка не удалась
         """
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
+                # OSRM возвращает 200 на /status endpoint или информацию о версии
                 response = await client.get(f"{settings.OSRM_URL}/status")
                 response.raise_for_status()
                 return HealthCheckResult(
@@ -140,10 +150,16 @@ class PhotonHealthChecker(HealthChecker):
 
         Returns:
             HealthCheckResult с статусом подключения к Photon
+
+        Raises:
+            HealthCheckError: Если проверка не удалась
         """
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
+                # Photon возвращает 400 на /api без параметров, но это нормально
+                # Нам главное - проверить доступность endpoint
                 response = await client.get(f"{settings.PHOTON_URL}/api", params={"q": "test"})
+                # Принимаем любой статус - главное что сервис отвечает
                 return HealthCheckResult(
                     name=self.name,
                     status=HealthStatus.OK,
@@ -162,16 +178,9 @@ class PhotonHealthChecker(HealthChecker):
             )
 
 
-# Create health checkers
+# Create health checkers for detailed check
 _db_checker = DatabaseHealthChecker()
 _redis_checker = RedisHealthChecker()
-
-# Create composite health checker
-_health_checker = CompositeHealthChecker(name="application")
-_health_checker.add_async_checker(_db_checker)
-_health_checker.add_async_checker(_redis_checker)
-
-# Create additional health checkers for external services
 _osrm_checker = OSRMHealthChecker()
 _photon_checker = PhotonHealthChecker()
 
@@ -183,57 +192,7 @@ _detailed_health_checker.add_async_checker(_osrm_checker)
 _detailed_health_checker.add_async_checker(_photon_checker)
 
 
-@router.get("/health")
-async def health_check(response: Response) -> dict:
-    """
-    Performs a comprehensive health check on the application.
-    Checks database and Redis connectivity.
-
-    Returns:
-        - 200: Application is healthy with all dependencies available
-        - 503: One or more critical dependencies are unavailable
-
-    Response:
-        {
-            "status": "ok" | "degraded" | "failed",
-            "timestamp": <unix timestamp>,
-            "checks": {
-                "database": {"status": "ok", "message": "..."},
-                "redis": {"status": "ok", "message": "..."}
-            }
-        }
-    """
-    result = await _health_checker.check()
-
-    # Determine HTTP status code based on health check result
-    status_code = 200 if result.status == HealthStatus.OK else 503
-    response.status_code = status_code
-
-    response_body = {
-        "status": result.status.value,
-        "timestamp": result.timestamp,
-        "checks": {
-            check_name: {
-                "status": check_result.status.value,
-                "message": check_result.message,
-                "response_time_ms": check_result.response_time_ms,
-            }
-            for check_name, check_result in result.details.get("checks", {}).items()
-        },
-    }
-
-    # Log the health check result
-    logger.info(
-        "health_check_completed",
-        status=result.status.value,
-        status_code=status_code,
-        response_time_ms=result.response_time_ms,
-    )
-
-    return response_body
-
-
-@router.get("/health/detailed")
+@router.get("/health/detailed", tags=["Health"])
 async def detailed_health_check(response: Response) -> dict:
     """
     Performs a comprehensive health check on all external services and dependencies.
@@ -283,61 +242,3 @@ async def detailed_health_check(response: Response) -> dict:
     )
 
     return response_body
-
-
-@router.get("/metrics")
-async def metrics():
-    """Prometheus metrics endpoint."""
-    return Response(
-        content=generate_latest(),
-        media_type=CONTENT_TYPE_LATEST
-    )
-
-
-@router.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    """WebSocket эндпоинт для real-time обновлений."""
-    origin = websocket.headers.get("origin")
-    host = websocket.headers.get("host")
-    upgrade = websocket.headers.get("upgrade")
-    connection = websocket.headers.get("connection")
-
-    logger.info("websocket_attempt", origin=origin, host=host, upgrade=upgrade, connection=connection)
-
-    allowed_origins = settings.CORS_ORIGINS.split(",")
-
-    if origin and origin not in allowed_origins:
-        logger.warning("websocket_rejected_origin", origin=origin, allowed=allowed_origins)
-        await websocket.close(code=1008, reason="Origin not allowed")
-        return
-
-    try:
-        await websocket.accept()
-        logger.info("websocket_accepted", origin=origin)
-    except Exception as e:
-        logger.error("websocket_accept_failed", error=str(e), origin=origin)
-        return
-
-    try:
-        await websocket.send_json({
-            "type": "HELLO",
-            "payload": {"message": "Connected to TMS WS"}
-        })
-    except Exception as e:
-        logger.error("websocket_hello_failed", error=str(e))
-
-    try:
-        while True:
-            await websocket.receive_text()
-    except WebSocketDisconnect:
-        logger.info("websocket_disconnected")
-
-
-@router.get("/")
-async def root():
-    """Root endpoint."""
-    return {
-        "message": "TMS - Transport Management System",
-        "docs": "/docs",
-        "redoc": "/redoc",
-    }

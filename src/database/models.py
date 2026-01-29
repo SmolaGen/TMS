@@ -133,11 +133,11 @@ class Driver(Base):
     Модель водителя.
     """
     __tablename__ = "drivers"
-    
+
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     telegram_id: Mapped[int] = mapped_column(
-        BigInteger, 
-        unique=True, 
+        BigInteger,
+        unique=True,
         index=True,
         comment="Telegram user ID"
     )
@@ -151,7 +151,7 @@ class Driver(Base):
         comment="Номер телефона"
     )
     status: Mapped[DriverStatus] = mapped_column(
-        Enum(DriverStatus, name="driver_status", 
+        Enum(DriverStatus, name="driver_status",
              values_callable=lambda x: [e.value for e in x]),
         default=DriverStatus.OFFLINE,
         server_default=text("'offline'"),
@@ -221,18 +221,18 @@ class Contractor(Base):
     Модель подрядчика (внешней системы).
     """
     __tablename__ = "contractors"
-    
+
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     api_key: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     webhook_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     is_active: Mapped[bool] = mapped_column(default=True, server_default=text("true"))
-    
+
     created_at: Mapped[datetime] = mapped_column(
         default=datetime.utcnow,
         server_default=text("CURRENT_TIMESTAMP")
     )
-    
+
     # Relationships
     orders: Mapped[List["Order"]] = relationship("Order", back_populates="contractor")
 
@@ -243,13 +243,13 @@ class Contractor(Base):
 class Order(Base):
     """
     Модель заказа.
-    
+
     Note:
         Exclusion Constraint `no_driver_time_overlap` гарантирует,
         что один водитель не может иметь пересекающиеся по времени заказы.
     """
     __tablename__ = "orders"
-    
+
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     driver_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("drivers.id", ondelete="SET NULL"),
@@ -283,14 +283,14 @@ class Order(Base):
         server_default=text("'normal'"),
         comment="Приоритет заказа"
     )
-    
+
     # Временной интервал выполнения заказа
     time_range: Mapped[Optional[tuple]] = mapped_column(
         TSTZRANGE(),
         nullable=True,
         comment="Временной интервал выполнения (с таймзоной)"
     )
-    
+
     pickup_location: Mapped[Optional[str]] = mapped_column(
         Geometry(geometry_type="POINT", srid=4326),
         nullable=True,
@@ -301,7 +301,7 @@ class Order(Base):
         nullable=True,
         comment="Координаты точки выгрузки (WGS84)"
     )
-    
+
     pickup_address: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     dropoff_address: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     customer_phone: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
@@ -327,26 +327,26 @@ class Order(Base):
         nullable=True,
         comment="Время в пути в секундах (от OSRM)"
     )
-    
+
     # Стоимость
     price: Mapped[Optional[Decimal]] = mapped_column(
         Numeric(10, 2),
         nullable=True,
         comment="Итоговая стоимость заказа"
     )
-    
+
     route_geometry: Mapped[Optional[str]] = mapped_column(
         Text,
         nullable=True,
         comment="Закодированная геометрия маршрута (polyline)"
     )
-    
+
     comment: Mapped[Optional[str]] = mapped_column(
         Text,
         nullable=True,
         comment="Комментарий к заказу"
     )
-    
+
     # Lifecycle timestamps
     assigned_at: Mapped[Optional[datetime]] = mapped_column(
         nullable=True,
@@ -367,7 +367,7 @@ class Order(Base):
         server_default=text("CURRENT_TIMESTAMP"),
         onupdate=datetime.utcnow
     )
-    
+
     # Relationships
     driver: Mapped[Optional["Driver"]] = relationship(
         "Driver",
@@ -416,7 +416,7 @@ class Order(Base):
     @property
     def dropoff_lon(self) -> Optional[float]:
         return to_shape(self.dropoff_location).x if self.dropoff_location else None
-    
+
     __table_args__ = (
         Index("ix_orders_status_priority", "status", "priority"),
         ExcludeConstraint(
@@ -436,7 +436,7 @@ class DriverLocationHistory(Base):
     История перемещений водителя.
     """
     __tablename__ = "driver_location_history"
-    
+
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     driver_id: Mapped[int] = mapped_column(
         ForeignKey("drivers.id", ondelete="CASCADE"),
@@ -456,7 +456,7 @@ class DriverLocationHistory(Base):
         server_default=text("CURRENT_TIMESTAMP"),
         comment="Время записи в БД"
     )
-    
+
     driver: Mapped["Driver"] = relationship("Driver", backref="location_history")
 
     __table_args__ = (
@@ -597,282 +597,6 @@ class Route(Base):
         nullable=True,
         comment="Причина отмены маршрута"
     )
-    created_at: Mapped[datetime] = mapped_column(
-        default=datetime.utcnow,
-        server_default=text("CURRENT_TIMESTAMP")
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        default=datetime.utcnow,
-        server_default=text("CURRENT_TIMESTAMP"),
-        onupdate=datetime.utcnow
-    )
-
-    # Relationships
-    driver: Mapped[Optional["Driver"]] = relationship(
-        "Driver",
-        back_populates="routes",
-        lazy="joined"
-    )
-    route_points: Mapped[List["RoutePoint"]] = relationship(
-        "RoutePoint",
-        back_populates="route",
-        lazy="selectin",
-        order_by="RoutePoint.sequence"
-    )
-    change_history: Mapped[List["RouteChangeHistory"]] = relationship(
-        "RouteChangeHistory",
-        back_populates="route",
-        lazy="selectin",
-        order_by="RouteChangeHistory.created_at.desc()"
-    )
-
-    def __repr__(self) -> str:
-        return f"<Route(id={self.id}, driver_id={self.driver_id}, status={self.status.value})>"
-
-
-class RoutePoint(Base):
-    """
-    Модель точки маршрута.
-
-    Представляет отдельную точку (остановку) в маршруте с порядковым номером.
-    """
-    __tablename__ = "route_points"
-
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    route_id: Mapped[int] = mapped_column(
-        ForeignKey("routes.id", ondelete="CASCADE"),
-        index=True,
-        comment="FK на маршрут"
-    )
-    sequence: Mapped[int] = mapped_column(
-        comment="Порядковый номер точки в маршруте"
-    )
-    location: Mapped[str] = mapped_column(
-        Geometry(geometry_type="POINT", srid=4326),
-        comment="Координаты точки (WGS84)"
-    )
-    address: Mapped[Optional[str]] = mapped_column(
-        String(500),
-        nullable=True,
-        comment="Адрес точки"
-    )
-    order_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("orders.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True,
-        comment="FK на связанный заказ (если применимо)"
-    )
-    stop_type: Mapped[RouteStopType] = mapped_column(
-        Enum(RouteStopType, name="route_stop_type",
-             values_callable=lambda x: [e.value for e in x]),
-        default=RouteStopType.OTHER,
-        server_default=text("'other'"),
-        comment="Тип остановки"
-    )
-
-    # Временные метки
-    estimated_arrival: Mapped[Optional[datetime]] = mapped_column(
-        nullable=True,
-        comment="Планируемое время прибытия"
-    )
-    actual_arrival: Mapped[Optional[datetime]] = mapped_column(
-        nullable=True,
-        comment="Фактическое время прибытия"
-    )
-    is_completed: Mapped[bool] = mapped_column(
-        default=False,
-        server_default=text("false"),
-        comment="Флаг выполнения точки"
-    )
-
-    # Дополнительная информация
-    note: Mapped[Optional[str]] = mapped_column(
-        Text,
-        nullable=True,
-        comment="Заметки к точке маршрута"
-    )
-
-    created_at: Mapped[datetime] = mapped_column(
-        default=datetime.utcnow,
-        server_default=text("CURRENT_TIMESTAMP")
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        default=datetime.utcnow,
-        server_default=text("CURRENT_TIMESTAMP"),
-        onupdate=datetime.utcnow
-    )
-
-    # Relationships
-    route: Mapped["Route"] = relationship(
-        "Route",
-        back_populates="route_points",
-        lazy="joined"
-    )
-    order: Mapped[Optional["Order"]] = relationship(
-        "Order",
-        lazy="joined"
-    )
-
-    @property
-    def lat(self) -> Optional[float]:
-        """Широта точки."""
-        return to_shape(self.location).y if self.location else None
-
-    @property
-    def lon(self) -> Optional[float]:
-        """Долгота точки."""
-        return to_shape(self.location).x if self.location else None
-
-    __table_args__ = (
-        Index("ix_route_points_route_sequence", "route_id", "sequence"),
-    )
-
-    def __repr__(self) -> str:
-        return f"<RoutePoint(id={self.id}, route_id={self.route_id}, sequence={self.sequence}, stop_type={self.stop_type.value})>"
-
-
-class RouteChangeHistory(Base):
-    """
-    История изменений маршрута.
-
-    Используется для аудита и отслеживания всех изменений
-    в маршрутах и их точках.
-    """
-    __tablename__ = "route_change_history"
-
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    route_id: Mapped[int] = mapped_column(
-        ForeignKey("routes.id", ondelete="CASCADE"),
-        index=True,
-        comment="FK на маршрут"
-    )
-    change_type: Mapped[RouteChangeType] = mapped_column(
-        Enum(RouteChangeType, name="route_change_type",
-             values_callable=lambda x: [e.value for e in x]),
-        comment="Тип изменения"
-    )
-    changed_by_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("drivers.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True,
-        comment="ID пользователя, внесшего изменение"
-    )
-
-    # Поля для хранения данных изменения
-    changed_field: Mapped[Optional[str]] = mapped_column(
-        String(255),
-        nullable=True,
-        comment="Название изменённого поля"
-    )
-    old_value: Mapped[Optional[str]] = mapped_column(
-        Text,
-        nullable=True,
-        comment="Значение до изменения (JSON)"
-    )
-    new_value: Mapped[Optional[str]] = mapped_column(
-        Text,
-        nullable=True,
-        comment="Значение после изменения (JSON)"
-    )
-
-    # Дополнительная информация
-    description: Mapped[Optional[str]] = mapped_column(
-        Text,
-        nullable=True,
-        comment="Описание изменения"
-    )
-    change_metadata: Mapped[Optional[str]] = mapped_column(
-        Text,
-        nullable=True,
-        comment="Дополнительные метаданные (JSON)"
-    )
-
-    created_at: Mapped[datetime] = mapped_column(
-        default=datetime.utcnow,
-        server_default=text("CURRENT_TIMESTAMP"),
-        index=True,
-        comment="Время внесения изменения"
-    )
-
-    # Relationships
-    route: Mapped["Route"] = relationship(
-        "Route",
-        back_populates="change_history",
-        lazy="joined"
-    )
-    changed_by: Mapped[Optional["Driver"]] = relationship(
-        "Driver",
-        lazy="joined"
-    )
-
-    __table_args__ = (
-        Index("ix_route_change_history_route_time", "route_id", "created_at"),
-    )
-
-    def __repr__(self) -> str:
-        return f"<RouteChangeHistory(id={self.id}, route_id={self.route_id}, change_type={self.change_type.value})>"
-
-
-class Route(Base):
-    """
-    Модель multi-stop маршрута.
-
-    Маршрут объединяет несколько заказов для одного водителя,
-    оптимизируя последовательность выполнения точек.
-    """
-    __tablename__ = "routes"
-
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    driver_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("drivers.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True,
-        comment="FK на водителя"
-    )
-    status: Mapped[RouteStatus] = mapped_column(
-        Enum(RouteStatus, name="route_status",
-             values_callable=lambda x: [e.value for e in x]),
-        default=RouteStatus.PLANNED,
-        server_default=text("'planned'"),
-        comment="Статус маршрута"
-    )
-    optimization_type: Mapped[RouteOptimizationType] = mapped_column(
-        Enum(RouteOptimizationType, name="route_optimization_type",
-             values_callable=lambda x: [e.value for e in x]),
-        default=RouteOptimizationType.TIME,
-        server_default=text("'time'"),
-        comment="Тип оптимизации (время/расстояние)"
-    )
-
-    # Рассчитанные метрики маршрута
-    total_distance_meters: Mapped[Optional[float]] = mapped_column(
-        nullable=True,
-        comment="Общая дистанция маршрута в метрах"
-    )
-    total_duration_seconds: Mapped[Optional[float]] = mapped_column(
-        nullable=True,
-        comment="Общее время маршрута в секундах"
-    )
-
-    # Временные метки жизненного цикла маршрута
-    started_at: Mapped[Optional[datetime]] = mapped_column(
-        nullable=True,
-        comment="Время начала выполнения маршрута"
-    )
-    completed_at: Mapped[Optional[datetime]] = mapped_column(
-        nullable=True,
-        comment="Время завершения маршрута"
-    )
-    cancelled_at: Mapped[Optional[datetime]] = mapped_column(
-        nullable=True,
-        comment="Время отмены маршрута"
-    )
-    cancellation_reason: Mapped[Optional[str]] = mapped_column(
-        Text,
-        nullable=True,
-        comment="Причина отмены маршрута"
-    )
-
     created_at: Mapped[datetime] = mapped_column(
         default=datetime.utcnow,
         server_default=text("CURRENT_TIMESTAMP")

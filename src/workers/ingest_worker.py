@@ -9,6 +9,7 @@ High-Throughput Location Ingest Worker
 - Poison Pill Handling: изоляция "битых" записей
 - XAUTOCLAIM для восстановления зависших сообщений
 - At-least-once delivery: XACK только после COMMIT
+- Health check support for monitoring and Docker integration
 
 Usage:
     python -m src.workers.ingest_worker
@@ -18,16 +19,22 @@ import asyncio
 import os
 import sys
 import struct
+import time
 from datetime import datetime, timezone
 from io import BytesIO
-from typing import List, Optional
-from dataclasses import dataclass
+from typing import List, Optional, Dict, Any
+from dataclasses import dataclass, field
 
 import psycopg
 from redis.asyncio import Redis
 
 from src.config import settings
 from src.core.logging import get_logger
+from src.core.health_check import (
+    HealthChecker,
+    HealthCheckResult,
+    HealthStatus,
+)
 
 logger = get_logger(__name__)
 
@@ -60,12 +67,12 @@ class LocationRecord:
     longitude: float
     timestamp: datetime
     retry_count: int = 0
-    
+
     @classmethod
     def from_stream_entry(cls, entry_id: bytes, data: dict) -> "LocationRecord":
         """Парсинг записи из Redis Stream."""
         entry_id_str = entry_id.decode() if isinstance(entry_id, bytes) else entry_id
-        
+
         # Поддержка обоих форматов: bytes и str
         def get_value(key: str) -> str:
             if key.encode() in data:
@@ -75,7 +82,7 @@ class LocationRecord:
                 val = data[key]
                 return val.decode() if isinstance(val, bytes) else val
             raise KeyError(f"Key {key} not found in data")
-        
+
         return cls(
             entry_id=entry_id_str,
             driver_id=int(get_value("driver_id")),
@@ -84,6 +91,33 @@ class LocationRecord:
             timestamp=datetime.fromisoformat(get_value("ts")),
             retry_count=0
         )
+
+
+@dataclass
+class WorkerMetrics:
+    """Метрики работы ingest worker."""
+    started_at: Optional[float] = None
+    last_batch_at: Optional[float] = None
+    total_records_processed: int = 0
+    total_batches_processed: int = 0
+    total_errors: int = 0
+    total_poison_pills: int = 0
+    last_error: Optional[str] = None
+    last_error_at: Optional[float] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Преобразует метрики в словарь."""
+        return {
+            "started_at": self.started_at,
+            "last_batch_at": self.last_batch_at,
+            "total_records_processed": self.total_records_processed,
+            "total_batches_processed": self.total_batches_processed,
+            "total_errors": self.total_errors,
+            "total_poison_pills": self.total_poison_pills,
+            "last_error": self.last_error,
+            "last_error_at": self.last_error_at,
+            "uptime_seconds": time.time() - self.started_at if self.started_at else 0,
+        }
 
 
 # ============================================================================
@@ -149,19 +183,21 @@ class BinaryCopyWriter:
 class IngestWorker:
     """
     High-throughput воркер для записи геолокаций в PostgreSQL.
-    
+
     Паттерны:
     - Consumer Group для параллельной обработки
     - Binary COPY для максимальной производительности
     - Poison Pill Detection с fallback на row-by-row
     - XAUTOCLAIM для recovery зависших сообщений
+    - Health check support for monitoring
     """
-    
+
     def __init__(self, redis: Redis, pg_dsn: str):
         self.redis = redis
         # psycopg требует DSN без +asyncpg
         self.pg_dsn = pg_dsn.replace("+asyncpg", "")
         self._running = True
+        self._metrics = WorkerMetrics()
     
     async def setup(self):
         """Создаёт consumer group если не существует."""
@@ -182,9 +218,10 @@ class IngestWorker:
     async def run(self):
         """Основной цикл воркера."""
         await self.setup()
+        self._metrics.started_at = time.time()
         logger.info(
-            "ingest_worker_started", 
-            consumer=CONSUMER_NAME, 
+            "ingest_worker_started",
+            consumer=CONSUMER_NAME,
             batch_size=BATCH_SIZE,
             stream=STREAM_NAME
         )
@@ -201,6 +238,9 @@ class IngestWorker:
                 logger.info("ingest_worker_cancelled")
                 break
             except Exception as e:
+                self._metrics.total_errors += 1
+                self._metrics.last_error = str(e)
+                self._metrics.last_error_at = time.time()
                 logger.exception("ingest_worker_error", error=str(e))
                 await asyncio.sleep(1)
     
@@ -297,6 +337,9 @@ class IngestWorker:
             
             # Успешно записали — ACK все записи
             await self.redis.xack(STREAM_NAME, CONSUMER_GROUP, *entry_ids)
+            self._metrics.total_records_processed += len(records)
+            self._metrics.total_batches_processed += 1
+            self._metrics.last_batch_at = time.time()
             logger.info("batch_ingested", count=len(records))
             
         except Exception as e:
@@ -381,6 +424,7 @@ class IngestWorker:
                 },
                 maxlen=10000  # Храним последние 10K poison pills
             )
+            self._metrics.total_poison_pills += 1
             logger.error(
                 "poison_pill_sent_to_dlq",
                 entry_id=record.entry_id,
@@ -389,10 +433,191 @@ class IngestWorker:
             )
         except Exception as e:
             logger.exception("failed_to_send_to_dlq", original_error=error, dlq_error=str(e))
-    
+
     def stop(self):
         """Graceful shutdown."""
         self._running = False
+
+    # =========================================================================
+    # Health Check Methods
+    # =========================================================================
+
+    async def check_redis_health(self) -> HealthCheckResult:
+        """
+        Проверяет здоровье подключения к Redis.
+
+        Returns:
+            HealthCheckResult с статусом подключения к Redis
+        """
+        start_time = time.time()
+        try:
+            await self.redis.ping()
+            response_time = (time.time() - start_time) * 1000
+            return HealthCheckResult(
+                name="redis",
+                status=HealthStatus.OK,
+                message="Redis connection successful",
+                response_time_ms=response_time,
+            )
+        except Exception as e:
+            response_time = (time.time() - start_time) * 1000
+            logger.error("redis_health_check_failed", error=str(e))
+            return HealthCheckResult(
+                name="redis",
+                status=HealthStatus.FAILED,
+                message=f"Redis connection failed: {str(e)}",
+                response_time_ms=response_time,
+            )
+
+    def check_postgres_health(self) -> HealthCheckResult:
+        """
+        Проверяет здоровье подключения к PostgreSQL.
+
+        Returns:
+            HealthCheckResult с статусом подключения к PostgreSQL
+        """
+        start_time = time.time()
+        try:
+            with psycopg.connect(self.pg_dsn) as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT 1")
+            response_time = (time.time() - start_time) * 1000
+            return HealthCheckResult(
+                name="postgres",
+                status=HealthStatus.OK,
+                message="PostgreSQL connection successful",
+                response_time_ms=response_time,
+            )
+        except Exception as e:
+            response_time = (time.time() - start_time) * 1000
+            logger.error("postgres_health_check_failed", error=str(e))
+            return HealthCheckResult(
+                name="postgres",
+                status=HealthStatus.FAILED,
+                message=f"PostgreSQL connection failed: {str(e)}",
+                response_time_ms=response_time,
+            )
+
+    async def get_health_status(self) -> HealthCheckResult:
+        """
+        Возвращает общий статус здоровья воркера.
+
+        Проверяет:
+        - Статус воркера (running/stopped)
+        - Подключение к Redis
+        - Подключение к PostgreSQL
+        - Время последней активности
+
+        Returns:
+            HealthCheckResult с общим статусом здоровья воркера
+        """
+        start_time = time.time()
+        checks: Dict[str, HealthCheckResult] = {}
+
+        # Check worker running status
+        if not self._running:
+            return HealthCheckResult(
+                name="ingest_worker",
+                status=HealthStatus.FAILED,
+                message="Worker is not running",
+                details={"metrics": self._metrics.to_dict()},
+            )
+
+        # Check Redis
+        redis_result = await self.check_redis_health()
+        checks["redis"] = redis_result
+
+        # Check PostgreSQL
+        postgres_result = self.check_postgres_health()
+        checks["postgres"] = postgres_result
+
+        # Determine overall status
+        if any(r.status == HealthStatus.FAILED for r in checks.values()):
+            overall_status = HealthStatus.FAILED
+            message = "One or more dependencies failed"
+        elif any(r.status == HealthStatus.DEGRADED for r in checks.values()):
+            overall_status = HealthStatus.DEGRADED
+            message = "One or more dependencies degraded"
+        else:
+            overall_status = HealthStatus.OK
+            message = "Worker is healthy"
+
+        # Check for stale worker (no batches in last 5 minutes when running)
+        if (
+            self._metrics.started_at
+            and self._metrics.last_batch_at
+            and overall_status == HealthStatus.OK
+        ):
+            idle_time = time.time() - self._metrics.last_batch_at
+            # Mark as degraded if no activity for more than 5 minutes
+            # (could indicate stream is empty or worker is stuck)
+            if idle_time > 300:  # 5 minutes
+                overall_status = HealthStatus.DEGRADED
+                message = f"No batches processed in {int(idle_time)} seconds"
+
+        response_time = (time.time() - start_time) * 1000
+        return HealthCheckResult(
+            name="ingest_worker",
+            status=overall_status,
+            message=message,
+            details={
+                "checks": {k: v.to_dict() for k, v in checks.items()},
+                "metrics": self._metrics.to_dict(),
+            },
+            response_time_ms=response_time,
+        )
+
+    @property
+    def metrics(self) -> WorkerMetrics:
+        """Возвращает текущие метрики воркера."""
+        return self._metrics
+
+    @property
+    def is_running(self) -> bool:
+        """Возвращает статус работы воркера."""
+        return self._running
+
+
+# ============================================================================
+# Health Checker for External Use
+# ============================================================================
+
+class IngestWorkerHealthChecker(HealthChecker):
+    """
+    Health checker для ingest worker, реализующий стандартный интерфейс.
+
+    Позволяет интегрировать проверку здоровья воркера в общую систему
+    мониторинга через CompositeHealthChecker.
+
+    Usage:
+        worker = IngestWorker(redis, pg_dsn)
+        checker = IngestWorkerHealthChecker(worker)
+        result = await checker.check()
+    """
+
+    def __init__(
+        self,
+        worker: IngestWorker,
+        timeout: float = settings.HEALTH_CHECK_TIMEOUT,
+    ):
+        """
+        Инициализация health checker для ingest worker.
+
+        Args:
+            worker: Экземпляр IngestWorker для проверки
+            timeout: Таймаут для проверки в секундах
+        """
+        super().__init__(name="ingest_worker", timeout=timeout)
+        self.worker = worker
+
+    async def check(self) -> HealthCheckResult:
+        """
+        Выполняет проверку здоровья ingest worker.
+
+        Returns:
+            HealthCheckResult с результатом проверки
+        """
+        return await self.worker.get_health_status()
 
 
 # ============================================================================
