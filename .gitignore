@@ -74,7 +74,6 @@ init_osrm.sh
 .cursorrules
 AGENTS.md
 Check_tg_app.md
-.env.example
 
 # Ralph state files
 .ralph/state/
