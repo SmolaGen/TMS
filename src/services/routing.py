@@ -6,6 +6,7 @@ import httpx
 
 from src.config import settings
 from src.core.logging import get_logger
+from src.core.circuit_breaker import CircuitBreaker, CircuitBreakerOpenError
 
 logger = get_logger(__name__)
 
@@ -56,33 +57,34 @@ class RoutingService:
         self.price_base = price_base
         self.price_per_km = price_per_km
         self.timeout = timeout
+        self.circuit_breaker = CircuitBreaker(
+            failure_threshold=5,
+            timeout=60,
+            success_threshold=1,
+            name="osrm_routing"
+        )
     
-    async def get_route(
+    async def _fetch_osrm_route(
         self,
-        origin: Tuple[float, float],       # (lon, lat)
-        destination: Tuple[float, float],  # (lon, lat)
-        with_geometry: bool = False
-    ) -> RouteResult:
+        coords: str,
+        overview: str
+    ) -> dict:
         """
-        Рассчитывает маршрут между двумя точками через OSRM.
-        
+        Выполняет HTTP запрос к OSRM.
+
         Args:
-            origin: Координаты начала (lon, lat)
-            destination: Координаты конца (lon, lat)
-            with_geometry: Включить polyline геометрию
-            
+            coords: Координаты в формате lon,lat;lon,lat
+            overview: Параметр overview для OSRM (full или false)
+
         Returns:
-            RouteResult с дистанцией и временем
-            
+            Данные из OSRM
+
         Raises:
-            RouteNotFoundError: Маршрут не найден
             OSRMUnavailableError: OSRM недоступен
+            RoutingServiceError: Ошибка при запросе
         """
-        # Формат: lon,lat
-        coords = f"{origin[0]},{origin[1]};{destination[0]},{destination[1]}"
-        overview = "full" if with_geometry else "false"
         url = f"{self.osrm_url}/route/v1/driving/{coords}?overview={overview}"
-        
+
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(url)
@@ -94,6 +96,43 @@ class RoutingService:
         except Exception as e:
             logger.exception("Unexpected error during OSRM request")
             raise RoutingServiceError(f"Failed to fetch route: {str(e)}") from e
+
+        return data
+
+    async def get_route(
+        self,
+        origin: Tuple[float, float],       # (lon, lat)
+        destination: Tuple[float, float],  # (lon, lat)
+        with_geometry: bool = False
+    ) -> RouteResult:
+        """
+        Рассчитывает маршрут между двумя точками через OSRM.
+
+        Args:
+            origin: Координаты начала (lon, lat)
+            destination: Координаты конца (lon, lat)
+            with_geometry: Включить polyline геометрию
+
+        Returns:
+            RouteResult с дистанцией и временем
+
+        Raises:
+            RouteNotFoundError: Маршрут не найден
+            OSRMUnavailableError: OSRM недоступен
+        """
+        # Формат: lon,lat
+        coords = f"{origin[0]},{origin[1]};{destination[0]},{destination[1]}"
+        overview = "full" if with_geometry else "false"
+
+        try:
+            data = await self.circuit_breaker.call(
+                self._fetch_osrm_route,
+                coords,
+                overview
+            )
+        except CircuitBreakerOpenError as e:
+            logger.error(f"Circuit breaker open for OSRM: {str(e)}")
+            raise OSRMUnavailableError(f"OSRM service is temporarily unavailable") from e
 
         code = data.get("code")
         if code != "Ok":

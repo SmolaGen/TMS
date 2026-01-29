@@ -25,6 +25,7 @@ def create_app(settings: Settings) -> FastAPI:
 
     configure_app_middleware(app)
     configure_bot_webhook(app)
+    # Register health check endpoints and core routes
     app.include_router(core_router)
     app.include_router(api_router, prefix="/api")
 
