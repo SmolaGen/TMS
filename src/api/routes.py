@@ -43,6 +43,7 @@ from src.config import settings
 from src.api.contractors import router as contractor_router
 from src.api.endpoints.drivers import router as driver_endpoints_router
 from src.api.endpoints.notifications import router as notifications_router
+from src.api.endpoints.schedule import router as schedule_router
 
 # Import limiter from main app (will be set via app.state)
 from slowapi import Limiter
@@ -53,6 +54,7 @@ router = APIRouter(prefix="/v1", tags=["TMS API"])
 router.include_router(contractor_router)
 router.include_router(driver_endpoints_router)
 router.include_router(notifications_router)
+router.include_router(schedule_router)
 
 # Локальный limiter для использования в декораторах
 # Локальный limiter для использования в декораторах

@@ -233,3 +233,12 @@ def get_template_service(
     """Провайдер сервиса управления шаблонами заказов."""
     from src.services.template_service import TemplateService
     return TemplateService(uow, geocoding)
+
+
+def get_schedule_service(
+    uow: SQLAlchemyUnitOfWork = Depends(get_uow),
+    order_service: OrderService = Depends(get_order_service)
+):
+    """Провайдер сервиса управления расписанием."""
+    from src.services.schedule_service import ScheduleService
+    return ScheduleService(uow, order_service)
