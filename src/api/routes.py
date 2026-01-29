@@ -44,6 +44,8 @@ from src.api.contractors import router as contractor_router
 from src.api.endpoints.drivers import router as driver_endpoints_router
 from src.api.endpoints.notifications import router as notifications_router
 from src.api.endpoints.schedule import router as schedule_router
+from src.api.endpoints.availability import router as availability_router
+from src.api.endpoints.templates import router as templates_router
 
 # Import limiter from main app (will be set via app.state)
 from slowapi import Limiter
@@ -55,6 +57,8 @@ router.include_router(contractor_router)
 router.include_router(driver_endpoints_router)
 router.include_router(notifications_router)
 router.include_router(schedule_router)
+router.include_router(availability_router)
+router.include_router(templates_router)
 
 # Локальный limiter для использования в декораторах
 # Локальный limiter для использования в декораторах
