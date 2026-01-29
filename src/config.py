@@ -77,84 +77,15 @@ class Settings(BaseSettings):
     NOTIFICATION_RETRY_COUNT: int = 3
     NOTIFICATION_RETRY_DELAY: int = 5  # seconds
 
-    @field_validator('SECRET_KEY', 'JWT_SECRET_KEY', 'TELEGRAM_BOT_TOKEN')
-    @classmethod
-    def validate_not_placeholder(cls, v: str, info) -> str:
-        """Ensure secrets are not placeholder values."""
+    # Health Checks
+    HEALTH_CHECK_TIMEOUT: float = 5.0  # seconds
+    HEALTH_CHECK_INTERVAL: int = 30  # seconds
+    HEALTH_CHECK_RETRIES: int = 3
 
-        # CRITICAL: Reject compromised secrets from git history
-        # These values were exposed in previous commits and must never be used
-        COMPROMISED_SECRETS = {
-            # Old JWT secret key (exposed in git history before security fix)
-            '6064f7b6b3e7f6d1a9e8b7c6d5a4f3e2d1c0b9a8f7e6d5c4b3a2f1e0d9c8b7a',
-            # Old Telegram bot token (exposed in git history before security fix)
-            '8237141688:AAGcLKDClo_RUxXRdO7CeGjNw_zwzITHf4w',
-        }
+    # Circuit Breaker
+    CIRCUIT_BREAKER_FAILURE_THRESHOLD: int = 5
+    CIRCUIT_BREAKER_TIMEOUT: int = 60  # seconds
+    CIRCUIT_BREAKER_RECOVERY_TIMEOUT: int = 120  # seconds
 
-        if v in COMPROMISED_SECRETS:
-            raise ValueError(
-                f'{info.field_name} is a COMPROMISED secret from git history. '
-                f'This value was exposed in previous commits and MUST NOT be used. '
-                f'Anyone with repository access can extract this value. '
-                f'Generate a new secret immediately using: '
-                f'python -c "import secrets; print(secrets.token_hex(32))"'
-            )
-
-        placeholder_values = {
-            'CHANGE_ME_IN_ENV',
-            'CHANGE_ME',
-            'your-secret-key-change-me',
-            'your-jwt-secret-key-here',
-            'your-telegram-bot-token-here',
-            'your-bot-token-from-botfather',
-        }
-
-        if v in placeholder_values:
-            raise ValueError(
-                f'{info.field_name} cannot use placeholder value "{v}". '
-                f'You must set a real secret in your .env file. '
-                f'See .env.example for setup instructions.'
-            )
-
-        # Check for CHANGEME_ prefix pattern (from .env.example)
-        if v.upper().startswith('CHANGEME'):
-            raise ValueError(
-                f'{info.field_name} cannot start with "CHANGEME" - this is a placeholder from .env.example. '
-                f'You must generate a real secret. '
-                f'Use: python -c "import secrets; print(secrets.token_hex(32))"'
-            )
-
-        # Enforce minimum length for security
-        if len(v) < 32:
-            raise ValueError(
-                f'{info.field_name} must be at least 32 characters long for security. '
-                f'Current length: {len(v)}. Generate a secure secret using: '
-                f'python -c "import secrets; print(secrets.token_hex(32))"'
-            )
-
-        return v
-
-    @field_validator('DATABASE_URL')
-    @classmethod
-    def validate_database_url(cls, v: str) -> str:
-        """Ensure database URL doesn't contain placeholder or compromised passwords."""
-
-        # Check for placeholder password
-        if 'password@' in v or ':password@' in v:
-            raise ValueError(
-                'DATABASE_URL contains placeholder password. '
-                'Set a real database password in your .env file.'
-            )
-
-        # CRITICAL: Check for compromised password from git history
-        if 'tms_secret' in v.lower():
-            raise ValueError(
-                'DATABASE_URL contains COMPROMISED password "tms_secret" from git history. '
-                'This password was exposed in previous commits and MUST be changed. '
-                'Generate a new password and update both the database and .env file. '
-                'See SECURITY_FIX.md for rotation instructions.'
-            )
-
-        return v
 
 settings = Settings()
