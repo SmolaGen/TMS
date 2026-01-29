@@ -6,6 +6,7 @@ import {
   DashboardOutlined,
   OrderedListOutlined,
   CarOutlined,
+  CalendarOutlined,
   BarChartOutlined,
   SettingOutlined,
   MenuFoldOutlined,
@@ -143,6 +144,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { path: '/', icon: <DashboardOutlined />, label: 'Дашборд' },
     { path: '/orders', icon: <OrderedListOutlined />, label: 'Заказы' },
     { path: '/drivers', icon: <CarOutlined />, label: 'Водители' },
+    { path: '/schedule', icon: <CalendarOutlined />, label: 'Календарь' },
     { path: '/stats', icon: <BarChartOutlined />, label: 'Статистика' },
   ];
 
