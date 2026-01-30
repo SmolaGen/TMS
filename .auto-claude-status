@@ -1,17 +1,17 @@
 {
   "active": true,
-  "spec": "004-remove-hardcoded-secrets-from-source-code",
+  "spec": "013-",
   "state": "building",
   "subtasks": {
-    "completed": 5,
-    "total": 6,
+    "completed": 20,
+    "total": 24,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Security Verification",
+    "current": "Frontend UI Components",
     "id": null,
-    "total": 2
+    "total": 6
   },
   "workers": {
     "active": 0,

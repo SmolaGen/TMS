@@ -8,6 +8,7 @@ import { OrdersPage } from './pages/OrdersPage';
 import { DriversPage } from './pages/DriversPage';
 import { StatsPage } from './pages/StatsPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { SchedulePage } from './pages/SchedulePage';
 import { DriverApp } from './pages/DriverApp';
 import { AuthGuard } from './components/AuthGuard';
 import { GlobalErrorBoundary } from './components/GlobalErrorBoundary';
@@ -89,6 +90,7 @@ function AppRoutes({ onThemeChange, themeMode, isDark }: AppRoutesProps) {
         <Route path="/" element={<Dashboard />} />
         <Route path="/orders" element={<OrdersPage />} />
         <Route path="/drivers" element={<DriversPage />} />
+        <Route path="/schedule" element={<SchedulePage />} />
         <Route path="/stats" element={<StatsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<Dashboard />} />
